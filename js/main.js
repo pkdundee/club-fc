@@ -119,7 +119,7 @@
       case 'sound': C.acct().sound = v === '1'; C.save(); C.ui.refresh(); break;
       // staff and Playbook (Phase 6)
       case 'coach': C.openCoach(v); break;
-      case 'market': C.openMarket(); break;
+      case 'market': C.openCoachMarket(); break;
       case 'search': C.openSearch(); break;
       case 'dosearch': { const r = C.search(); if (r === 'gold') C.toast('Not enough Gold'); else { C.ui.back(); if (r.coach) C.openCoach(r.coach.id); C.toast(r.coach ? `🎉 ${C.RARITY[r.coach.rar][0]} ${C.SPECS[r.coach.spec][1]}: ${r.coach.fn} ${r.coach.ln}` : `Repeat ${C.SPECS[r.dup.spec][1]}: +${r.credits} 🎫 Clinic Credits`); C.render(); } break; }
       case 'chire': { const r = C.hire(v); if (r === 'gold') C.toast('Not enough Gold'); else if (r === 'cash') C.toast('Not enough Booster $'); else if (r) { C.ui.back(); C.ui.refresh(); C.toast(`✍️ ${r.fn} ${r.ln} joins your staff`); C.render(); } break; }
