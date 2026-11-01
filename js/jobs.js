@@ -7,7 +7,7 @@
       text: 'The locker room is a portable cabin and one floodlight works. But this roster has real players, and the athletic director expects results.',
       ambition: 'Win the conference within 2 seasons', ray: 'Good players, terrible facilities. Win early, then spend.', lv: { stadium: 1, training: 1, med: 1, dorms: 1 } },
     promises: { set: 'strong', stars: 3, kind: 'Win now', title: 'New athletic director, big promises', eq: 4, cash: 15000,
-      text: 'A new AD wants a winner fast and has already told the local paper. Older squad, decent office, not much money left.',
+      text: 'A new athletic director wants a winner fast and has already told the local paper. Older squad, decent office, not much money left.',
       ambition: 'Reach the national tournament in 3 seasons', ray: 'Pressure from day one. The seniors can carry you this year.', lv: { hq: 2, film: 2 } },
     heroes: { set: 'strong', stars: 2, kind: 'Steady', title: 'Local heroes, tiny crowd', eq: 4, cash: 16000,
       text: 'Half the squad grew up within 20 miles. The town loves them, but only about 80 people come to games.',
@@ -19,7 +19,7 @@
       text: 'Drainage is "on the list". The last coach left mid-season for a high-school job. Low expectations and a young squad.',
       ambition: 'Stay out of the bottom 2 while you rebuild', ray: 'Nobody expects anything. Perfect time to build properly.', lv: { training: 1, film: 1 } },
     blank: { set: 'weak', stars: 2, kind: 'Steady', title: 'A blank slate', eq: 6, cash: 22000,
-      text: 'Mostly young players, a modest budget and an AD who just wants the program "to be respectable". The biggest scholarship pool on the board.',
+      text: 'Mostly young players, a modest budget and an athletic director who just wants the program "to be respectable". The biggest scholarship pool on the board.',
       ambition: 'Top half this season, then build from there', ray: 'Biggest scholarship pool here. Recruiting heaven.', lv: { recruit: 2 } }
   };
   const STRONG = ['crumbling', 'promises', 'heroes'], WEAK = ['boosters', 'floods', 'blank'];
@@ -139,7 +139,7 @@
       </div>
       <h3 class="jh">🏛 Facilities</h3>
       <div class="facs">${fac}</div>
-      <div class="raytake"><span>🧢</span><p><b>Ray's take</b>${C.esc(st.ray)}</p></div>
+      <div class="raytake"><span>👀</span><p><b>First impressions</b>${C.esc(st.ray)}</p></div>
       <div class="jbtns"><button class="btn sec2" data-act="back">‹ Back to openings</button><button class="btn sec2" data-act="shortlist" data-v="${j.id}">${M.short.has(j.id) ? '★ Shortlisted' : '☆ Shortlist'}</button></div>
       <button class="btn full pri" data-act="signjob">Sign the contract</button>`;
   }

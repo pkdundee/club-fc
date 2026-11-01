@@ -1,10 +1,10 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc2_p3';
+  const KEY = 'clubfc2_p9';
   const FREE_SLOTS = 2;
 
   // Account-wide: Gold and purchases are shared across careers.
-  const freshAccount = () => ({ gold: 300, vipUntil: 0, slot3: false, tslot3: false, extraCareer: false, adDay: '', adsUsed: 0, theme: 'auto', testCap: 0 });
+  const freshAccount = () => ({ gold: 300, vipUntil: 0, slot3: false, tslot3: false, sslot3: false, pslot3: false, sound: false, extraCareer: false, adDay: '', adsUsed: 0, theme: 'auto', testCap: 0 });
 
   C.db = { v: 2, account: freshAccount(), careers: [], active: -1 };
 

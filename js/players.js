@@ -92,7 +92,7 @@
   };
 
   // ---------- squad helpers ----------
-  C.rosterCap = (car = C.car()) => Math.min(28, 20 + Math.ceil(car.b.dorms / 3));
+  C.rosterCap = (car = C.car()) => Math.min(28, 24 + Math.ceil(car.b.dorms / 3));
   C.squad = () => C.car().squad;
   C.P = id => C.car().squad.find(p => p.id === id);
   C.ensureSquad = car => { if (!car || car.squad) return; car.squad = C.genSquad(car, (car.created & 0xffffff) ^ 0x5bd1e995); car.captains = []; car.tokens = 2; car.devq = []; C.save(); };
@@ -118,13 +118,13 @@
 
   // ---------- development plans (Q15c, Q21c): a real-time queue with slots ----------
   C.DEVSLOTS = [{ id: 'free', name: 'Free slot' }, { id: 'vip', name: "Coach's Club slot", why: "Join the Coach's Club" }, { id: 'iap', name: 'Extra training slot', why: 'One-off purchase' }, { id: 'prog', name: 'Earned slot', why: 'Training Ground Lv 10' }];
-  C.devSlotOpen = id => id === 'free' || (id === 'vip' && C.isVip()) || (id === 'iap' && C.acct().tslot3) || (id === 'prog' && C.level('training') >= 10);
+  C.devSlotOpen = id => id === 'free' || (id === 'vip' && C.isVip()) || (id === 'iap' && C.acct().tslot3) || (id === 'prog' && (C.level('training') >= 10 || C.pbv('slot') >= 1));
   C.devOpenSlots = () => C.DEVSLOTS.filter(s => C.devSlotOpen(s.id)).length;
   C.devFree = () => C.car().devq.length < C.devOpenSlots();
   C.inDev = pid => C.car().devq.find(q => q.pid === pid);
   C.attrCap = (p, k) => C.clamp(p.pot + ((PROFILE[p.pos] || {})[k] || 0) + 4, 20, 99);
   C.planTime = (p, focus) => { const base = focus.startsWith('pos:') ? 7200 : 1200 + 40 * (p.a[focus] || 40);
-    const speed = (1 + C.level('training') * .03) * (p.year === 1 ? 1.2 : p.year === 2 ? 1.1 : 1); return Math.round(base / speed); };
+    const speed = (1 + C.level('training') * .03 + C.pbv('trn') + C.staffF('dev') * .25) * (p.year === 1 ? 1.2 : p.year === 2 ? 1.1 : 1); return Math.round(base / speed); };
   C.planCost = (p, focus) => focus.startsWith('pos:') ? 1500 : Math.round((200 + 12 * (p.a[focus] || 40)) / 50) * 50;
   C.startPlan = (pid, focus) => { const car = C.car(), p = C.P(pid); if (!C.devFree() || C.inDev(pid)) return false;
     const cost = C.planCost(p, focus); if (car.cash < cost) return 'cash'; if (!focus.startsWith('pos:') && p.a[focus] >= C.attrCap(p, focus)) return 'cap';

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="80%"><stop offset="0" stop-color="#2b4bb8"/><stop offset=".55" stop-color="#14245c"/><stop offset="1" stop-color="#0a1230"/></radialGradient>
+    <linearGradient id="sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#c2410c"/></linearGradient>
+    <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7d6" stop-opacity=".35"/><stop offset="1" stop-color="#fff7d6" stop-opacity="0"/></linearGradient>
+    <radialGradient id="ball" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d7dde8"/></radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <path d="M170 150 L60 1024 L380 1024Z" fill="url(#ray)"/><path d="M854 150 L644 1024 L964 1024Z" fill="url(#ray)"/>
+  <g fill="#fff7d6"><circle cx="150" cy="150" r="14"/><circle cx="190" cy="150" r="14"/><circle cx="834" cy="150" r="14"/><circle cx="874" cy="150" r="14"/></g>
+  <path d="M0 860 Q512 790 1024 860 V1024 H0Z" fill="#2f7d3a"/><path d="M0 900 Q512 830 1024 900" stroke="#fff" stroke-opacity=".5" stroke-width="6" fill="none"/>
+  <path d="M512 190 L780 280 V500 C780 660 660 760 512 820 C364 760 244 660 244 500 V280Z" fill="url(#sh)" stroke="#fff" stroke-width="22"/>
+  <path d="M512 245 L728 318 V500 C728 625 632 708 512 758 C392 708 296 625 296 500 V318Z" fill="none" stroke="#fde68a" stroke-opacity=".6" stroke-width="8"/>
+  <circle cx="512" cy="500" r="150" fill="url(#ball)" stroke="#0f172a" stroke-width="10"/>
+  <path d="M512 430 L578 478 L553 556 L471 556 L446 478Z" fill="#0f172a"/>
+  <g stroke="#0f172a" stroke-width="10" fill="none" stroke-linecap="round"><path d="M512 430 L512 352"/><path d="M578 478 L650 452"/><path d="M553 556 L598 622"/><path d="M471 556 L426 622"/><path d="M446 478 L374 452"/></g>
+  <g fill="#0f172a"><path d="M490 352 L534 352 L540 364 L484 364Z"/><path d="M640 432 L660 470 L648 476 L630 440Z"/><path d="M588 630 L610 612 L620 622 L598 640Z"/><path d="M436 630 L414 612 L404 622 L426 640Z"/><path d="M384 432 L364 470 L376 476 L394 440Z"/></g>
+  <g fill="#fde68a"><path d="M512 120 l10 22 24 2 -18 16 6 24 -22 -13 -22 13 6 -24 -18 -16 24 -2z"/></g>
+</svg>

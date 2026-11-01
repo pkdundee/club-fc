@@ -10,16 +10,19 @@
   function act(a, v, el) {
     const car = C.car();
     switch (a) {
-      case 'tab': C.tab = v; C.ui.closeAll(); C.render(); break;
+      case 'tab': C.tab = v; C.selB = null; C.ui.closeAll(); C.render(); break;
+      case 'proginfo': C.openProgramInfo(); break;
       case 'back': C.ui.back(); break;
       case 'close': C.ui.closeAll(); if (C.car() && C.tab === 'campus') C.render(); break;
       case 'bgclose': C.ui.back(); break;
       case 'toast': C.toast(v); break;
       case 'zoom': C.zoomBy(+v); break;
       // buildings
-      case 'bld': if (C.mapDragged()) return; C.openBuilding(v); break;
+      // tap selects a building (name, level, big action button); tapping it again or the button opens the upgrade card
+      case 'bld': if (C.mapDragged()) return; if (C.selB === v) C.openBuilding(v); else { C.selB = v; C.redrawMap(); } break;
+      case 'bldopen': if (C.mapDragged()) return; C.openBuilding(v); break;
       case 'land': if (C.mapDragged()) return; C.toast(`Campus expansion land. Opens when your program reaches Tier ${v}.`); break;
-      case 'upgrade': if (C.startUpgrade(v)) { C.fwEvent('upgrade'); C.toast(`🔨 ${LEVEL_NAMES(v)} upgrade started`); C.ui.closeAll(); C.render(); } break;
+      case 'upgrade': if (C.startUpgrade(v)) { C.selB = null; C.fwEvent('upgrade'); C.toast(`🔨 ${LEVEL_NAMES(v)} upgrade started`); C.ui.closeAll(); C.render(); } break;
       case 'instant': if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } break;
       case 'speed': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
         if (C.finishNow(q, !free)) { C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } else C.toast('Not enough Gold'); break; }
@@ -67,14 +70,106 @@
       case 'release': C.openRelease(v); break;
       case 'releaseyes': if (C.release(v)) { C.toast('Player released'); C.ui.closeAll(); C.render(); } else C.toast('Keep at least 16 players'); break;
       case 'rare': { const p = C.useRareRecruit(); if (p === 'full') C.toast('Roster is full'); else if (p) { C.render(); C.openPlayer(p.id); C.toast(`🎉 ${p.fn} ${p.ln} signed (Rare ${p.pos})`); } break; }
+      // recruiting (Phase 4)
+      case 'rroute': C.setRoute(v); break;
+      case 'recruit': C.openRecruit(v); break;
+      case 'scout': { const r = C.scout(v); if (r === 'cp') C.toast('Not enough Coaching Points'); else { C.toast('🔍 Scouted'); C.ui.refresh(); C.render(); } break; }
+      case 'rpass': C.passRecruit(v); C.ui.closeAll(); C.render(); break;
+      case 'offer': C.openOffer(v); break;
+      case 'oset': C.offerSet(v); break;
+      case 'orole': C.offerSet('role', v); break;
+      case 'osend': C.sendOffer(); break;
+      case 'camp': { const r = C.runCamp(); if (r === true) { C.toast('🏕 3 players came to your ID Camp'); C.render(); } else C.toast(r === 'cash' ? 'Not enough Booster $' : 'The next camp is not ready yet'); break; }
+      case 'agency': { const r = C.hireAgency(); if (r === true) { C.toast('🌍 Your scout found a player'); C.render(); } else C.toast('Not enough Gold'); break; }
+      case 'portalgo': C.ui.closeAll(); C.tab = 'recruit'; C.setRoute('portal'); break;
+      case 'keep': C.openKeep(v); break;
+      case 'keepopt': { const [pid, k] = v.split('|'); const r = C.keepOption(pid, k); if (r === true) { C.toast('🤝 Done. Their chance of leaving dropped'); C.ui.refresh(); C.render(); } else if (r) C.toast(r === 'pool' ? 'Not enough scholarship money left' : 'Not enough Booster $'); break; }
+      case 'letgo': C.letGo(v); C.toast('They have entered the portal'); C.ui.closeAll(); C.render(); break;
+      // season and match day (Phase 5)
+      case 'prematch': C.openPreMatch(); break;
+      case 'mkick': C.kickOff(); break;
+      case 'mquick': C.quickMatch(); break;
+      case 'mleave': C.leaveMatch(); break;
+      case 'mcdstop': C.stopCountdown(); break;
+      case 'mtac': C.stopCountdown(); C.openTactics(true); break;
+      case 'mspeed': C.matchSpeed(v); break;
+      case 'mpause': C.matchPause(); break;
+      case 'mskip': C.matchSkip(v); break;
+      case 'msound': C.toggleSound(); break;
+      case 'm2h': C.secondHalf(); break;
+      case 'msubs': C.openSubs(); break;
+      case 'msin': C.subIn(v); break;
+      case 'msout': C.subOut(v); break;
+      case 'mment': C.openMatchPlan(); break;
+      case 'mmset': C.matchMent(v); break;
+      case 'mauto': C.matchAuto(); break;
+      case 'report': C.openReport(+v); break;
+      case 'seav': C.setSeasonView(v); break;
+      case 'nextseason': { const r = C.startNextSeason(); C.render(); C.toast(r.up ? `🎉 ${C.college().short} moved up to ${C.TIERS[car.tier].n}! Building caps raised.` : `🎓 ${r.left.length} seniors graduated${r.walk.length ? ` · ${r.walk.length} walk-ons joined` : ''}`); break; }
+      case 'tactics': C.openTactics(); break;
+      case 'form': C.setForm(v); C.ui.refresh(); break;
+      case 'ment': C.tac().ment = +v; C.save(); C.ui.refresh(); break;
+      case 'pick': C.openPicker(v); break;
+      case 'pkf': C.pickerFilter(v); break;
+      case 'setpick': { const [s, pid] = v.split('|'); C.setPick(s, pid); C.ui.back(); C.ui.refresh(); if (C.tab === 'squad') C.render(); break; }
+      case 'unpick': C.unpick(v); C.ui.back(); C.ui.refresh(); break;
+      case 'instr': { const [pid, k] = v.split('|'); C.tac().instr[pid] = +k; C.save(); C.ui.refresh(); break; }
+      case 'autopick': C.autoPick(); C.ui.refresh(); C.toast('✨ Picked the strongest fit XI'); break;
+      case 'automan': C.tac().auto = !C.tac().auto; C.save(); C.ui.refresh(); break;
+      case 'sound': C.acct().sound = v === '1'; C.save(); C.ui.refresh(); break;
+      // staff and Playbook (Phase 6)
+      case 'coach': C.openCoach(v); break;
+      case 'market': C.openMarket(); break;
+      case 'search': C.openSearch(); break;
+      case 'dosearch': { const r = C.search(); if (r === 'gold') C.toast('Not enough Gold'); else { C.ui.back(); if (r.coach) C.openCoach(r.coach.id); C.toast(r.coach ? `🎉 ${C.RARITY[r.coach.rar][0]} ${C.SPECS[r.coach.spec][1]}: ${r.coach.fn} ${r.coach.ln}` : `Repeat ${C.SPECS[r.dup.spec][1]}: +${r.credits} 🎫 Clinic Credits`); C.render(); } break; }
+      case 'chire': { const r = C.hire(v); if (r === 'gold') C.toast('Not enough Gold'); else if (r === 'cash') C.toast('Not enough Booster $'); else if (r) { C.ui.back(); C.ui.refresh(); C.toast(`✍️ ${r.fn} ${r.ln} joins your staff`); C.render(); } break; }
+      case 'cassign': { const r = C.assign(v); if (r === 'full') C.toast('All staff slots are full'); C.ui.refresh(); C.render(); break; }
+      case 'crelease': if (C.releaseCoach(v)) { C.ui.back(); C.render(); C.toast('Coach released'); } break;
+      case 'cmanual': { const r = C.useManual(v); C.toast(r === 'none' ? 'No coaching manuals left' : r === 'cap' ? 'At the level cap: raise the licence' : r ? `⬆ Level up! Lv ${C.coach(v).level}` : '+100 XP'); C.ui.refresh(); C.render(); break; }
+      case 'clic': { const r = C.licenceUp(v); C.toast(r === true ? `🎫 ${C.LICENCE[C.coach(v).lic]} licence earned` : { max: 'Already Pro', level: 'Reach the level cap first', credits: 'Not enough Clinic Credits', cash: 'Not enough Booster $' }[r]); C.ui.refresh(); C.render(); break; }
+      case 'ctrait': { const r = C.traitUp(v); C.toast(r === true ? '📕 Trait upgraded' : r === 'max' ? 'Trait is at max' : 'Not enough Trait Books'); C.ui.refresh(); C.render(); break; }
+      case 'sslotinfo': { const s2 = C.STAFFSLOTS.find(x => x.id === v); C.toast(`🔒 ${s2.name}: ${s2.why}`); if (v !== 'prog') C.openStore(); break; }
+      case 'playbook': C.openPlaybook(); break;
+      case 'pbnode': C.openPBNode(v); break;
+      case 'pbgo': { const r = C.pbStart(v); if (r === true) { C.toast('📘 Research started'); C.ui.back(); C.ui.refresh(); } else C.toast({ max: 'Fully researched', locked: 'Locked', busy: 'Already researching', slots: 'All research slots are busy', cp: 'Not enough Coaching Points', cash: 'Not enough Booster $' }[r]); break; }
+      case 'pbspeed': { const q = C.pbInQueue(v); if (!q) break; if (!C.isFreeFinish(q)) { const g = C.goldToFinish(q); if (C.acct().gold < g) { C.toast('Not enough Gold'); break; } C.acct().gold -= g; } q.end = C.now(); C.tickPB().forEach(m => C.toast(m)); C.ui.refresh(); break; }
+      case 'pbslot': { const s2 = C.PBSLOTS.find(x => x.id === v); C.toast(`🔒 ${s2.name}: ${s2.why}`); if (v !== 'prog') C.openStore(); break; }
+      // career (Phase 7)
+      case 'offers': C.openOffers(); break;
+      case 'takeoffer': C.openMove(+v); break;
+      case 'invite': C.inviteToggle(v); break;
+      case 'domove': { const r = C.makeMove(+v); if (!r) break; C.ui.closeAll(); C.tab = 'campus'; C.render();
+        C.ui.open('New job', () => `<div class="scenebn">${C.artSlot('handshake', C.sceneHandshake(r.col.c1, r.col.c2))}</div><div class="collegecard">${C.crestSVG(r.col.c1, r.col.c2, r.col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(r.col.full)}</b><br><small class="mutey">${C.tierLabel()}</small></div></div>
+          <div class="card" style="margin-top:12px;font-size:14px;font-weight:700;line-height:1.5">🧳 Your program buildings, staff and Playbook came with you.<br>${r.joined.length ? '✔ Followed you: ' + r.joined.map(p => C.esc(p.ln)).join(', ') : 'Nobody followed you.'}${r.declined.length ? '<br>✖ Stayed behind: ' + r.declined.map(p => C.esc(p.ln)).join(', ') : ''}<br>🏠 Your first game is a homecoming friendly at your old college.</div>
+          <button class="btn full pri" data-act="close">Let's go</button>`); break; }
+      case 'declineoffers': C.declineOffers(); C.ui.closeAll(); C.render(); C.toast('❤️ Loyalty noted: ◆ 50, 💵 5K and a happier Director'); break;
+      case 'reclass': if (C.applyReclass()) { C.toast('🔁 Approved: next season is a transition season'); C.ui.refresh(); C.render(); } break;
+      // live-ops and store (Phase 8)
+      case 'events': C.openEvents(); break;
+      case 'evtab': C.setEventsTab(v); break;
+      case 'calclaim': { const r = C.calClaim(); if (r) { C.toast('🎁 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
+      case 'taskclaim': { const r = C.taskClaim(+v); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
+      case 'chest': { const r = C.chestClaim(); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
+      case 'vipdaily': { const r = C.vipDaily(); if (r) { C.toast('👑 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
+      case 'adreward': { const r = C.adReward(); if (r) { C.toast((C.isVip() ? '👑 ' : '▶ Ad finished (test): ') + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
+      case 'passclaim': { const [t, i] = v.split('|'); const r = C.passClaim(t, +i); if (r === 'prem') C.toast('Unlock the premium track first'); else if (r) { C.toast('🎟 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
+      case 'buypack': { const r = C.buyPack(v); C.toast(r === 'owned' ? 'Already bought' : '✅ Test purchase complete'); C.ui.refresh(); C.render(); break; }
+      case 'kit': C.buyKit(v); C.toast(`${C.KITS[v][0]} ${C.KITS[v][1]}`); C.ui.refresh(); C.render(); break;
       case 'settings': C.openSettings(); break;
       case 'theme': C.acct().theme = v; C.save(); C.applyTheme(); C.ui.refresh(); break;
       case 'testcap': C.acct().testCap = +v; C.save(); C.ui.refresh(); C.redrawMap(); break;
       case 'cheat': if (v === 'gold') C.acct().gold += 500; if (v === 'cash') car.cash += 20000; if (v === 'cp') car.cp += 100;
-        if (v === 'finish') { car.queue.forEach(q => q.end = C.now()); (car.devq || []).forEach(q => q.end = C.now()); C.tickDev(); }
+        if (v === 'apps') C.appsNow();
+        if (v === 'rest') car.squad.forEach(p => p.energy = 100);
+        if (v === 'rep') car.rep = Math.min(100, (car.rep ?? 10) + 30);
+        if (v === 'prog') C.PROGRAM_B.forEach(k => car.b[k] = Math.min(C.tierCap(), car.b[k] + 3));
+        if (v === 'season') { C.simRestOfSeason(); C.ui.closeAll(); C.tab = 'season'; C.render(); C.toast('Season skipped to the end'); break; }
+        if (v === 'camp' && car.rec) car.rec.campReady = 0;
+        if (v === 'portal') { const m = C.portalOpen() ? C.closePortalNow() : (C.openPortalWindow(), '🚪 Transfer window open for 3 days'); C.save(); C.ui.closeAll(); C.tab = 'recruit'; C.setRoute('portal'); C.toast(m); break; }
+        if (v === 'finish') { car.queue.forEach(q => q.end = C.now()); (car.devq || []).forEach(q => q.end = C.now()); (car.pbq || []).forEach(q => q.end = C.now()); C.tickDev(); C.tickPB(); }
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
       case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Gold and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
-      case 'wipeyes': try { localStorage.removeItem('clubfc2_p3'); } catch (e) { } location.reload(); break;
+      case 'wipeyes': try { localStorage.removeItem('clubfc2_p9'); } catch (e) { } location.reload(); break;
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();
         if (v === 'vip') a2.vipUntil = Math.max(a2.vipUntil, C.now()) + 30 * 864e5;
@@ -82,20 +177,23 @@
         if (v === 'gold') a2.gold += 500;
         if (v === 'tslot3') { if (a2.tslot3) break; a2.tslot3 = true; }
         if (v === 'tokens' && car) car.tokens += 3;
+        if (v === 'sslot3') { if (a2.sslot3) break; a2.sslot3 = true; }
+        if (v === 'pslot3') { if (a2.pslot3) break; a2.pslot3 = true; }
         C.save(); C.toast('✅ Test purchase complete'); C.ui.refresh(); if (C.tab === 'campus') C.render(); break; }
     }
   }
 
   function welcome() {
     const col = C.college();
-    C.ui.open('Welcome', () => `<div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(col.full)}</b><br><small style="color:var(--mute);font-weight:800">${C.esc(col.mascot)} · ${col.state} · Tier 5</small></div></div>
+    C.ui.open('Welcome', () => `<div class="scenebn">${C.artSlot('arrival', C.sceneArrival(col.c1, col.c2))}</div><div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(col.full)}</b><br><small style="color:var(--mute);font-weight:800">${C.esc(col.mascot)} · ${col.state} · Tier 5</small></div></div>
       <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Coach ${C.esc(C.car().coach)}, welcome. ${C.esc(C.STORIES[C.car().job.story].title)}.<br><br>🔨 Tap a building to upgrade it, or an empty plot to build.<br>💵 Tap the bubbles to collect Booster $ and 📘 Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
       <button class="btn full pri" data-act="close">Let's build</button>`);
   }
 
   // one tap handler for everything
   document.addEventListener('click', e => {
-    const el = e.target.closest('[data-act]'); if (!el) return;
+    const el = e.target.closest('[data-act]');
+    if (!el) { if (C.selB && e.target.closest('#map') && !C.mapDragged()) { C.selB = null; C.redrawMap(); } return; }
     if (el.dataset.act === 'bgclose' && e.target !== el) return;
     e2 = e; act(el.dataset.act, el.dataset.v, el);
   });
@@ -111,6 +209,10 @@
   setInterval(() => {
     if (!C.car()) return;
     const dmsg = C.tickDev(); if (dmsg.length) { dmsg.forEach(m => C.toast(m)); if (C.tab === 'squad') C.render(); if (C.ui.isOpen()) C.ui.refresh(); }
+    if (C.recover() && C.tab === 'squad' && !C.ui.isOpen() && ++n % 30 === 0) C.render();
+    const pm = C.tickPB(); if (pm.length) { pm.forEach(x => C.toast(x)); if (C.ui.isOpen()) C.ui.refresh(); }
+    const rt = C.tickRecruit(); rt.msgs.forEach(m => C.toast(m)); if (rt.changed && !C.ui.isOpen() && C.tab !== 'campus') C.render();
+    C.$$('[data-until]').forEach(e => { e.textContent = C.dur((+e.dataset.until - C.now()) / 1000); });
     C.$$('[data-dtimer]').forEach(e => { const q = C.inDev(e.dataset.dtimer); if (q) e.textContent = C.dur(C.remaining(q)); });
     const done = C.tick();
     if (done.length) { done.forEach(q => C.toast(`✨ ${LEVEL_NAMES(q.key)} reached Lv ${q.to}`)); C.render(); if (C.ui.isOpen()) C.ui.refresh(); return; }
@@ -121,5 +223,6 @@
 
   // start
   C.load(); C.tickRealDay(); C.applyTheme(); C.render();
+  C.loadArtManifest().then(() => { if (!C.ui.isOpen()) C.render(); });
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 })(window.CFC);

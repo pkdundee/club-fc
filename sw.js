@@ -1,7 +1,7 @@
 // Club FC offline cache. Bump VERSION when you publish a new build.
-const VERSION = 'clubfc2-p3-b';
+const VERSION = 'clubfc2-p9-g';
 const FILES = ['./', './index.html', './manifest.webmanifest', './css/style.css',
-  './js/util.js', './js/data.js', './js/state.js', './js/build.js', './js/names.js', './js/art-faces.js', './js/players.js', './js/squad.js', './js/art-campus.js', './js/ui.js', './js/jobs.js', './js/help.js', './js/ad.js', './js/screens.js', './js/main.js',
+  './js/util.js', './js/data.js', './js/art-scenes.js', './img/manifest.json', './js/state.js', './js/build.js', './js/names.js', './js/art-faces.js', './js/players.js', './js/squad.js', './js/recruit.js', './js/engine.js', './js/season.js', './js/tactics.js', './js/match.js', './js/staff.js', './js/playbook.js', './js/career.js', './js/liveops.js', './js/art-campus.js', './js/ui.js', './js/jobs.js', './js/help.js', './js/ad.js', './js/screens.js', './js/main.js',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

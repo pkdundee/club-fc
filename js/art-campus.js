@@ -153,6 +153,7 @@ const STEP=58,S=46,K4=1.7,W4=600,H4=900;
 const cell=(s,d)=>{const i=(s+d)/2,j=(s-d)/2;return [i*STEP,j*STEP]};
 const ART={film:{wall:'brick',roof:'#3f3f46'},med:{wall:'white'},recruit:{wall:'brick',roof:'#7c2d12'},dorms:{wall:'brick',roof:'#334155'},gym:{wall:'glass'},booster:{wall:'white',roof:'#7c2d12'},academic:{wall:'brick',roof:'#1e3a5f'}};
 const TOP={hq:46,stadium:30,training:14,skills:10};
+const DROP={hq:10,stadium:6,training:4,skills:4};
 function medCross(I){return (bx,by,w,d,h)=>{const [cx,cy]=I.P(bx+w,by+d/2,h*.55);const k=I.K;return `<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) skewY(-26.565)"><rect x="${-3.5*k}" y="${-1.2*k}" width="${7*k}" height="${2.4*k}" fill="#ef4444"/><rect x="${-1.2*k}" y="${-3.5*k}" width="${2.4*k}" height="${7*k}" fill="#ef4444"/></g>`}}
 function drawBuilding(I,k,x,y,sz,lvl){
  if(k==='hq')return hq(I,x,y,sz,lvl);
@@ -182,22 +183,40 @@ function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=co
   if(lvl===0&&def.needHQ&&car.b.hq<def.needHQ)g=lockedPlot(I,x,y,S,'HQ Lv '+def.needHQ);
   else if(lvl===0&&!q)g=emptyPlot(I,x,y,S,def.name.split(' ')[0]);
   else{g=lvl>0?drawBuilding(I,k,x,y,sz,lvl):I.poly([[x+4,y+4,0],[x+S-4,y+4,0],[x+S-4,y+S-4,0],[x+4,y+S-4,0]],'url(#dirt4)');if(q)g+=construction(I,x,y,S,lvl?16:4)}
-  add(`<g data-act="bld" data-v="${k}">${hit.replace('fill="#74cc6b"','fill="#74cc6b"')}${g}</g>`);
-  const [bx,by]=I.P(x+sz/2,y+sz/2,lvl?(TOP[k]||22):4);overlays.push({k,bx,by,lvl,q,def});
+  const drop=lvl?(DROP[k]||5):0;
+  add(`<g data-act="bld" data-v="${k}">${hit}<g transform="translate(0,${drop})">${g}</g></g>`);
+  // badge sits at the roofline, but never above the back edge of its own plot
+  const [bx,by0]=I.P(x+sz/2,y+sz/2,lvl?(TOP[k]||22):4),back=I.P(x,y,0)[1],front=I.P(x+sz,y+sz,0);
+  overlays.push({k,bx,by:Math.max(by0+drop,back+14),lvl,q,def,fx:front[0],fy:front[1],corners:[I.P(x,y,0),I.P(x+sz,y,0),I.P(x+sz,y+sz,0),I.P(x,y+sz,0)]});
  }
  [[-3,40],[STEP-3,90],[150,STEP-3],[2*STEP-3,170],[90,2*STEP-3]].forEach(([a,b],i)=>add(I.person(a,b,i%2?C1:C2)));
  add(`<g class="clouds4" opacity=".8" filter="url(#blur4)" pointer-events="none"><ellipse cx="120" cy="120" rx="34" ry="9" fill="#fff"/><ellipse cx="142" cy="113" rx="20" ry="8" fill="#fff"/><ellipse cx="470" cy="420" rx="28" ry="8" fill="#fff"/><ellipse cx="160" cy="640" rx="30" ry="8" fill="#fff"/></g>`);
  // badges, timers and collect bubbles
  const sc=1.35;
- for(const o of overlays){const {k,bx,by,lvl,q,def}=o;
-  if(q){add(`<g data-act="bld" data-v="${k}" transform="translate(${bx.toFixed(1)},${(by-8).toFixed(1)}) scale(${sc})"><rect x="-32" y="-9" width="64" height="18" rx="9" fill="${C2}" stroke="#fff" stroke-width="1"/><text x="-27" y="3.4" font-size="8">🔨</text><text x="-17" y="-1" font-family="Nunito" font-weight="900" font-size="6.2" fill="#fff">${C.esc(def.name.split(' ')[0])} → ${q.to}</text><text x="28" y="6" text-anchor="end" font-family="Nunito" font-weight="900" font-size="5.6" fill="#fff" data-timer="${k}">${C.dur(C.remaining(q))}</text><rect x="-17" y="2.4" width="28" height="2.8" rx="1.4" fill="rgba(255,255,255,.35)"/><rect x="-17" y="2.4" width="${(28*C.clamp(1-C.remaining(q)/((q.end-q.start)/1000),0,1)).toFixed(1)}" height="2.8" rx="1.4" fill="#fff" data-bar="${k}"/></g>`);continue}
-  if(!lvl)continue;
-  const amt=!opts.preview&&C.PRODUCERS[k]?C.bubble(k):0;
-  add(`<g data-act="bld" data-v="${k}" transform="translate(${bx.toFixed(1)},${(by-4).toFixed(1)}) scale(${sc})" class="bdg">
-   <g class="bname"><rect x="-2" y="-6.5" width="${def.name.length*4.1+14}" height="13" rx="6.5" fill="rgba(15,27,61,.82)"/><text x="9" y="2.6" font-family="Nunito" font-weight="900" font-size="7" fill="#fff">${C.esc(def.name)}</text></g>
-   <path d="M0 -8 L7 -5 V1.5 C7 5.5 3.5 8 0 9 C-3.5 8 -7 5.5 -7 1.5 V-5Z" fill="${C1}" stroke="${GOLD}" stroke-width="1.3"/><text y="3" text-anchor="middle" font-family="Graduate,serif" font-size="${lvl>9?6.6:8}" fill="#fff">${lvl}</text>
-   ${!opts.preview&&C.readyArrow(k)?`<g transform="translate(7,-9)"><g class="upar"><circle r="4.6" fill="#22c55e" stroke="#fff" stroke-width=".9"/><path d="M0 -2.6 L2.4 .4 H1 V2.6 H-1 V.4 H-2.4Z" fill="#fff"/></g></g>`:''}</g>`);
-  if(amt)add(`<g data-act="collect" data-v="${k}" transform="translate(${(bx+22).toFixed(1)},${(by-30).toFixed(1)}) scale(${sc})"><g class="hammer"><path d="M-12 -10 h24 a4 4 0 0 1 4 4 v8 a4 4 0 0 1 -4 4 h-9 l-3 4 l-3 -4 h-9 a4 4 0 0 1 -4 -4 v-8 a4 4 0 0 1 4 -4z" fill="#fff" stroke="${C.PRODUCERS[k]==='cp'?'#38bdf8':'#16a34a'}" stroke-width="1.4"/><text x="-9" y="0" font-size="8">${C.PRODUCERS[k]==='cp'?'📘':'💵'}</text><text x="12" y="-.4" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9" fill="#14532d">${C.short(amt)}</text></g></g>`);
+ for(const o of overlays){const {k,bx,by,lvl,q,def,fx,fy}=o;
+  if(q&&C.selB!==k){add(`<g data-act="bld" data-v="${k}" transform="translate(${bx.toFixed(1)},${(by-8).toFixed(1)}) scale(${sc})"><rect x="-32" y="-9" width="64" height="18" rx="9" fill="${C2}" stroke="#fff" stroke-width="1"/><text x="-27" y="3.4" font-size="8">🔨</text><text x="-17" y="-1" font-family="Nunito" font-weight="900" font-size="6.2" fill="#fff">${C.esc(def.name.split(' ')[0])} → ${q.to}</text><text x="28" y="6" text-anchor="end" font-family="Nunito" font-weight="900" font-size="5.6" fill="#fff" data-timer="${k}">${C.dur(C.remaining(q))}</text><rect x="-17" y="2.4" width="28" height="2.8" rx="1.4" fill="rgba(255,255,255,.35)"/><rect x="-17" y="2.4" width="${(28*C.clamp(1-C.remaining(q)/((q.end-q.start)/1000),0,1)).toFixed(1)}" height="2.8" rx="1.4" fill="#fff" data-bar="${k}"/></g>`);continue}
+  const sel=!opts.preview&&C.selB===k, ready=!opts.preview&&C.readyArrow(k);
+  if(!lvl&&!sel)continue;
+  const amt=!opts.preview&&lvl&&C.PRODUCERS[k]?C.bubble(k):0;
+  if(sel){
+   // selected (Last War style): outline the plot, name and level as outlined text, then a row of round action buttons
+   const pts=o.corners.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+   add(`<polygon points="${pts}" fill="#7dd3fc" fill-opacity=".14" stroke="#7dd3fc" stroke-width="2.4" class="selring" pointer-events="none"/>`);
+   add(`<g pointer-events="none" transform="translate(${bx.toFixed(1)},${(by-12).toFixed(1)}) scale(${sc})" font-family="Nunito" font-weight="900" text-anchor="middle" stroke="#0f172a" stroke-width="2.4" paint-order="stroke" stroke-linejoin="round">
+    <text y="0" font-size="9" fill="#fff">${C.esc(def.name)}</text><text y="10" font-size="8" fill="#fde047">${lvl ? 'Lv.' + lvl : 'Not built'}</text></g>`);
+   // icon buttons on an arc round the bottom of the building, the main one at the right end
+   const acts=C.buildingActions(k), n=acts.length, cy=(by+fy)/2, R=Math.max(34,fy-cy+6);
+   const ang=n===1?[62]:acts.map((_,i)=>128-i*(76/(n-1)));
+   acts.forEach((a,i)=>{ const big=a.main, r=big?12.3:9.6, t=ang[i]*Math.PI/180;
+    add(`<g data-act="${a.act}" data-v="${a.v}" transform="translate(${(bx+Math.cos(t)*R).toFixed(1)},${(cy+Math.sin(t)*R).toFixed(1)}) scale(${sc})">${big&&a.hot?'<circle r="16" fill="#38bdf8" opacity=".35" class="uppulse"/>':''}
+     <g class="${big&&a.hot?'upar':''}"><circle r="${r}" fill="${a.col||'#2563eb'}" stroke="#fff" stroke-width="2"/>${a.icon==='up'?`<path d="M0 ${-r*.62} L${r*.56} 0 H${r*.22} V${r*.58} H${-r*.22} V0 H${-r*.56}Z" fill="#fff"/>`:`<text y="${r*.36}" text-anchor="middle" font-size="${r*1.05}">${a.icon}</text>`}</g>
+     </g>`); });
+  } else if(ready&&!(C.selB&&!opts.preview)){
+   // not selected: a small blue-and-white arrow on the building's left corner, like Last War
+   const [lx,ly]=o.corners[3];
+   add(`<g data-act="bld" data-v="${k}" transform="translate(${(lx+8).toFixed(1)},${(ly-8).toFixed(1)}) scale(${sc})"><g class="upar"><path d="M0 -5.4 L4.8 .2 H1.9 V4.8 H-1.9 V.2 H-4.8Z" fill="#2563eb" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></g></g>`);
+  }
+  if(amt)add(`<g data-act="collect" data-v="${k}" transform="translate(${(bx+(sel?def.name.length*2.6*sc+24:30)).toFixed(1)},${(by-(sel?10:6)).toFixed(1)}) scale(${sc})"><g class="hammer"><path d="M-12 -10 h24 a4 4 0 0 1 4 4 v8 a4 4 0 0 1 -4 4 h-9 l-3 4 l-3 -4 h-9 a4 4 0 0 1 -4 -4 v-8 a4 4 0 0 1 4 -4z" fill="#fff" stroke="${C.PRODUCERS[k]==='cp'?'#38bdf8':'#16a34a'}" stroke-width="1.4"/><text x="-9" y="0" font-size="8">${C.PRODUCERS[k]==='cp'?'📘':'💵'}</text><text x="12" y="-.4" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9" fill="#14532d">${C.short(amt)}</text></g></g>`);
  }
  return parts.join('')}
 
