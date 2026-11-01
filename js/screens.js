@@ -11,6 +11,7 @@
     const app = C.$('#screen');
     if (!C.car()) { app.innerHTML = splashHTML(); return; }
     if (C.tab === 'campus') { app.innerHTML = campusHTML(); mountMap(); }
+    else if (C.tab === 'squad') app.innerHTML = C.squadHTML();
     else app.innerHTML = soonHTML(C.tab);
     app.insertAdjacentHTML('beforeend', tabsHTML());
   };
@@ -39,7 +40,9 @@
       </div>
       <div class="side sl">${slots}</div>
       <div class="side sr">
-        <button class="ev" data-act="careers"><div class="c" style="background:linear-gradient(150deg,#0ea5e9,#0369a1)">🧑‍🏫</div>Careers</button>
+        ${C.fwActive() ? `<button class="ev" data-act="firstweek"><div class="c" style="background:linear-gradient(150deg,#f97316,#ea580c)">📅</div>Week 1${C.fwClaimable() ? `<span class="dot">${C.fwClaimable()}</span>` : ''}</button>` : ''}
+        <button class="ev" data-act="ad"><div class="c" style="background:linear-gradient(150deg,#0ea5e9,#0369a1)">🏛</div>AD${C.adUnread() ? `<span class="dot">${C.adUnread()}</span>` : ''}</button>
+        <button class="ev" data-act="ask"><div class="c" style="background:linear-gradient(150deg,#16a34a,#15803d)">🧢</div>Ask Ray</button>
         <button class="ev" data-act="store"><div class="c" style="background:linear-gradient(150deg,#ef4444,#b91c1c)">🛒</div>Store</button>
         <button class="ev" data-act="settings"><div class="c" style="background:linear-gradient(150deg,#64748b,#334155)">⚙️</div>Settings</button>
       </div>
@@ -49,32 +52,59 @@
   }
 
   let dragged = false;
+  // Pan and zoom. One finger (or the left mouse button held down) drags the map; two fingers pinch to zoom.
+  const pts = new Map(); let g = null;
+  const mid = p => [p.reduce((s, q) => s + q[0], 0) / p.length, p.reduce((s, q) => s + q[1], 0) / p.length];
+  const gap = p => Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]);
+  function startGesture(m) { const p = [...pts.values()], c = mid(p); g = { m, x: c[0], y: c[1], sl: m.scrollLeft, st: m.scrollTop, dist: p.length > 1 ? gap(p) : 0, z: zoom }; }
+  function endGesture(e) { if (!pts.delete(e.pointerId)) return; if (pts.size && g) startGesture(g.m); else { g = null; setTimeout(() => dragged = false, 0); } }
+  window.addEventListener('pointermove', e => {
+    if (!g || !pts.has(e.pointerId)) return;
+    if (!g.m.isConnected) { g = null; pts.clear(); return; }
+    if (e.pointerType === 'mouse' && !(e.buttons & 1)) return endGesture(e);
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    const p = [...pts.values()], c = mid(p), m = g.m, dx = c[0] - g.x, dy = c[1] - g.y;
+    if (Math.abs(dx) + Math.abs(dy) > 8 || p.length > 1) dragged = true;
+    if (p.length > 1 && g.dist) {
+      const r = m.getBoundingClientRect(), ux = (g.sl + g.x - r.left) / g.z, uy = (g.st + g.y - r.top) / g.z;
+      applyZoom(g.z * gap(p) / g.dist);
+      m.scrollLeft = ux * zoom - (c[0] - r.left); m.scrollTop = uy * zoom - (c[1] - r.top);
+    } else { m.scrollLeft = g.sl - dx; m.scrollTop = g.st - dy; }
+  });
+  window.addEventListener('pointerup', endGesture); window.addEventListener('pointercancel', endGesture);
+
   function mountMap() {
     const m = C.$('#map'), inner = C.$('#mapin');
     inner.innerHTML = C.campusSVG(C.car());
-    const sv = inner.querySelector('svg'); sv.setAttribute('width', W() * zoom); sv.setAttribute('height', H() * zoom);
-    m.classList.toggle('zoomed', zoom > 1.15);
+    applyZoom(zoom);
     if (!view) view = { sl: Math.max(0, (W() * zoom - m.clientWidth) / 2), st: 40 };
     m.scrollLeft = view.sl; m.scrollTop = view.st;
     m.addEventListener('scroll', () => { view.sl = m.scrollLeft; view.st = m.scrollTop; }, { passive: true });
-    let d = null;
-    m.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; d = [e.clientX, e.clientY, m.scrollLeft, m.scrollTop]; dragged = false; });
-    m.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d[0], dy = e.clientY - d[1]; if (Math.abs(dx) + Math.abs(dy) > 6) dragged = true; m.scrollLeft = d[2] - dx; m.scrollTop = d[3] - dy; });
-    window.addEventListener('pointerup', () => { d = null; setTimeout(() => dragged = false, 0); }, { once: true });
-    m.addEventListener('wheel', e => { e.preventDefault(); setZoom(zoom - e.deltaY * .003); }, { passive: false });
+    m.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse') { if (e.button !== 0) return; e.preventDefault(); }
+      if (pts.size === 0) dragged = false;
+      pts.set(e.pointerId, [e.clientX, e.clientY]); startGesture(m);
+    });
+    m.addEventListener('wheel', e => { e.preventDefault(); const r = m.getBoundingClientRect(); setZoom(zoom * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0025)), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
   }
   C.mapDragged = () => dragged;
   C.redrawMap = () => { if (C.tab === 'campus' && C.$('#mapin')) mountMap(); };
 
-  function setZoom(n) {
-    const m = C.$('#map'); if (!m) return;
-    const cx = (m.scrollLeft + m.clientWidth / 2) / (W() * zoom), cy = (m.scrollTop + m.clientHeight / 2) / (H() * zoom);
+  function applyZoom(n) {
     zoom = C.clamp(n, .65, 2.2);
-    const sv = m.querySelector('svg'); sv.setAttribute('width', W() * zoom); sv.setAttribute('height', H() * zoom);
+    const m = C.$('#map'), sv = m && m.querySelector('svg'); if (!sv) return;
+    sv.setAttribute('width', W() * zoom); sv.setAttribute('height', H() * zoom);
     m.classList.toggle('zoomed', zoom > 1.15);
-    m.scrollLeft = cx * W() * zoom - m.clientWidth / 2; m.scrollTop = cy * H() * zoom - m.clientHeight / 2;
   }
-  C.zoomBy = dir => setZoom(zoom + (dir > 0 ? .4 : -.35));
+  // Zoom keeping the point under (ax, ay) still; defaults to the middle of the screen.
+  function setZoom(n, ax, ay) {
+    const m = C.$('#map'); if (!m) return;
+    if (ax == null) { ax = m.clientWidth / 2; ay = m.clientHeight / 2; }
+    const ux = (m.scrollLeft + ax) / zoom, uy = (m.scrollTop + ay) / zoom;
+    applyZoom(n);
+    m.scrollLeft = ux * zoom - ax; m.scrollTop = uy * zoom - ay;
+  }
+  C.zoomBy = dir => setZoom(zoom * (dir > 0 ? 1.35 : 1 / 1.35));
 
   // Live bits that change every second without redrawing the map
   C.updateLive = () => {
@@ -149,27 +179,13 @@
       ${C.db.careers.length > 1 ? `<button class="btn full danger" data-act="delcar">Delete a career…</button>` : ''}`;
   }
 
-  // ================= new career (short version; the full job market is Phase 2) =================
-  let draft = null;
-  C.openNewCareer = (replace) => {
-    const r = C.rng(Date.now() & 0xffff), ids = C.COLLEGES.map(c => c.id).sort(() => r() - .5).slice(0, 4);
-    draft = { coach: '', gender: 'w', college: ids[0], options: ids };
-    (replace ? C.ui.replace : C.ui.open)('New career', newCareerHTML);
-  };
-  function newCareerHTML() {
-    return `<label class="fld" for="coachName">Your name</label><input class="inp" id="coachName" maxlength="20" placeholder="Coach name" value="${C.esc(draft.coach)}">
-      <label class="fld">Program</label><div class="seg2"><button class="${draft.gender === 'w' ? 'on' : ''}" data-act="draftg" data-v="w">Women's soccer</button><button class="${draft.gender === 'm' ? 'on' : ''}" data-act="draftg" data-v="m">Men's soccer</button></div>
-      <label class="fld">College (Tier 5 · small colleges)</label>
-      ${draft.options.map(id => { const c = C.COLLEGES[id]; return `<button class="lrow ${draft.college === id ? '' : ''}" style="${draft.college === id ? 'outline:3px solid var(--school2)' : ''}" data-act="draftc" data-v="${id}">${C.crestSVG(c.c1, c.c2, c.abbr.slice(0, 2), 46)}<span class="lt"><b>${C.esc(c.full)}</b><small>${C.esc(c.mascot)} · ${c.state} · ${c.pub ? 'Public' : 'Private'}</small></span>${draft.college === id ? '<span class="lr">✔</span>' : ''}</button>`; }).join('')}
-      <p class="note">The full job market (12 openings, squads and stories) arrives in the next update.</p>
-      <button class="btn full pri" data-act="startcar">Sign the contract</button>`;
-  }
-  C.draft = () => draft;
-
   // ================= settings (with test tools) =================
   C.openSettings = () => C.ui.open('Settings', () => {
     const a = C.acct();
-    return `<label class="fld">Theme</label><div class="seg3">${['auto', 'light', 'dark'].map(t => `<button class="${a.theme === t ? 'on' : ''}" data-act="theme" data-v="${t}">${{ auto: 'Auto', light: 'Light', dark: 'Dark' }[t]}</button>`).join('')}</div>
+    return `<button class="lrow" data-act="careers"><span class="li">🧑‍🏫</span><span class="lt"><b>Careers</b><small>Switch or start a career</small></span><span class="lr">›</span></button>
+      <button class="lrow" data-act="help" data-v=""><span class="li">📖</span><span class="lt"><b>Coach's Handbook</b><small>How US college soccer works</small></span><span class="lr">›</span></button>
+      <button class="lrow" data-act="replayintro"><span class="li">🎬</span><span class="lt"><b>Replay the intro</b><small>The opening explainer screens</small></span><span class="lr">›</span></button>
+      <label class="fld">Theme</label><div class="seg3">${['auto', 'light', 'dark'].map(t => `<button class="${a.theme === t ? 'on' : ''}" data-act="theme" data-v="${t}">${{ auto: 'Auto', light: 'Light', dark: 'Dark' }[t]}</button>`).join('')}</div>
       <label class="fld">Testing tools</label>
       <div class="seg3"><button data-act="cheat" data-v="gold">+500 ◆</button><button data-act="cheat" data-v="cash">+$20K</button><button data-act="cheat" data-v="cp">+100 📘</button></div>
       <button class="btn full sec2" data-act="cheat" data-v="finish">Finish all builds now</button>
@@ -184,8 +200,10 @@
   C.openStore = () => C.ui.open('Store', () => {
     const a = C.acct(), vip = C.isVip();
     return `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store. Purchases are simulated and no money is charged.</div>
-      <button class="lrow" data-act="buy" data-v="vip"><span class="li">👑</span><span class="lt"><b>Coach's Club</b><small>${vip ? 'Active · ' + Math.ceil((a.vipUntil - C.now()) / 864e5) + ' days left' : '2nd build slot, +1 career slot, skip-ad rewards · 30 days'}</small></span><span class="lr">${vip ? '✔' : '$4.99'}</span></button>
+      <button class="lrow" data-act="buy" data-v="vip"><span class="li">👑</span><span class="lt"><b>Coach's Club</b><small>${vip ? 'Active · ' + Math.ceil((a.vipUntil - C.now()) / 864e5) + ' days left' : '2nd build and training slot, +1 career slot · 30 days'}</small></span><span class="lr">${vip ? '✔' : '$4.99'}</span></button>
       <button class="lrow ${a.slot3 ? 'lock' : ''}" data-act="buy" data-v="slot3"><span class="li">🔨</span><span class="lt"><b>Extra build slot</b><small>A permanent 3rd build slot</small></span><span class="lr">${a.slot3 ? '✔' : '$2.99'}</span></button>
+      <button class="lrow ${a.tslot3 ? 'lock' : ''}" data-act="buy" data-v="tslot3"><span class="li">🏋️</span><span class="lt"><b>Extra training slot</b><small>A permanent 3rd training-plan slot</small></span><span class="lr">${a.tslot3 ? '✔' : '$2.99'}</span></button>
+      <button class="lrow" data-act="buy" data-v="tokens"><span class="li">🎟</span><span class="lt"><b>3 Number Changes</b><small>Give players the number they want</small></span><span class="lr">$0.99</span></button>
       <button class="lrow" data-act="buy" data-v="gold"><span class="li">◆</span><span class="lt"><b>500 Gold</b><small>For speed-ups</small></span><span class="lr">$4.99</span></button>
       <p class="note">Money never buys results. It speeds things up; free players can reach everything.</p>`;
   });
@@ -193,7 +211,8 @@
   // ================= splash + coming soon =================
   function splashHTML() {
     return `<div class="splash"><h1>CLUB FC</h1><p>Build your college soccer program from a rundown field to national champions.</p>
-      <button class="btn pri" style="padding:16px 30px" data-act="newcar">Start a career</button></div>`;
+      <button class="btn pri" style="padding:16px 30px" data-act="newcar">Start a career</button>
+      <button class="btn" style="margin-top:12px;background:rgba(255,255,255,.15);color:#fff" data-act="help" data-v="">📖 Coach's Handbook</button></div>`;
   }
   const SOON = {
     squad: ['👕', 'Squad', 'Your players, faces, numbers, training plans and the new player cards.', 'Phase 3'],

@@ -162,7 +162,7 @@ function drawBuilding(I,k,x,y,sz,lvl){
  const o=Object.assign({},ART[k]||{wall:'brick'});if(k==='med')o.extra=medCross(I);
  return brick(I,x,y,sz,lvl,o)}
 
-function render(I,car){const C=window.CFC;const col=C.college(car);C1=col.c1;C2=col.c2;
+function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=col.c1;C2=col.c2;
  const parts=[DEFS];const add=s=>parts.push(s);
  add(`<rect width="${W4}" height="${H4}" fill="url(#grass4)"/>`);
  for(let s=-3;s<=13;s++)for(const d of [-6,-5,-4,-3,3,4,5,6]){if((s+d)%2)continue;const [x,y]=cell(s,d);[[12,14],[32,10],[22,32],[40,38]].forEach(([a,b],i)=>add(I.tree(x+a,y+b,1.1,['#e8662a','#f59e0b','#c2410c','#65a30d'][(i+s+d+20)%4])))}
@@ -192,16 +192,18 @@ function render(I,car){const C=window.CFC;const col=C.college(car);C1=col.c1;C2=
  for(const o of overlays){const {k,bx,by,lvl,q,def}=o;
   if(q){add(`<g data-act="bld" data-v="${k}" transform="translate(${bx.toFixed(1)},${(by-8).toFixed(1)}) scale(${sc})"><rect x="-32" y="-9" width="64" height="18" rx="9" fill="${C2}" stroke="#fff" stroke-width="1"/><text x="-27" y="3.4" font-size="8">🔨</text><text x="-17" y="-1" font-family="Nunito" font-weight="900" font-size="6.2" fill="#fff">${C.esc(def.name.split(' ')[0])} → ${q.to}</text><text x="28" y="6" text-anchor="end" font-family="Nunito" font-weight="900" font-size="5.6" fill="#fff" data-timer="${k}">${C.dur(C.remaining(q))}</text><rect x="-17" y="2.4" width="28" height="2.8" rx="1.4" fill="rgba(255,255,255,.35)"/><rect x="-17" y="2.4" width="${(28*C.clamp(1-C.remaining(q)/((q.end-q.start)/1000),0,1)).toFixed(1)}" height="2.8" rx="1.4" fill="#fff" data-bar="${k}"/></g>`);continue}
   if(!lvl)continue;
-  const amt=C.PRODUCERS[k]?C.bubble(k):0;
+  const amt=!opts.preview&&C.PRODUCERS[k]?C.bubble(k):0;
   add(`<g data-act="bld" data-v="${k}" transform="translate(${bx.toFixed(1)},${(by-4).toFixed(1)}) scale(${sc})" class="bdg">
    <g class="bname"><rect x="-2" y="-6.5" width="${def.name.length*4.1+14}" height="13" rx="6.5" fill="rgba(15,27,61,.82)"/><text x="9" y="2.6" font-family="Nunito" font-weight="900" font-size="7" fill="#fff">${C.esc(def.name)}</text></g>
    <path d="M0 -8 L7 -5 V1.5 C7 5.5 3.5 8 0 9 C-3.5 8 -7 5.5 -7 1.5 V-5Z" fill="${C1}" stroke="${GOLD}" stroke-width="1.3"/><text y="3" text-anchor="middle" font-family="Graduate,serif" font-size="${lvl>9?6.6:8}" fill="#fff">${lvl}</text>
-   ${C.readyArrow(k)?`<g transform="translate(7,-9)"><g class="upar"><circle r="4.6" fill="#22c55e" stroke="#fff" stroke-width=".9"/><path d="M0 -2.6 L2.4 .4 H1 V2.6 H-1 V.4 H-2.4Z" fill="#fff"/></g></g>`:''}</g>`);
+   ${!opts.preview&&C.readyArrow(k)?`<g transform="translate(7,-9)"><g class="upar"><circle r="4.6" fill="#22c55e" stroke="#fff" stroke-width=".9"/><path d="M0 -2.6 L2.4 .4 H1 V2.6 H-1 V.4 H-2.4Z" fill="#fff"/></g></g>`:''}</g>`);
   if(amt)add(`<g data-act="collect" data-v="${k}" transform="translate(${(bx+22).toFixed(1)},${(by-30).toFixed(1)}) scale(${sc})"><g class="hammer"><path d="M-12 -10 h24 a4 4 0 0 1 4 4 v8 a4 4 0 0 1 -4 4 h-9 l-3 4 l-3 -4 h-9 a4 4 0 0 1 -4 -4 v-8 a4 4 0 0 1 4 -4z" fill="#fff" stroke="${C.PRODUCERS[k]==='cp'?'#38bdf8':'#16a34a'}" stroke-width="1.4"/><text x="-9" y="0" font-size="8">${C.PRODUCERS[k]==='cp'?'📘':'💵'}</text><text x="12" y="-.4" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9" fill="#14532d">${C.short(amt)}</text></g></g>`);
  }
  return parts.join('')}
 
-window.CFC.campusSVG=car=>`<svg viewBox="0 0 ${W4} ${H4}" width="${W4}" height="${H4}" xmlns="http://www.w3.org/2000/svg" style="display:block">${render(iso(K4,W4/2,150),car)}</svg>`;
+window.CFC.campusSVG=(car,opts={})=>opts.preview
+ ?`<svg viewBox="40 60 520 560" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">${render(iso(K4,W4/2,150),car,opts)}</svg>`
+ :`<svg viewBox="0 0 ${W4} ${H4}" width="${W4}" height="${H4}" xmlns="http://www.w3.org/2000/svg" style="display:block">${render(iso(K4,W4/2,150),car,opts)}</svg>`;
 window.CFC.campusSize=[W4,H4];
 // A single building at a given level, for the upgrade card
 window.CFC.buildingThumb=function(k,lvl,car,w=200,h=150){const col=window.CFC.college(car);C1=col.c1;C2=col.c2;const sz=k==='stadium'?STEP+S:S;const tall=k==='stadium'?44:k==='hq'?78:62;

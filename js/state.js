@@ -1,16 +1,17 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc2';
+  const KEY = 'clubfc2_p3';
   const FREE_SLOTS = 2;
 
   // Account-wide: Gold and purchases are shared across careers.
-  const freshAccount = () => ({ gold: 300, vipUntil: 0, slot3: false, extraCareer: false, adDay: '', adsUsed: 0, theme: 'auto', testCap: 0 });
+  const freshAccount = () => ({ gold: 300, vipUntil: 0, slot3: false, tslot3: false, extraCareer: false, adDay: '', adsUsed: 0, theme: 'auto', testCap: 0 });
 
   C.db = { v: 2, account: freshAccount(), careers: [], active: -1 };
 
   C.load = () => {
     try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.v === 2) C.db = d; } } catch (e) { /* storage blocked: play without saving */ }
     C.db.account = Object.assign(freshAccount(), C.db.account);
+    C.db.careers.forEach(c => { if (c.job && !c.job.mix) { c.job.rating = { 3: 46, 2: 42, 1: 38 }[c.job.stars] + 1; c.job.mix = [6, 6, 5, 4]; } C.ensureSquad(c); });
   };
   C.save = () => { try { localStorage.setItem(KEY, JSON.stringify(C.db)); } catch (e) { /* ignore */ } };
 
@@ -21,13 +22,13 @@
   C.college = (car = C.car()) => C.COLLEGES[car.college];
 
   // ---- new career ----
-  C.newCareer = ({ coach, gender, college }) => {
-    const b = {}; for (const k in C.BUILDINGS) b[k] = C.BUILDINGS[k].start;
+  C.newCareer = ({ coach, pron, job }) => {
     const t = C.now();
-    const car = { id: 'c' + t, coach, gender, college, tier: 5, created: t,
-      cash: 20000, cp: 60, b, queue: [], store: { hq: t, booster: t, film: t },
+    const car = { id: 'c' + t, coach, pron, gender: job.gender, college: job.college, tier: 5, created: t,
+      job: { story: job.story, type: job.type, stars: job.stars, coa: job.coa, eq: job.eq, limit: job.limit, pool: job.pool, rating: job.rating, mix: job.mix },
+      cash: job.cash, cp: 60, b: Object.assign({}, job.b), queue: [], store: { hq: t, booster: t, film: t },
       gameDay: 1, season: 1, realDay: C.todayKey(), seen: {} };
-    C.db.careers.push(car); C.db.active = C.db.careers.length - 1; C.save(); return car;
+    C.db.careers.push(car); C.db.active = C.db.careers.length - 1; C.ensureSquad(car); C.save(); return car;
   };
   C.deleteCareer = i => { C.db.careers.splice(i, 1); if (C.db.active >= C.db.careers.length) C.db.active = C.db.careers.length - 1; C.save(); };
 

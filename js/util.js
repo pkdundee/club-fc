@@ -13,6 +13,7 @@ window.CFC = window.CFC || {};
     if (a >= 1e6) return (n / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace(/\.0$/, '') + 'M';
     if (a >= 1e3) return (n / 1e3).toFixed(a >= 1e4 ? 0 : 1).replace(/\.0$/, '') + 'K';
     return String(n); };
+  C.ord = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
   C.money = n => '$' + Math.round(n).toLocaleString('en-US');
 
   // seconds -> "1h 51m" / "4d 2h" / "45s"

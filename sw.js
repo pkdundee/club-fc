@@ -1,7 +1,7 @@
 // Club FC offline cache. Bump VERSION when you publish a new build.
-const VERSION = 'clubfc2-p1';
+const VERSION = 'clubfc2-p3-b';
 const FILES = ['./', './index.html', './manifest.webmanifest', './css/style.css',
-  './js/util.js', './js/data.js', './js/state.js', './js/build.js', './js/art-campus.js', './js/ui.js', './js/screens.js', './js/main.js',
+  './js/util.js', './js/data.js', './js/state.js', './js/build.js', './js/names.js', './js/art-faces.js', './js/players.js', './js/squad.js', './js/art-campus.js', './js/ui.js', './js/jobs.js', './js/help.js', './js/ad.js', './js/screens.js', './js/main.js',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
