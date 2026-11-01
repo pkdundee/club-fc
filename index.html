@@ -126,6 +126,16 @@ label.f{display:block;font-size:11px;color:var(--mute);text-transform:uppercase;
 .odds td:last-child{text-align:right;font-weight:700}
 .news div{padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
 .news small{color:var(--mute)}
+.ava{border-radius:50%;display:grid;place-items:center;border:2.5px solid;flex:none}
+.hbtn{width:20px;height:20px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);color:var(--mute);font-size:11px;font-weight:800;line-height:1;vertical-align:middle;flex:none}
+#tip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(74px + env(safe-area-inset-bottom));width:calc(100% - 24px);max-width:496px;background:#1d2130;border:1px solid var(--lime);border-radius:14px;padding:12px;z-index:19;box-shadow:0 10px 30px rgba(0,0,0,.5);animation:tipIn .3s ease}
+@keyframes tipIn{from{transform:translate(-50%,20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+.askbtn{position:fixed;right:max(14px,calc(50% - 246px));bottom:calc(72px + env(safe-area-inset-bottom));width:48px;height:48px;border-radius:50%;font-size:22px;z-index:7;box-shadow:0 6px 18px rgba(0,0,0,.5);border:2.5px solid}
+.faq{border-top:1px solid var(--line);padding:9px 2px}.faq summary{font-weight:700;font-size:14px;cursor:pointer}
+.hb p,.hb li{font-size:14px;line-height:1.55;color:#d6d9df}.hb ul,.hb ol{padding-left:20px}
+.moneybar{display:grid;grid-template-columns:1fr 1fr .7fr;gap:6px;padding:8px 16px;background:#121418;border-bottom:1px solid var(--line);position:sticky;top:55px;z-index:4}
+.moneybar button{background:var(--panel2);border-radius:9px;padding:5px 8px;text-align:left;display:flex;flex-direction:column}
+.moneybar small{font-size:9.5px;color:var(--mute);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}.moneybar b{font-size:14px}
 </style>
 </head>
 <body>
@@ -364,22 +374,6 @@ const FAC={
  media:{n:'Media & Sponsors',d:l=>`${'$'}${l*150} sponsor income per match`,c:1200}};
 const facCost=(k,l)=>Math.round(FAC[k].c*Math.pow(l,1.6)/50)*50;
 
-function newGame(o){
-  const g=o.gender;
-  const user={id:'U',name:o.club,nick:o.nick,short:(o.club.replace(/[^A-Za-z]/g,'')+'XXX').slice(0,3).toUpperCase(),kit:[KITS[o.kit][1],KITS[o.kit][2]],user:true};
-  const rars=SQUAD_POS.map(()=>0);[1,4,9,15].forEach(i=>rars[i]=1);rars[ri(8,17)]=2;
-  user.squad=genSquad(g,0,rars);
-  const teams=[user];
-  BOT_CLUBS.slice(0,9).forEach((c,i)=>{const sty=BOT_STYLE[i%BOT_STYLE.length];const k=KITS[c[3]];
-    const t={id:'B'+i,name:c[0],nick:c[1],short:c[2],kit:[k[1],k[2]],style:sty[0],strength:ri(-4,4)};
-    t.squad=genSquad(g,t.strength);t.tactics={formation:sty[1],mentality:sty[2],instr:Array(11).fill(2),lineup:[]};teams.push(t)});
-  user.tactics={formation:'4-3-3',mentality:2,instr:Array(11).fill(2),lineup:autopick(user.squad,'4-3-3')};
-  st={v:1,coach:o.coach,gender:g,season:1,round:0,cash:5000,gold:300,rep:0,pity:0,kickoff:'19:30',
-    fac:{stadium:1,training:1,medicine:1,recruiting:1,media:1},teams,training:[],fixtures:[],news:[],hof:[],last:null,tab:'home',apps:[],ads:{r:0,n:0},freePack:-1,tier:0,phase:'regular',day:0,userKO:[],natTeams:[],offers:[],agencyDay:-9};
-  st.fixtures=roundRobin(teams.map(t=>t.id).sort(()=>R()-.5)).map(rd=>rd.map(([h,a])=>({h,a,hs:null,as:null})));
-  news(`Welcome, Coach ${o.coach}. ${o.club} start life in The Flyover Conference (NASC).`);
-  newApps(2);save();
-}
 const me=()=>st.teams[0];
 const team=id=>st.teams.find(t=>t.id===id)||(st.natTeams||[]).find(t=>t.id===id);
 const sq=()=>me().squad;
@@ -413,30 +407,239 @@ function render(){
   if(!st){app.innerHTML=onboardHTML();return}
   migrate();const u=me();
   app.innerHTML=`<header class="top"><span class="crest" style="background:${u.kit[0]};border-color:${u.kit[1]};color:${u.kit[1]}">${u.short}</span>
-   <div class="club"><b>${esc(u.name)} ${esc(u.nick)}</b><small>${st.gender==='w'?"Women's":"Men's"} · ${tierOf().short} · Season ${st.season} · ${phaseLabel()}</small></div>
-   <span class="chip">${money(st.cash)}</span><button class="chip" style="color:#fbbf24" data-act="tab" data-v="store">◆ ${st.gold} ＋</button></header>
+   <div class="club"><b>${esc(u.name)} ${esc(u.nick)}</b><small>${st.gender==='w'?"Women's":"Men's"} soccer · ${tierOf().short} · Season ${st.season} · ${phaseLabel()}</small></div>
+   </header>
+   <div class="moneybar"><button data-act="help" data-v="money"><small>💵 Booster budget</small><b>${money(st.cash)}</b></button><button data-act="help" data-v="schol"><small>🎓 Scholarships left</small><b>${money(schAvail())}</b></button><button data-act="tab" data-v="store"><small>◆ Gold</small><b style="color:#fbbf24">${st.gold}</b></button></div>
    <main id="view"></main>
    <nav class="tabs">${['home','squad','tactics','train','recruit','club'].map(k=>`<button data-act="tab" data-v="${k}" class="${st.tab===k?'on':''}">${icon(k)}${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</nav>`;
   const v=$('#view');
   ({home:viewHome,squad:viewSquad,tactics:viewTactics,train:viewTrain,club:viewClub,recruit:viewRecruit,packs:viewRecruit,store:viewStore})[st.tab](v);
+  app.insertAdjacentHTML('beforeend',`<button class="askbtn" data-act="ask" style="background:${u.kit[0]};border-color:${u.kit[1]}" aria-label="Ask your assistant coach">🧢</button>`);
+  if(TAB_TIPS[st.tab])tip('tab_'+st.tab,...TAB_TIPS[st.tab]);
+  if(st.tab==='home'&&st.seen.arrived)tip('welcome',`I'll pop up with advice as you go. The <b>first week checklist</b> below walks you through the basics. Tap my cap 🧢 any time to ask a question.`,'game');
 }
 
+// =================== SCHOLARSHIPS ===================
+// A scholarship is a yearly amount off a player's cost of attendance (tuition + housing + food + books).
+// Each program has a yearly athletic-scholarship pool; walk-ons get no athletic aid.
+const TIER_COA=[[24000,32000,4,6],[30000,40000,7,9],[35000,55000,10,12],[45000,80000,28,28]]; // COA range, pool in full-scholarship equivalents
+const ASK=[[0,.2],[.15,.4],[.35,.65],[.6,.9],[.85,1]];
+const schCommitted=()=>sq().reduce((s,p)=>s+(p.schol||0),0);
+const schAvail=()=>Math.max(0,st.pool-schCommitted());
+const kfmt=n=>n>=10000?'$'+Math.round(n/1000)+'k':n>=1000?'$'+(n/1000).toFixed(1)+'k':'$'+Math.round(n);
+const pct=n=>Math.round(n/st.coa*100)+'%';
+const schAmt=f=>Math.round(f*st.coa/500)*500;
+function schLabel(p){return p.acad?'Academic scholarship (does not use your pool)':p.schol?`${money(p.schol)}/yr · ${pct(p.schol)} of costs`:'Walk-on: no athletic scholarship'}
+function askFor(rar){const r=ASK[rar];return Math.round((r[0]+R()*(r[1]-r[0]))*20)/20}
+function assignSchol(sqd,coa,cap){for(const p of sqd){const f=p.rar===0?(R()<.6?0:ri(1,5)*.05):p.rar===1?ri(5,10)*.05:p.rar===2?ri(11,16)*.05:p.rar===3?ri(15,20)*.05:1;p.schol=Math.round(f*coa/500)*500}
+  const tot=sqd.reduce((s,p)=>s+p.schol,0);if(tot>cap){const k=cap/tot;sqd.forEach(p=>p.schol=Math.round(p.schol*k/500)*500)}}
+function offerChance(a,f){let c;if(a.ask<=0)c=f>0?.97:.8;else{const r=f/a.ask;c=r>=1?.92:f===0?(a.walkon?.55:.06):.1+.75*r}
+  return clamp(c+Math.min(.1,st.rep/2000)+(!a.tag||a.tag==='Camp'?.04:0),.03,.97)}
+function showOffer(i){const a=st.apps[i],p=a.p,av=schAvail();const opts=[0,.25,.5,.75,1];if(a.ask&&!opts.includes(a.ask))opts.push(a.ask);opts.sort((x,y)=>x-y);
+  sheet(`<h2>Offer ${esc(p.fn)} ${esc(p.ln)} ${helpBtn('schol')}</h2>
+   <div class="card" style="font-size:13px;background:var(--panel2)">Cost of attendance at ${esc(me().name)}: <b>${money(st.coa)}/yr</b><br><span class="mute">Tuition, housing, food and books.</span><br><br>
+    ${p.fn}'s family hopes for: <b>${a.ask?`about ${Math.round(a.ask*100)}% (${money(schAmt(a.ask))}/yr)`:'a walk-on spot is fine'}</b><br>Your scholarship pool: <b>${money(av)}</b> available of ${money(st.pool)}/yr</div>
+   ${opts.map(f=>{const amt=schAmt(f),ch=offerChance(a,f),ok=amt<=av;return `<div class="row" style="padding:9px 0;border-top:1px solid var(--line)"><div class="sp"><b>${f===0?'Walk-on spot':f===1?'Full scholarship':Math.round(f*100)+'% scholarship'}</b>${f===a.ask&&f?' <span class="tag r1">Their ask</span>':''}<br><small class="mute">${f===0?'No athletic aid: they pay their own way':money(amt)+' per year, every year they stay'}</small></div>
+     <small style="width:54px;text-align:right;color:${ch>=.7?'var(--green)':ch>=.4?'var(--yellow)':'var(--orange)'}"><b>${Math.round(ch*100)}%</b><br>chance</small><button class="btn sm" data-act="makeoffer" data-i="${i}" data-v="${f}" ${ok?'':'disabled'}>Offer</button></div>`}).join('')}
+   <p class="mute" style="font-size:11px">A scholarship is renewed each year, so it uses that much of your pool for every season the player stays. Money frees up when they graduate or leave.</p>`)}
+
+// =================== JOB BOARD (first job) ===================
+const STATES={LVC:'Kentucky',TSC:'Texas',CFC:'Arizona',LET:'Ohio',GCC:'Mississippi',CBC:'Iowa',PHS:'Oklahoma',OZH:'Arkansas',BAY:'Louisiana',HDC:'New Mexico',RBT:'Pennsylvania'};
+const STORIES=[
+ ['The pitch floods when it rains','Drainage is "on the list". The last coach left mid-season for a high-school job. Scholarship money is tight, but the squad is average and the expectations are low.',{shift:-1,budget:4000,eq:5}],
+ ['Talented squad, crumbling facilities','The locker room is a portable cabin and one floodlight works. But this roster has some real players, and the athletic director expects results.',{shift:3,budget:2500,eq:4}],
+ ['Keen boosters, empty trophy cabinet','Local businesses love the team and donate generously. The squad, honestly, does not win much. Money to spend, players to find.',{shift:-3,budget:9000,eq:5}],
+ ['A blank slate','Mostly young players, a modest budget and an athletic director who just wants the program "to be respectable". The biggest scholarship pool of the four.',{shift:0,budget:5000,eq:6}]];
+function makeJobs(){const sch=[...BOT_CLUBS].sort(()=>R()-.5).slice(0,4),gen=['w','m','w','m'].sort(()=>R()-.5),sto=[...STORIES].sort(()=>R()-.5);
+  return sch.map((c,i)=>{const s=sto[i][2],coa=ri(48,64)*500;return {school:c,gender:gen[i],state:STATES[c[2]]||'USA',coa,eq:s.eq,pool:coa*s.eq,budget:s.budget,shift:s.shift,title:sto[i][0],story:sto[i][1],
+    expect:s.shift>=2?'Finish in the top 4':s.shift>=0?'Finish in the top half':'Stay out of the bottom 2'}})}
+
+function sceneSVG(kit,lvl,name){const k0=kit[0],k1=kit[1],lit=lvl>=2;
+  const stars=[[30,20],[70,35],[120,15],[200,28],[250,12],[290,30],[340,18]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1" fill="#fff" opacity=".7"/>`).join('');
+  const bleach=(x,w,h)=>Array.from({length:4},(_,i)=>`<rect x="${x+i*4}" y="${126-h+i*(h/4)}" width="${w-i*8}" height="${h/4-1}" fill="${lvl<2?'#8b7355':'#9aa3ad'}" ${lvl<2&&i===2?'opacity=".35"':''}/>`).join('');
+  return `<svg viewBox="0 0 360 200" style="width:100%;display:block;border-radius:14px" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${lvl<2?'A rundown college soccer field at dusk':'Your stadium'}">
+  <defs><linearGradient id="sky${lvl}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#121833"/><stop offset=".6" stop-color="#4f3456"/><stop offset="1" stop-color="#d9804f"/></linearGradient>
+  <radialGradient id="glow"><stop offset="0" stop-color="#fff6c2" stop-opacity=".9"/><stop offset="1" stop-color="#fff6c2" stop-opacity="0"/></radialGradient></defs>
+  <rect width="360" height="200" fill="url(#sky${lvl})"/>${stars}
+  <path d="M0 120 Q15 104 32 116 Q50 98 70 114 Q92 100 110 117 Q140 106 160 118 L360 118 L360 126 L0 126Z" fill="#1c2722"/>
+  <path d="M220 118 Q245 100 265 114 Q290 96 315 112 Q338 102 360 110 L360 126 L220 126Z" fill="#18221d"/>
+  <rect y="124" width="360" height="76" fill="${lvl<2?'#56743a':'#2f7d3a'}"/>
+  ${lvl<2?'<ellipse cx="85" cy="165" rx="28" ry="6" fill="#86684a"/><ellipse cx="240" cy="180" rx="36" ry="7" fill="#86684a"/><ellipse cx="175" cy="142" rx="20" ry="4" fill="#7a5f42"/><ellipse cx="300" cy="150" rx="14" ry="3" fill="#7a5f42"/>':Array.from({length:5},(_,i)=>`<rect y="${124+i*16}" width="360" height="8" fill="rgba(255,255,255,.04)"/>`).join('')}
+  <path d="M25 198 L82 130 L278 130 L335 198" stroke="#fff" stroke-opacity="${lvl<2?.3:.75}" stroke-dasharray="${lvl<2?'7 6':'0'}" fill="none" stroke-width="1.5"/>
+  <line x1="180" y1="130" x2="180" y2="198" stroke="#fff" stroke-opacity="${lvl<2?.25:.7}" stroke-width="1.5" stroke-dasharray="${lvl<2?'7 6':'0'}"/>
+  <rect x="160" y="116" width="40" height="14" fill="none" stroke="#e8e8e8" stroke-width="2"/>
+  ${lvl<2?'<path d="M163 118 L170 128 M170 118 L178 128 M186 118 L192 124" stroke="#bbb" stroke-width=".7"/>':'<path d="M162 118 L198 118 M162 122 L198 122 M162 126 L198 126 M168 116 L168 130 M176 116 L176 130 M184 116 L184 130 M192 116 L192 130" stroke="#ccc" stroke-width=".6"/>'}
+  ${bleach(14,74,lvl<2?22:30)}${lvl>=3?`<rect x="10" y="88" width="82" height="6" fill="${k0}"/><line x1="14" y1="94" x2="14" y2="126" stroke="#777" stroke-width="2"/><line x1="88" y1="94" x2="88" y2="126" stroke="#777" stroke-width="2"/>`:''}
+  ${lvl>=4?bleach(232,74,30):''}${lvl>=5?`<rect x="228" y="88" width="82" height="6" fill="${k0}"/>`:''}
+  <line x1="328" y1="44" x2="328" y2="126" stroke="#4b4f57" stroke-width="3"/><rect x="314" y="36" width="28" height="10" rx="1" fill="#2b2e33"/>
+  <circle cx="321" cy="41" r="3" fill="${lit?'#fff6c2':'#fff6c2'}"/><circle cx="335" cy="41" r="3" fill="${lit?'#fff6c2':'#3a3d42'}"/>
+  <circle cx="321" cy="41" r="${lit?26:16}" fill="url(#glow)"/>${lit?'<circle cx="335" cy="41" r="26" fill="url(#glow)"/>':''}
+  <g transform="rotate(${lvl<2?-4:0} 180 98)"><line x1="128" y1="104" x2="128" y2="124" stroke="#5a4632" stroke-width="3"/><line x1="232" y1="104" x2="232" y2="124" stroke="#5a4632" stroke-width="3"/>
+   <rect x="112" y="86" width="136" height="22" rx="3" fill="${k0}" stroke="${k1}" stroke-width="2"/>
+   <text x="180" y="101" text-anchor="middle" font-size="${name.length>20?8:10}" font-weight="800" fill="${k1}" font-family="-apple-system,Segoe UI,sans-serif">${esc(name.toUpperCase())}</text></g>
+  ${lvl<2?'<path d="M40 190 l3 -8 l3 8 M300 186 l2 -7 l3 7 M120 196 l3 -9 l2 9" stroke="#6b8a3a" stroke-width="1.5" fill="none"/>':''}
+  </svg>`}
+
 // =================== ONBOARDING ===================
-let ob={gender:'w',kit:0,club:'Riverbend College',nick:'Otters',coach:''};
-function onboardHTML(){return `<main style="padding:24px 16px 40px">
- <div style="font-size:12px;letter-spacing:.2em;color:var(--lime);font-weight:800">CLUB FC · US COLLEGE SOCCER</div>
- <h1 style="font-size:30px;margin:6px 0 4px">Your first coaching job.</h1>
- <p class="mute" style="margin:0 0 16px">A small college. A dusty field. A roster of walk-ons. Win, recruit and climb from the NASC to the big time.</p>
- <div class="card">
-  <label class="f">Program</label>
-  <div class="seg"><button data-act="ob" data-k="gender" data-v="w" class="${ob.gender==='w'?'on':''}">Women's soccer</button><button data-act="ob" data-k="gender" data-v="m" class="${ob.gender==='m'?'on':''}">Men's soccer</button></div>
-  <label class="f">Coach name</label><input id="obCoach" value="${esc(ob.coach)}" placeholder="e.g. Pat">
-  <label class="f">College</label><input id="obClub" value="${esc(ob.club)}">
-  <label class="f">Nickname</label><input id="obNick" value="${esc(ob.nick)}">
-  <label class="f">Colours</label>
-  <div class="kits">${KITS.map((k,i)=>`<button data-act="ob" data-k="kit" data-v="${i}" class="${ob.kit==i?'on':''}"><span class="num" style="background:${k[1]};border-color:${k[2]};color:${k[2]}">10</span>${k[0]}</button>`).join('')}</div>
- </div>
- <button class="btn full" data-act="start">Sign the contract</button></main>`}
+let ob={step:0,coach:'',jobs:null};
+function obShell(inner,btns){return `<main style="padding:22px 16px 40px;min-height:100vh;display:flex;flex-direction:column">
+  <div class="row"><div style="font-size:11px;letter-spacing:.2em;color:var(--lime);font-weight:800" class="sp">CLUB FC · US COLLEGE SOCCER</div>${ob.step<3?'<button class="btn ghost sm" data-act="obskip">Skip</button>':''}</div>
+  <div style="flex:1;margin-top:14px">${inner}</div>${btns||''}
+  <div class="row" style="justify-content:center;gap:6px;margin-top:14px">${[0,1,2,3,4].map(i=>`<span style="width:${i===ob.step?18:6}px;height:6px;border-radius:3px;background:${i===ob.step?'var(--lime)':'#333'}"></span>`).join('')}</div></main>`}
+function onboardHTML(){
+  if(ob.step===0)return obShell(`${sceneSVG(['#5b5f66','#e5e5e5'],1,'Home of the ???')}
+    <h1 style="font-size:28px;margin:18px 0 8px">Every coach starts somewhere.</h1>
+    <p style="font-size:15px;line-height:1.5;color:#cfd3da">Somewhere in small-town America there's a college soccer team with a bumpy field, one working floodlight and a roster full of <b>walk-ons</b>, players with no scholarship who play for the love of it.</p>
+    <p style="font-size:15px;line-height:1.5;color:#cfd3da">They need a head coach. <b>That's you.</b></p>`,`<button class="btn full" data-act="obnext">Next</button>`);
+  if(ob.step===1)return obShell(`<h1 style="font-size:26px;margin:0 0 6px">This isn't club football.</h1><p class="mute" style="margin:0 0 14px">US college soccer works differently from European leagues. Three big ideas:</p>
+    ${[['🏫','Teams are colleges','Your players are students. Each can play for up to <b>4 seasons</b>, then graduates and leaves. Every year a class leaves and a new one arrives.'],
+      ['🎓','Scholarships, not transfer fees','You attract players by paying part of their <b>college costs</b> (tuition, housing, food) from a yearly scholarship pool. Nobody is bought or sold.'],
+      ['🪜','No promotion or relegation','Your college stays in its league forever. <b>You</b> move up: win, develop players, and bigger colleges will offer you their job.']]
+      .map(([e,t,d])=>`<div class="card row" style="align-items:flex-start"><span style="font-size:28px">${e}</span><div><b style="font-size:15px">${t}</b><div style="font-size:13px;color:#cfd3da;margin-top:3px;line-height:1.45">${d}</div></div></div>`).join('')}
+    <button class="btn ghost sm" data-act="help" data-v="basics">📖 Read more in the Coach's Handbook</button>`,`<button class="btn full" data-act="obnext">Next</button>`);
+  if(ob.step===2)return obShell(`<h1 style="font-size:26px;margin:0 0 6px">Your career ladder</h1><p class="mute" style="margin:0 0 14px">Start at the bottom. Each step means bigger budgets, better players and tougher opponents.</p>
+    ${[['Pro club','The dream: a professional team','🏆'],['Power conference','Big universities, big crowds, TV','🏟'],['Tier I mid-major','Top division, smaller schools','⭐'],['Tier II','Solid programs, partial scholarships','📈'],['NASC small colleges','Small budgets, walk-ons. You start here.','📍']]
+      .map(([t,d,e],i)=>`<div class="row" style="padding:10px 12px;margin-bottom:6px;border-radius:12px;background:${i===4?'rgba(163,230,53,.12)':'var(--panel)'};border:1px solid ${i===4?'var(--lime)':'var(--line)'}"><span style="font-size:22px">${e}</span><div class="sp"><b>${t}</b><br><small class="mute">${d}</small></div></div>`).join('')}
+    <p class="mute" style="font-size:12px">Winning games, conference titles and national tournaments builds your <b>reputation</b>. Reputation brings job offers.</p>`,`<button class="btn full" data-act="obnext">Next</button>`);
+  if(ob.step===3)return obShell(`<div class="card row" style="align-items:flex-start;border-color:var(--lime)">${avatar()}<div><b>${AC.name}</b> <small class="mute">· your assistant coach</small>
+     <div style="font-size:14px;margin-top:4px;line-height:1.45">"Hey Coach! I'm ${AC.first}. I've been around college soccer for 20 years. I'll pop up with advice in your first few weeks, and you can tap my cap 🧢 any time to ask me anything."</div></div></div>
+    <label class="f">What should we call you, Coach?</label><input id="obCoach" value="${esc(ob.coach)}" placeholder="Your name" maxlength="20">`,`<button class="btn full" data-act="obnext">See available jobs</button>`);
+  if(!ob.jobs)ob.jobs=makeJobs();
+  return obShell(`<h1 style="font-size:26px;margin:0 0 4px">Job openings</h1><p class="mute" style="margin:0 0 12px;font-size:13px">Four small colleges need a head coach. Each has a men's or women's program. Tap one to look around before you sign.</p>
+   ${ob.jobs.map((j,i)=>{const k=KITS[j.school[3]];return `<div class="card" data-act="job" data-v="${i}" style="cursor:pointer;padding:12px"><div class="row"><span class="crest" style="width:42px;height:42px;background:${k[1]};border-color:${k[2]};color:${k[2]}">${j.school[2]}</span>
+     <div class="sp"><b>${esc(j.school[0])} ${esc(j.school[1])}</b><br><small class="mute">${j.gender==='w'?"Women's":"Men's"} soccer · ${j.state}</small></div><span class="tag" style="background:${j.gender==='w'?'rgba(236,72,153,.2);color:#f9a8d4':'rgba(59,130,246,.2);color:#93c5fd'}">${j.gender==='w'?'Women':'Men'}</span></div>
+     <div style="font-size:13px;margin-top:8px"><b>${esc(j.title)}.</b></div>
+     <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap;font-size:11px"><span class="chip">🎓 ${kfmt(j.pool)}/yr pool</span><span class="chip">💵 ${kfmt(j.budget)} budget</span><span class="chip">Squad ${j.shift>=2?'★★★':j.shift>=0?'★★':'★'}</span></div></div>`}).join('')}
+   <button class="btn ghost sm full" data-act="rejobs">See different openings</button>`);
+}
+function showJob(i){const j=ob.jobs[i],k=KITS[j.school[3]];
+  sheet(`${sceneSVG([k[1],k[2]],1,j.school[0])}
+   <h2 style="margin-top:12px">${esc(j.school[0])} ${esc(j.school[1])}</h2><p class="mute" style="margin-top:-8px">${j.gender==='w'?"Women's":"Men's"} soccer · ${j.state} · The Flyover Conference</p>
+   <p style="font-size:14px;line-height:1.5"><b>${esc(j.title)}.</b> ${esc(j.story)}</p>
+   <div class="statgrid"><div class="stat"><small>Cost to attend</small><b>${kfmt(j.coa)}/yr</b></div><div class="stat"><small>Scholarship pool</small><b>${kfmt(j.pool)}/yr</b></div><div class="stat"><small>Booster budget</small><b>${kfmt(j.budget)}</b></div>
+    <div class="stat"><small>Squad</small><b>${j.shift>=2?'Good':j.shift>=0?'Average':'Weak'}</b></div><div class="stat"><small>Facilities</small><b>Rundown</b></div><div class="stat"><small>Goal</small><b style="font-size:11px">${j.expect}</b></div></div>
+   <p class="mute" style="font-size:12px">The pool pays for about <b>${j.eq} full scholarships</b> a year, but most of it already goes to returning players. ${helpBtn('schol')}</p>
+   <button class="btn full" data-act="takejob" data-v="${i}">Sign the contract</button>`)}
+
+function newGame(coach,j){
+  const g=j.gender,c=j.school,k=KITS[c[3]];
+  const user={id:'U',name:c[0],nick:c[1],short:c[2],kit:[k[1],k[2]],user:true};
+  const rars=SQUAD_POS.map(()=>0);[1,4,9,15].forEach(i=>rars[i]=1);if(j.shift>=0)rars[ri(8,17)]=2;
+  user.squad=genSquad(g,j.shift,rars);
+  const teams=[user];
+  BOT_CLUBS.filter(b=>b[0]!==c[0]).slice(0,9).forEach((b,i)=>{const sty=BOT_STYLE[i%BOT_STYLE.length];const kk=KITS[b[3]];
+    const t={id:'B'+i,name:b[0],nick:b[1],short:b[2],kit:[kk[1],kk[2]],style:sty[0],strength:ri(-4,4)};
+    t.squad=genSquad(g,t.strength);t.tactics={formation:sty[1],mentality:sty[2],instr:Array(11).fill(2),lineup:[]};teams.push(t)});
+  user.tactics={formation:'4-3-3',mentality:2,instr:Array(11).fill(2),lineup:autopick(user.squad,'4-3-3')};
+  st={v:2,coach,gender:g,season:1,round:0,cash:j.budget,gold:300,rep:0,pity:0,kickoff:'19:30',coa:j.coa,pool:j.pool,story:j.title,expect:j.expect,
+    fac:{stadium:1,training:1,medicine:1,recruiting:1,media:1},teams,training:[],fixtures:[],news:[],hof:[],last:null,tab:'home',apps:[],ads:{r:0,n:0},freePack:-1,tier:0,phase:'regular',day:0,userKO:[],natTeams:[],offers:[],agencyDay:-9,seen:{},tut:{}};
+  assignSchol(user.squad,j.coa,j.pool*.8);
+  st.fixtures=roundRobin(teams.map(t=>t.id).sort(()=>R()-.5)).map(rd=>rd.map(([h,a])=>({h,a,hs:null,as:null})));
+  news(`Coach ${coach} takes charge of ${c[0]} ${c[1]} in The Flyover Conference (NASC).`);
+  newApps(2);save();
+}
+function showArrival(){const u=me(),wo=sq().filter(p=>!p.schol).length;
+  sheet(`${sceneSVG(u.kit,1,u.name)}
+   <div class="mute" style="font-size:11px;font-weight:800;margin-top:12px">A LETTER FROM THE ATHLETIC DIRECTOR</div>
+   <p style="font-size:14px;line-height:1.55">Welcome, Coach ${esc(st.coach)}.</p>
+   <p style="font-size:14px;line-height:1.55">I won't sugar-coat it: <b>${esc(st.story.toLowerCase())}</b>. The bleachers seat about 300 and the field has seen better days.</p>
+   <p style="font-size:14px;line-height:1.55">You have <b>${sq().length} players</b>. <b>${wo}</b> of them are walk-ons. Your scholarship pool is <b>${money(st.pool)} a year</b>, and ${money(schCommitted())} of it already goes to returning players, leaving <b>${money(schAvail())}</b> for new recruits.</p>
+   <p style="font-size:14px;line-height:1.55">My goal for you this season: <b>${esc(st.expect.toLowerCase())}</b>. Good luck.</p>
+   <button class="btn full" data-act="arrived">Meet the team</button>`)}
+
+// =================== ASSISTANT COACH, HANDBOOK & FAQ ===================
+const AC={name:'Coach Ray Sullivan',first:'Ray'};
+const avatar=(s=44)=>`<span class="ava" style="width:${s}px;height:${s}px;font-size:${s*.5}px;background:${st?me().kit[0]:'#7a1f3d'};border-color:${st?me().kit[1]:'#fff'}">🧢</span>`;
+const helpBtn=id=>`<button class="hbtn" data-act="help" data-v="${id}" aria-label="Explain">?</button>`;
+let tipQ=[];
+function tip(id,html,topic){if(!st||st.seen[id]||tipQ.some(t=>t.id===id))return;tipQ.push({id,html,topic});if(!$('#tip'))nextTip()}
+function nextTip(){const t=tipQ[0];if(!t)return;const d=document.createElement('div');d.id='tip';
+  d.innerHTML=`<div class="row" style="align-items:flex-start">${avatar(40)}<div class="sp"><b style="font-size:12px">${AC.first} says</b><div style="font-size:13px;line-height:1.45;margin-top:2px">${t.html}</div>
+   <div class="row" style="gap:6px;margin-top:8px;justify-content:flex-end">${t.topic?`<button class="btn ghost sm" data-act="tipmore">Tell me more</button>`:''}<button class="btn sm" data-act="tipok">Got it</button></div></div></div>`;
+  document.body.appendChild(d)}
+function closeTip(){const t=tipQ.shift();if(t){st.seen[t.id]=1;save()}const d=$('#tip');if(d)d.remove();setTimeout(nextTip,250);return t}
+const TAB_TIPS={
+ squad:['Here\'s your roster. Each player shows a <b>rating</b> (how good they are now), their <b>class year</b> (FR, SO, JR, SR) and <b>condition</b> (energy). Seniors graduate at season\'s end, so plan ahead.','elig'],
+ tactics:['Pick a formation and put players where they\'re comfortable. The coloured dot shows <b>position fit</b>: green is natural, red is out of position. Players out of position play worse <b>and</b> tire faster.','game'],
+ train:['Training turns a player\'s <b>potential</b> into rating, but costs 25% condition. Train players who won\'t start the next match, or are fresh enough to cope.','game'],
+ recruit:['This is where you find players. Most come to <b>you</b>: emails, highlight videos, camp attendees. Check the <b>Inbox</b> daily; applications expire after 3 days.','recruit'],
+ club:['Facilities make a real difference. A better <b>Stadium</b> earns more at home games, <b>Sports Medicine</b> speeds recovery and the <b>Recruiting Office</b> attracts better players.','money'],
+ store:['This is the test store. Nothing here costs real money in this build. Gold buys premium packs, kit designs and a few shortcuts.','money']};
+const HANDBOOK=[
+ ['basics','🏫','College soccer in 2 minutes',`<p>In the US, most talented young players don't join a pro academy. They play for their <b>high school</b> and a <b>youth club</b>, then go to <b>college</b> on a full or (more often) partial scholarship while they study for a degree.</p>
+  <p>College teams belong to universities, not owners. There's <b>no promotion or relegation</b> and no transfer fees. Each player can compete for <b>4 seasons</b> and then graduates.</p>
+  <p>The season runs in the fall: preseason in August, games through October, then conference and national tournaments in November and December.</p>
+  <p>Coaches build a career by moving: win at a small college and bigger schools hire you. That's your path in Club FC.</p>`],
+ ['levels','🪜','The levels of college soccer',`<p>Real colleges compete in several associations:</p><ul><li><b>NCAA Division I</b>: the biggest universities, about 215 men's and 340 women's programs.</li><li><b>NCAA Division II</b>: smaller schools, partial scholarships.</li><li><b>NCAA Division III</b>: no athletic scholarships at all.</li><li><b>NAIA</b>: small colleges, scholarships allowed.</li><li><b>NJCAA (junior colleges, "JUCO")</b>: two-year colleges; players then transfer to four-year schools.</li></ul>
+  <p>Club FC uses fictional equivalents: <b>NASC</b> (small colleges, where you start), <b>Tier II</b>, <b>Tier I mid-major</b> and the <b>Power conferences</b>. Pro jobs come later.</p>`],
+ ['schol','🎓','Scholarships & cost of attendance',`<p><b>Cost of attendance</b> is what a year at college costs a student: tuition, housing, food and books. At small colleges it's typically $24,000 to $35,000 a year; at big private universities it can be over $80,000.</p>
+  <p>An <b>athletic scholarship</b> pays part of that cost, <b>every year</b> the player stays (it's reviewed annually). Soccer scholarships are usually <b>partial</b>: a coach splits a limited budget across the squad. For example, $15,000 of a $28,000 cost (54%), with the family paying the rest. Full scholarships ("full rides") mostly go to stars.</p>
+  <p>Since 2025, NCAA Division I has roster limits (28 for soccer) and schools may fund scholarships up to the whole roster. Smaller divisions still cap scholarship money.</p>
+  <p><b>In Club FC:</b> your program has a yearly <b>scholarship pool</b> (🎓 in the header shows what's left). Every offer uses part of it for each year the player stays. When players graduate or leave, their money comes back. Recruits tell you roughly what they hope for; offering less lowers the chance they'll say yes.</p>`],
+ ['walkon','🚶','Walk-ons',`<p>A <b>walk-on</b> is a player on the team with <b>no athletic scholarship</b>. They pay their own way, or have academic or need-based aid from the college instead.</p>
+  <p>Small programs are often mostly walk-ons. Some become stars and earn a scholarship later. A "preferred walk-on" is a recruit the coach invites to join without aid.</p>
+  <p><b>In Club FC:</b> you can offer anyone a walk-on spot for $0. Some modest players will accept; good players expect money. Players from packs arrive on <b>academic scholarships</b>, which don't use your pool.</p>`],
+ ['elig','📅','Eligibility & class years',`<p>Each player has <b>four seasons</b> to compete: Freshman (FR), Sophomore (SO), Junior (JR) and Senior (SR). A player who sits out a year without using eligibility is a "redshirt".</p>
+  <p>Every season, seniors graduate and a new freshman class arrives, so a college coach is always rebuilding. That's the big difference from club football.</p>
+  <p><b>In Club FC:</b> at season's end seniors leave (the best may go pro), everyone moves up a year and new walk-ons join. Junior-college transfers arrive as juniors with two years left.</p>`],
+ ['season','🗓','The season & tournaments',`<p>Real season: preseason in August, about 18 regular-season games through October, then your <b>conference tournament</b>. Winning it earns an automatic bid to the <b>NCAA tournament</b> (48 men's teams, 64 women's), which ends with the College Cup final four in December.</p>
+  <p><b>In Club FC:</b> 18 matchdays (one per day), then the top 4 play a conference tournament. The champion gets an automatic bid to a 16-team national tournament; the league winner gets an "at-large" bid if they didn't win the conference final. Knockout draws go to penalties.</p>`],
+ ['recruit','🔎','Recruiting',`<p>Real recruits reach coaches in many ways: emailing highlight videos, attending college <b>ID camps</b>, playing at <b>showcase tournaments</b>, being spotted in elite youth leagues (ECNL, MLS NEXT, Girls Academy), or through <b>international agencies</b> that run trials abroad. NCAA rules limit when coaches can contact recruits (Division I: from June 15 after a player's sophomore year of high school).</p>
+  <p>Players commit, then sign on National Signing Day.</p>
+  <p><b>In Club FC:</b> the Recruit tab has your Inbox (applications), Scouting (agencies and youth leagues), ID Camps (which earn money and find local talent), the Transfer Portal and Packs. Freshman walk-ons also join automatically each season ("Ink Day").</p>`],
+ ['portal','🚪','Transfer Portal & JUCO',`<p>The <b>Transfer Portal</b> is how college players move to another school: they enter the portal and other coaches can contact them. Players use it for more playing time, to follow a coach, or to move closer to home.</p>
+  <p><b>JUCO</b> players come from two-year junior colleges and transfer up to four-year schools with two seasons left.</p>
+  <p><b>In Club FC:</b> the portal opens for 3 days after each season. Your own players who barely played may enter it; offer a NIL deal to keep them.</p>`],
+ ['nil','💼','NIL & boosters',`<p>Since 2021, college athletes can earn money from their <b>name, image and likeness (NIL)</b>: sponsorships, appearances, social media. "Boosters" (supporters and local businesses) often fund NIL deals through groups called collectives. Since 2025, Division I schools can also pay athletes directly.</p>
+  <p><b>In Club FC:</b> 💵 <b>Booster budget</b> is your program's spending money for facilities, scouting, camps and NIL deals. It's separate from the 🎓 scholarship pool.</p>`],
+ ['pro','🏆','Going pro',`<p>Men: Major League Soccer holds the <b>MLS SuperDraft</b> each December for college players, though many also sign directly with clubs or go abroad.</p>
+  <p>Women: the NWSL <b>abolished its college draft</b> in 2024, so graduating players now sign as free agents.</p>
+  <p><b>In Club FC:</b> strong seniors go pro at season's end, which earns your program money and reputation. They join your Hall of Fame.</p>`],
+ ['titleix','⚖️','Women\'s soccer & Title IX',`<p><b>Title IX</b> (1972) requires US colleges to give women equal athletic opportunities. As a result there are <b>more women's college soccer programs than men's</b> at every level, and women's college soccer has produced many of the world's best players.</p>
+  <p>In Club FC you can coach either a men's or a women's program, and switch when you take a new job.</p>`],
+ ['money','💵','Money in Club FC',`<p>Three kinds of money:</p><ul><li>💵 <b>Booster budget</b>: earned from match results, home gates and sponsors. Spend it on facilities, scouting trips, ID camps, NIL deals and Showcase packs.</li>
+  <li>🎓 <b>Scholarship pool</b>: a yearly amount set by your college for player scholarships. You can't spend it on anything else, and it doesn't build up. What matters is how much is committed.</li><li>◆ <b>Gold</b>: premium currency for Elite packs, kits and shortcuts (test purchases in this build).</li></ul>`],
+ ['game','🎮','How to play: the daily loop',`<p>Each day is one matchday:</p><ol><li><b>Train</b> a few players (Train tab). It costs condition, adds rating.</li><li><b>Recruit</b>: check the Inbox and make offers.</li><li><b>Set your lineup</b> (Tactics): formation, mentality, who plays where.</li><li><b>Play</b> the match, watching live or by quick sim.</li></ol>
+  <p><b>Condition (energy):</b> players lose energy each match and recover about 14% a day, a bit less than a starter uses. Tired players perform worse and drain faster. Rotate your squad.</p>
+  <p><b>Mentality:</b> five levels from Ultra-Defensive to Ultra-Attacking, for the team and for each player. Attacking creates chances but leaves gaps.</p>`]];
+const FAQ=[
+ ['What is a scholarship?','A yearly amount that pays part of a player\'s college costs (tuition, housing, food, books). Most soccer scholarships are partial, for example $15,000 of a $28,000 cost.','schol'],
+ ['Why don\'t I pay transfer fees?','College players aren\'t owned by clubs. You attract them with scholarships, playing time, your facilities and your reputation.','basics'],
+ ['What is a walk-on?','A player with no athletic scholarship. Small programs have lots of them. You can offer anyone a walk-on spot for $0.','walkon'],
+ ['How much should I offer a recruit?','Look at what their family hopes for. Offering that amount gives about a 90% chance; less lowers it. Keep money back for better players later.','schol'],
+ ['Why do my players leave?','Seniors graduate after 4 seasons. Players who barely play may enter the Transfer Portal after the season.','elig'],
+ ['What do FR, SO, JR and SR mean?','Freshman, Sophomore, Junior and Senior: a player\'s 1st to 4th season at college.','elig'],
+ ['How do I get a better job?','Build reputation: win games, finish high, win the conference tournament, go deep in the national tournament and send players pro. Offers arrive at season\'s end.','basics'],
+ ['What happens after the regular season?','The top 4 play a conference tournament. The champion goes to the 16-team national tournament.','season'],
+ ['Why are my players so tired?','Every match drains condition and daily recovery is a bit lower than a starter uses. Out-of-position and attacking players drain faster. Rotate, or upgrade Sports Medicine.','game'],
+ ['What does position fit mean?','How comfortable a player is in a role, from green (natural) to red (out of position). Bad fits perform worse and tire faster.','game'],
+ ['Should I watch matches live?','Live lets you change mentality and make half-time changes. Quick sim gives the same kind of result instantly.','game'],
+ ['What is an ID camp?','A camp where young players pay to be seen by your coaches. It usually makes money and finds local recruits.','recruit'],
+ ['What are agencies?','Companies that hold trials abroad and pitch international players to US colleges. Request a showcase in Recruit → Scouting.','recruit'],
+ ['What is the Transfer Portal?','The way college players move between schools. It opens for 3 days after each season.','portal'],
+ ['What is JUCO?','Junior colleges: two-year schools. Their graduates transfer to four-year programs as juniors, ready to play.','portal'],
+ ['What is NIL?','Name, image and likeness: athletes can be paid for sponsorships and appearances. In the game, NIL deals use Booster budget.','nil'],
+ ['What\'s the difference between Booster $ and the scholarship pool?','Booster $ is spending money for facilities, scouting and camps. The scholarship pool only pays player scholarships and resets yearly.','money'],
+ ['Is the store real money?','No. In this build every purchase is a test and nothing is charged.','money'],
+ ['Why are there so many women\'s programs?','Title IX requires equal opportunities for women in college sport, so there are more women\'s soccer programs than men\'s.','titleix'],
+ ['How do players go pro?','Strong seniors sign with pro clubs at season\'s end: men through Draft Night, women through free agency.','pro']];
+function showHandbook(id){const t=HANDBOOK.find(h=>h[0]===id);
+  if(!t){sheet(`<div class="row">${avatar()}<div class="sp"><h2 style="margin:0">Coach's Handbook</h2><small class="mute">College soccer explained, and how Club FC uses it</small></div></div>
+    <div style="margin-top:12px">${HANDBOOK.map(h=>`<div class="pl" data-act="help" data-v="${h[0]}"><span style="font-size:22px;width:30px;text-align:center">${h[1]}</span><div class="nm"><b>${h[2]}</b></div><span class="mute">›</span></div>`).join('')}</div>
+    <button class="btn sec full" style="margin-top:12px" data-act="ask">Ask ${AC.first} a question</button>`);return}
+  sheet(`<button class="btn ghost sm" data-act="help" data-v="index">‹ All topics</button><h2 style="margin-top:12px">${t[1]} ${t[2]}</h2><div class="hb">${t[3]}</div>
+   <button class="btn sec full" style="margin-top:12px" data-act="ask">Ask ${AC.first} a question</button>`)}
+function showAsk(){sheet(`<div class="row">${avatar()}<div class="sp"><h2 style="margin:0">Ask ${AC.first}</h2><small class="mute">Pick a question, or search</small></div></div>
+  <input id="faqQ" placeholder="Search, e.g. scholarship, tired, portal" style="margin:12px 0" autocomplete="off"><div id="faqL"></div>
+  <button class="btn ghost full" style="margin-top:12px" data-act="help" data-v="index">📖 Open the Coach's Handbook</button>`);
+  const draw=q=>{q=(q||'').toLowerCase().trim();const L=FAQ.filter(f=>!q||(f[0]+' '+f[1]).toLowerCase().includes(q));
+    $('#faqL').innerHTML=L.map(f=>`<details class="faq"><summary>${esc(f[0])}</summary><div style="padding:6px 0 4px;font-size:13px;line-height:1.5">${esc(f[1])}<br><button class="btn ghost sm" style="margin-top:6px" data-act="help" data-v="${f[2]}">Learn more</button></div></details>`).join('')||`<p class="mute">${AC.first} doesn't have an answer for that yet. Try the Handbook.</p>`};
+  draw('');$('#faqQ').addEventListener('input',e=>draw(e.target.value))}
+function checklistHTML(){if(st.tutHide)return '';const T=st.tut,items=[['squad','Meet your squad','Squad tab','elig'],['tactics','Set your lineup','Tactics tab','game'],['train','Book a training session','Train tab','game'],['recruit','Look at your recruiting inbox','Recruit tab','recruit'],['play','Play your first match','Home, then Watch live','season']];
+  const done=items.filter(i=>T[i[0]]).length;if(done===items.length&&st.season>1)return '';
+  return `<div class="card" style="border-color:var(--lime)"><div class="row">${avatar(34)}<div class="sp"><b>Coach's first week</b><br><small class="mute">${done}/${items.length} done</small></div><button class="btn ghost sm" data-act="tuthide">Hide</button></div>
+   ${items.map(([k,t,w,h])=>`<div class="row" style="padding:7px 0;border-top:1px solid var(--line);font-size:13px"><span>${T[k]?'✅':'⬜️'}</span><span class="sp" style="${T[k]?'opacity:.55;text-decoration:line-through':''}">${t} <small class="mute">· ${w}</small></span>${helpBtn(h)}</div>`).join('')}
+   <button class="btn ghost sm full" style="margin-top:8px" data-act="help" data-v="index">📖 Coach's Handbook</button></div>`}
 
 // =================== HOME ===================
 function viewHome(v){
@@ -453,7 +656,7 @@ function viewHome(v){
   const tb=table(st);const pos=tb.findIndex(r=>r.id==='U')+1;
   const lineupOk=me().tactics.lineup.filter(Boolean).length===11;
   const tired=me().tactics.lineup.map(P).filter(p=>p&&p.cond<50);
-  v.innerHTML=`${next}
+  v.innerHTML=`${checklistHTML()}${next}
    ${!lineupOk?`<div class="card" style="border-color:var(--orange)">⚠ Your lineup is incomplete. <button class="btn sm" data-act="tab" data-v="tactics">Fix</button></div>`:''}
    ${tired.length?`<div class="card" style="border-color:var(--yellow)">⚠ ${tired.length} starter${tired.length>1?'s are':' is'} below 50% condition: ${tired.map(p=>esc(p.ln)).join(', ')}. Rotate or rest them.</div>`:''}
    <div class="card" data-act="apps" style="cursor:pointer"><div class="row"><span style="font-size:20px">✉️</span><div class="sp"><b>Applications</b><br><small class="mute">Players asking to join your program</small></div><span class="chip" style="background:${st.apps.length?'var(--accent)':'var(--panel2)'}">${st.apps.length}</span></div></div>
@@ -478,7 +681,7 @@ function viewSquad(v){
    <div class="card plist" style="padding:4px 12px">${s.map(p=>playerRow(p,inXI.has(p.id)?'XI':'')).join('')}</div>
    <p class="mute" style="font-size:12px">Tap a player for their card, position grid, merge and release.</p>`}
 function playerRow(p,badge,act='player',extra=''){return `<div class="pl" data-act="${act}" data-v="${p.id}" ${extra}>${numB(p,me().kit)}
-  <div class="nm"><b>${esc(p.fn)} ${esc(p.ln)} ${badge?`<span class="tag" style="background:#2a2e36;color:#fff">${badge}</span>`:''} ${starStr(p.stars)}</b><small>${p.flag} ${p.pos}${p.sec.length?' · '+p.sec.join(' '):''} · ${yr(p.year)} · ${rtag(p.rar)}</small></div>
+  <div class="nm"><b>${esc(p.fn)} ${esc(p.ln)} ${badge?`<span class="tag" style="background:#2a2e36;color:#fff">${badge}</span>`:''} ${starStr(p.stars)}</b><small>${p.flag} ${p.pos}${p.sec.length?' · '+p.sec.join(' '):''} · ${yr(p.year)} · ${p.acad?'acad':p.schol?pct(p.schol):'walk-on'} · ${rtag(p.rar)}</small></div>
   <div class="rat">${p.rating}</div><div class="cond" style="color:${condCol(p.cond)}">${Math.round(p.cond)}%</div></div>`}
 function fitMapHTML(p){return `<div class="fitmap">${POS_ORDER.map(k=>{const g=fitGrade(p,k),c=['','#ef4444','#fb923c','#facc15','#a3e635','#22c55e'][g];
   return `<span style="left:${POS[k][0]*100}%;top:${(1-POS[k][1])*88+6}%;border-color:${c};color:${c}">${k}</span>`}).join('')}</div>`}
@@ -489,6 +692,7 @@ function showPlayer(id){const p=P(id);if(!p)return;
     <div style="font-size:21px;font-weight:800">${esc(p.fn)} ${esc(p.ln)} ${starStr(p.stars)}</div><div class="mute" style="font-size:12px">${p.flag} ${esc(p.town)} · ${yr(p.year)} · GPA ${p.gpa}</div></div></div>
    <div class="statgrid" style="margin-top:12px"><div class="stat"><small>Rating</small><b>${p.rating}</b></div><div class="stat"><small>Potential</small><b>${p.pot}</b></div><div class="stat"><small>Condition</small><b style="color:${condCol(p.cond)}">${Math.round(p.cond)}%</b></div>
     <div class="stat"><small>Stamina</small><b>${p.sta}</b></div><div class="stat"><small>Leadership</small><b>${p.lead}</b></div><div class="stat"><small>Apps / Goals</small><b>${p.st.apps} / ${p.st.goals}</b></div></div>
+   <div style="margin-top:10px;font-size:12px;background:rgba(0,0,0,.25);border-radius:8px;padding:8px 10px" class="row"><span class="sp">🎓 ${schLabel(p)}</span>${helpBtn('schol')}</div>
    <div class="attrs">${outfield?['pac','sho','pas','dri','def','phy'].map(a=>`<div><span class="mute">${a.toUpperCase()}</span><b>${A[a]}</b></div>`).join(''):['gk','pas','phy'].map(a=>`<div><span class="mute">${a==='gk'?'KEEPING':a.toUpperCase()}</span><b>${A[a]}</b></div>`).join('')}</div>
    <div class="row" style="margin-top:12px;align-items:flex-start"><div style="flex:1">${fitMapHTML(p)}</div><div style="flex:1;font-size:11px" class="mute">
     <b style="color:#fff">Position fit</b><br>${[5,4,3,2,1].map(g=>`<div class="row" style="gap:6px;margin-top:5px"><span class="pos f${g}" style="min-width:14px;height:12px;padding:0"></span>${FIT_LABEL[g]} · ${Math.round(FIT_MULT[g]*100)}% perf · ${FIT_DRAIN[g]}× energy</div>`).join('')}</div></div></div>
@@ -558,7 +762,8 @@ function showTrainPick(){const busy=new Set(st.training.map(t=>t.id));const list
 // =================== CLUB ===================
 
 function viewClub(v){
-  v.innerHTML=`<h2>${esc(me().name)}</h2>
+  v.innerHTML=`<h2>${esc(me().name)}</h2>${sceneSVG(me().kit,st.fac.stadium,me().name)}<p class="mute" style="font-size:12px;margin:6px 0 12px">Your ground. Upgrade the Stadium to fix it up.</p>
+   <div class="card row" data-act="help" data-v="index" style="cursor:pointer">${avatar(36)}<div class="sp"><b>Coach's Handbook</b><br><small class="mute">How US college soccer works, and how Club FC uses it</small></div><span class="mute">›</span></div>
    <div class="card"><div class="row"><b>Coach ${esc(st.coach)}</b><span class="sp"></span><span class="chip">Reputation ${st.rep}</span></div>
     <h3 style="margin-top:12px">Career ladder</h3>${JOB_TIERS.map((T,i)=>`<div class="row" style="padding:6px 0;border-top:1px solid var(--line);${st.rep>=T.rep||i<=st.tier?'':'opacity:.5'}"><span>${i===st.tier?'📍':i<st.tier?'✅':st.rep>=T.rep?'🔓':'🔒'}</span><span class="sp">${T.n}</span><small class="mute">${T.rep} rep</small></div>`).join('')}
     <p class="mute" style="font-size:11px;margin-bottom:0">Job offers from higher tiers arrive at season's end once you reach the reputation threshold. Win conference and national titles to climb faster.</p></div>
@@ -595,10 +800,10 @@ function pull(k,o={}){const pk=PACKS[k];
   rar=Math.max(rar,o.minRar||0);
   if(k==='prem'&&!o.free){st.pity++;if(st.pity>=40&&rar<3)rar=3;if(rar>=3)st.pity=0}
   const pos=pick(POS_ORDER.concat(['CB','CM','ST']));
-  const p=genPlayer(st.gender,pos,rar,{year:1,shift:st.fac.recruiting-1+tierOf().shift});sq().push(p);assignNums(sq());save();render();
+  const p=genPlayer(st.gender,pos,rar,{year:1,shift:st.fac.recruiting-1+tierOf().shift});p.acad=true;p.schol=0;sq().push(p);assignNums(sq());save();render();
   sheet(`<div class="reveal">${''}<div class="pcard rr${p.rar}" style="text-align:center"><div style="font-size:12px;font-weight:800;color:var(--mute)">COMMITTED!</div>
    <div style="font-size:26px;margin:8px 0" class="stars">${RSTARS[p.rar].split(' ')[0]}</div><div style="display:flex;justify-content:center">${numB(p,me().kit,true)}</div>
-   <div style="font-size:22px;font-weight:800;margin-top:8px">${esc(p.fn)} ${esc(p.ln)}</div><div class="mute">${p.flag} ${esc(p.town)} · ${p.pos} · Freshman</div>
+   <div style="font-size:22px;font-weight:800;margin-top:8px">${esc(p.fn)} ${esc(p.ln)}</div><div class="mute">${p.flag} ${esc(p.town)} · ${p.pos} · Freshman</div><div style="font-size:12px;margin-top:4px;color:var(--lime)">🎓 Academic scholarship: doesn't use your pool</div>
    <div style="margin:10px 0">${rtag(p.rar)}</div><div class="statgrid"><div class="stat"><small>Rating</small><b>${p.rating}</b></div><div class="stat"><small>Potential</small><b>${p.pot}</b></div><div class="stat"><small>Stamina</small><b>${p.sta}</b></div></div></div></div>
    <button class="btn full" style="margin-top:12px" data-act="closesheet">Welcome to the program</button>`)}
 
@@ -625,6 +830,7 @@ function liveMatch(m){
     <div class="seg" style="margin-bottom:6px" id="mMent">${INSTR.map((n,i)=>`<button data-act="mment" data-v="${i}" class="${m.sides[0].mentality===i?'on':''}">${n}</button>`).join('')}</div>
     <div class="row" style="gap:6px"><div class="seg" style="flex:1" id="mSpeed">${[1,4,16].map(s=>`<button data-act="mspeed" data-v="${s}" class="${s===1?'on':''}">${s}×</button>`).join('')}</div>
      <button class="btn sec sm" data-act="mskip">Skip to FT</button></div></div>`;
+  tip('match','Your team always attacks <b>up</b> the screen. Change mentality during the match with the buttons below, and at half-time you can change tactics and make subs. Use 4× or 16× to speed up.','game');
   MX={m,speed:1,cam:{y:PL/2},last:performance.now(),htLeft:0,evn:0,raf:0};
   const cv=$('#pitch');const fit=()=>{const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d};fit();MX.fit=fit;window.addEventListener('resize',fit);
   const loop=now=>{if(!MX)return;let dt=Math.min(.1,(now-MX.last)/1000);MX.last=now;
@@ -788,7 +994,8 @@ function finishMatch(m){
   for(const tm of [...st.teams,...(st.natTeams||[])])for(const p of tm.squad)p.cond=Math.min(100,p.cond+(tm.user?rec:15));
   if(st.phase==='regular')st.round++;
   st.day=(st.day||0)+1;newApps(1+(R()<.25+st.fac.recruiting*.1?1:0)+(st.rep>=60?1:0));st.apps=st.apps.filter(a=>a.exp>st.day);
-  const head=[...dailyTicks(),...advancePhase()];save();
+  const head=[...dailyTicks(),...advancePhase()];st.tut.play=1;save();
+  setTimeout(()=>tip('ft','Check <b>condition</b> after every match. Starters lose about 18% a match and recover about 14% a day, so by mid-season you\'ll need to rotate. Tired players play worse and get injured more.','game'),400);
   const evs=m.events.filter(e=>e.type==='goal');
   sheet(`<div style="text-align:center"><div class="mute" style="font-weight:700;font-size:12px">${esc(f.label.toUpperCase())} · FULL-TIME</div>
    <div class="row" style="justify-content:center;gap:16px;margin:10px 0"><b>${me().short}</b><span style="font-size:38px;font-weight:900">${us} - ${them}</span><b>${opp.short}</b></div>
@@ -825,12 +1032,13 @@ function seasonEnd(){
   st.offers=makeOffers();
   news(`Season ${old} over: finished ${pos}. ${champ.name} ${champ.nick} won the league; ${natN} won The Final Whistle.`);save();render();
   const nextT=JOB_TIERS[st.tier+1];
+  setTimeout(()=>tip('grad','End of season: <b>seniors graduate</b>, everyone moves up a class year and new walk-ons arrive. The <b>Transfer Portal</b> is now open for 3 days, so check Recruit → Portal.','elig'),400);
   sheet(`<h2>Season ${old} review</h2><div class="statgrid"><div class="stat"><small>League finish</small><b>${pos} / 10</b></div><div class="stat"><small>Reputation</small><b>${st.rep}</b></div><div class="stat"><small>League rep</small><b>+${repGain}</b></div></div>
    <h3>Postseason</h3><div style="font-size:13px"><b>${esc(ko)}</b><br><span class="mute">Conference Tournament: ${esc(confN||'–')}<br>National champions: ${esc(natN||'–')}</span></div>
    <h3>Graduation · ${grads.length}</h3><div style="font-size:13px">${grads.map(esc).join(', ')||'None'}</div>
    ${pros.length?`<h3>${st.gender==='w'?'Pro signings (free agency)':'Draft Night'}</h3><div style="font-size:13px;color:var(--lime)">${pros.map(esc).join('<br>')}</div><div class="mute" style="font-size:11px">+${money(1500)} and +10 rep each</div>`:''}
    <h3>Transfer Portal · open 3 days</h3><div style="font-size:13px">${st.portal.pool.length} players available (incl. JUCO graduates).${st.portal.leaving.length?` <b style="color:var(--orange)">${st.portal.leaving.map(l=>esc(l.p.ln)).join(', ')} entered the portal.</b> Offer NIL deals in Recruiting → Portal to keep them.`:''}</div>
-   <h3>Ink Day · ${intake.length} freshmen signed</h3><div class="plist">${intake.map(p=>playerRow(p,'NEW')).join('')}</div>
+   <h3>Ink Day · ${intake.length} freshman walk-ons joined ${helpBtn('walkon')}</h3><div class="plist">${intake.map(p=>playerRow(p,'NEW')).join('')}</div>
    ${st.offers.length?`<button class="btn full" style="margin-top:12px;background:var(--green);color:#06210f" data-act="offers">📨 ${st.offers.length} job offer${st.offers.length>1?'s':''}</button>`
      :`<p class="mute" style="font-size:12px;margin-top:12px">${nextT&&nextT.schools.length?`No job offers yet. Reach ${nextT.rep} reputation for ${nextT.n} offers.`:'You are at the top of the college game. Pro jobs arrive in a later build.'}</p><button class="btn full" data-act="closesheet">Start Season ${st.season}</button>`}`);
 }
@@ -844,7 +1052,7 @@ function showOffers(){const cur=tierOf();
   sheet(`<h2>Job offers</h2><p class="mute" style="margin-top:-6px;font-size:12px">Athletic directors have called. Take the job and you inherit that program's roster, facilities and budget. You keep your reputation, Gold, Hall of Fame and up to 3 freshmen, who flip their commitment to follow you.</p>
    ${st.offers.map((o,i)=>{const T=JOB_TIERS[o.tier],k=KITS[o.school[3]];return `<div class="card"><div class="row"><span class="crest" style="width:44px;height:44px;background:${k[1]};border-color:${k[2]};color:${k[2]}">${o.school[2]}</span>
      <div class="sp"><b style="font-size:16px">${esc(o.school[0])} ${esc(o.school[1])}</b><br><small class="mute">${T.n} · ${esc(T.conf)}</small></div></div>
-     <div class="statgrid" style="margin-top:10px"><div class="stat"><small>Budget</small><b>${money(o.budget)}</b></div><div class="stat"><small>Facilities</small><b>Lv ${o.fac}</b></div><div class="stat"><small>Squad level</small><b>~${Math.round(36+T.shift)}</b></div></div>
+     <div class="statgrid" style="margin-top:10px"><div class="stat"><small>Booster budget</small><b>${kfmt(o.budget)}</b></div><div class="stat"><small>Scholarship pool</small><b>~${kfmt((TIER_COA[o.tier][0]+TIER_COA[o.tier][1])/2*TIER_COA[o.tier][2])}</b></div><div class="stat"><small>Facilities</small><b>Lv ${o.fac}</b></div><div class="stat"><small>Squad level</small><b>~${Math.round(36+T.shift)}</b></div></div>
      <button class="btn full" style="margin-top:10px" data-act="acceptjob" data-v="${i}">Accept job</button></div>`}).join('')}
    <button class="btn ghost full" data-act="stayjob">Stay at ${esc(me().name)} (${cur.short})</button>`)}
 function acceptJob(i){const o=st.offers[i],T=JOB_TIERS[o.tier],k=KITS[o.school[3]],oldName=me().name;
@@ -855,6 +1063,7 @@ function acceptJob(i){const o=st.offers[i],T=JOB_TIERS[o.tier],k=KITS[o.school[3
   const teams=[user];T.schools.filter(s=>s[0]!==o.school[0]).sort(()=>R()-.5).slice(0,9).forEach((c,j)=>{const sty=BOT_STYLE[j%BOT_STYLE.length],kk=KITS[c[3]];
     const t={id:'B'+j,name:c[0],nick:c[1],short:c[2],kit:[kk[1],kk[2]],style:sty[0],strength:T.shift+ri(-4,4)};
     t.squad=genSquad(st.gender,t.strength,SQUAD_POS.map(()=>rarRoll(T.rr)));t.tactics={formation:sty[1],mentality:sty[2],instr:Array(11).fill(2),lineup:[]};teams.push(t)});
+  const tc=TIER_COA[o.tier];st.coa=ri(tc[0]/500,tc[1]/500)*500;st.pool=st.coa*ri(tc[2],tc[3]);assignSchol(user.squad.filter(p=>!follow.includes(p)),st.coa,st.pool*.8);
   st.teams=teams;st.tier=o.tier;st.fac={stadium:T.fac,training:T.fac,medicine:T.fac,recruiting:T.fac,media:T.fac};st.cash=T.budget;st.training=[];st.apps=[];st.offers=[];
   newSeasonFixtures();newApps(3);st.portal=makePortal(false);
   news(`Coach ${st.coach} leaves ${oldName} for ${user.name} ${user.nick} (${T.n}).${follow.length?` ${follow.map(p=>p.ln).join(', ')} follow${follow.length===1?'s':''} the coach.`:''}`);
@@ -871,11 +1080,12 @@ function newApps(n,o={}){for(let i=0;i<n;i++){const r=R()*100,bonus=st.rep/20+st
   const p=genPlayer(st.gender,pick(POS_ORDER.concat(['CB','CM','ST'])),rar,{year:1,shift:st.fac.recruiting-1+tierOf().shift,pool:o.pools?pick(o.pools):undefined});
   const lo=p.rating-ri(o.vetted?1:2,o.vetted?3:6),hi=p.rating+ri(o.vetted?1:2,o.vetted?3:6);
   const note=o.note||pick(['Sent a highlight tape','Recommended by their club coach','Emailed after your last match','Spotted at a regional showcase','Her/his family lives nearby']).replace('Her/his',st.gender==='w'?'Her':'His');
-  st.apps.push({p,lo,hi,scouted:!!o.scouted,note,cost:Math.max(200,Math.round(Math.pow((lo+hi)/2-15,1.6)*3/50)*50),exp:st.day+3,tag:o.tag||null})}}
+  st.apps.push({p,lo,hi,scouted:!!o.scouted,note,ask:askFor(rar),walkon:rar===0&&R()<.6,exp:st.day+3,tag:o.tag||null})}}
 function appCard(a,i){const p=a.p;return `<div class="card" style="padding:12px"><div class="row">${numB({num:'?'},me().kit)}<div class="sp"><b>${esc(p.fn)} ${esc(p.ln)}</b> ${a.tag?`<span class="tag r2">${a.tag}</span>`:''}<br><small class="mute">${p.flag} ${esc(p.town)} · ${p.pos} · ${esc(a.note)}</small></div>
   <div style="text-align:right">${a.scouted?`${rtag(p.rar)}<div class="rat" style="width:auto">${p.rating}<small class="mute" style="font-size:11px"> / ${p.pot}</small></div>`:`<span class="tag" style="background:#2a2e36">? stars</span><div class="rat" style="width:auto;font-size:13px">${a.lo}–${a.hi}</div>`}</div></div>
   <div class="row" style="gap:6px;margin-top:10px">${a.scouted?'':`<button class="btn sec sm" data-act="scout" data-v="${i}">Scout ${money(200)}</button><button class="btn ghost sm" data-act="adscout" data-v="${i}">▶ Scout (ad)</button>`}
-   <span class="sp"></span><button class="btn ghost sm" data-act="decline" data-v="${i}">Pass</button><button class="btn sm" data-act="offer" data-v="${i}">Offer ${money(a.cost)}</button></div>
+   <span class="sp"></span><button class="btn ghost sm" data-act="decline" data-v="${i}">Pass</button><button class="btn sm" data-act="offer" data-v="${i}">Make offer</button></div>
+  <div style="font-size:11px;margin-top:6px" class="mute">🎓 Hopes for ${a.ask?`~${Math.round(a.ask*100)}% scholarship (${money(schAmt(a.ask))}/yr)`:'a walk-on spot'}</div>
   <small class="mute" style="font-size:10px">Expires in ${a.exp-st.day} day${a.exp-st.day>1?'s':''}</small></div>`}
 
 // =================== RECRUIT TAB ===================
@@ -884,7 +1094,7 @@ function viewRecruit(v){const t=st.rtab||'inbox';
   v.innerHTML=`<div class="row"><h2 class="sp">Recruiting</h2><span class="chip">Roster ${sq().length}/28</span></div>
    <div class="seg" style="margin-bottom:12px">${tabs.map(([k,n])=>`<button data-act="rtab" data-v="${k}" class="${t===k?'on':''}" style="${k==='portal'&&portalOpen()?'color:var(--lime)':''}">${n}</button>`).join('')}</div><div id="rv"></div>`;
   ({inbox:rInbox,scout:rScout,camp:rCamp,portal:rPortal,packs:viewPacks})[t]($('#rv'));}
-function rInbox(v){v.innerHTML=`<button class="btn sm" style="float:right;margin:0 0 8px 8px;background:#b45309" data-act="refreshapps">New applicants ◆40</button><p class="mute" style="margin-top:0;font-size:12px">Players who want to play for you: emails, highlight tapes, camp attendees, agency and scouting reports. Scout to reveal their true level, then offer a scholarship. Applications expire after 3 days.</p>
+function rInbox(v){tip('inbox','Each applicant tells you roughly what scholarship they hope for. Offer what they ask and they\'ll very likely say yes. Offer less (or a walk-on spot) and it\'s a gamble. Don\'t spend your whole pool on one player!','schol');v.innerHTML=`<button class="btn sm" style="float:right;margin:0 0 8px 8px;background:#b45309" data-act="refreshapps">New applicants ◆40</button><p class="mute" style="margin-top:0;font-size:12px">Players who want to play for you: emails, highlight tapes, camp attendees, agency and scouting reports. Scout to reveal their true level, then offer a scholarship. Applications expire after 3 days.</p>
   ${st.apps.length?st.apps.map(appCard).join(''):'<p class="mute">No applications right now. Win matches, host an ID camp or send scouts out to find more.</p>'}`}
 const AGENCIES=[['Pitch Passport','UK & Europe trials',['eng','ger','swe','esp','fra']],['Golden Boot Placements','West Africa & Caribbean trials',['yor','igb','gha','jam']],['Samba Scholars','Brazil & Mexico trials',['bra','mex']],['Rising Sun Sports','Japan & Korea trials',['jpn','kor']]];
 const US_POOLS=['us','us','us_hisp','us_irish','us_ital','us_mw'];
@@ -921,15 +1131,15 @@ const portalOpen=()=>st.portal&&!st.portal.closed&&st.day<st.portal.until;
 function makePortal(withLeavers){const T=tierOf(),pool=[];
   for(let i=0;i<6;i++){const rar=Math.min(4,rarRoll(T.rr)+(R()<.35?1:0));const p=genPlayer(st.gender,pick(POS_ORDER.concat(['CB','CM','ST'])),rar,{year:ri(2,3),shift:T.shift+ri(0,4)});
     p.pot=Math.max(p.rating+1,p.pot-ri(2,5));
-    pool.push({p,reason:pick(PORTAL_REASONS),interest:clamp(Math.round(55+st.rep/40-rar*8+ri(-15,15)),10,95),cost:Math.round(Math.pow(Math.max(5,p.rating-12),1.6)*4.5/50)*50,juco:false})}
+    pool.push({p,reason:pick(PORTAL_REASONS),interest:clamp(Math.round(55+st.rep/40-rar*8+ri(-15,15)),10,95),ask:askFor(rar),juco:false})}
   for(let i=0;i<4;i++){const rar=R()<.25?1:0;const p=genPlayer(st.gender,pick(POS_ORDER.concat(['CB','CM','ST'])),rar,{year:3,shift:T.shift+ri(4,8)});
     p.pot=p.rating+ri(2,6);
-    pool.push({p,reason:'Junior-college graduate · 2 years of eligibility left',interest:clamp(Math.round(80+st.rep/60+ri(-10,10)),40,98),cost:Math.round(Math.pow(Math.max(5,p.rating-14),1.6)*3/50)*50,juco:true})}
+    pool.push({p,reason:'Junior-college graduate · 2 years of eligibility left',interest:clamp(Math.round(80+st.rep/60+ri(-10,10)),40,98),ask:Math.round(askFor(rar)*.8*20)/20,juco:true})}
   const leaving=[];
   if(withLeavers){const s=sq().filter(p=>p.year<=4);const med=[...s].map(p=>p.rating).sort((a,b)=>a-b)[Math.floor(s.length/2)]||0;
     for(const p of s){if((p.sMins||0)<400&&p.year>=2&&R()<.25+(p.rating>=med?.25:0))leaving.push({p,reason:pick(['Wants more playing time','Unhappy with their role','Thinks they can start elsewhere']),retain:Math.round(p.rating*30/50)*50,kept:false})}}
   return {until:st.day+3,pool,leaving,closed:false}}
-function rPortal(v){const P2=st.portal;
+function rPortal(v){const P2=st.portal;if(portalOpen())tip('portal','Portal players are experienced and ready now. JUCO graduates arrive as juniors with 2 years left. Keep your own unhappy players with a NIL deal before the portal closes.','portal');
   if(!portalOpen()){v.innerHTML=`<div class="card"><b>🚪 Transfer Portal: closed</b><p class="mute" style="font-size:12px;margin:6px 0 0">The portal opens for 3 days after every season. Players at other schools enter looking for a new program, junior-college graduates look to move up, and your own unhappy players may leave.</p></div>`;return}
   const left=P2.until-st.day;
   v.innerHTML=`<div class="card" style="border-color:var(--lime)"><b>🚪 Transfer Portal: open</b> <span class="chip" style="float:right">Closes in ${left} day${left>1?'s':''}</span><p class="mute" style="font-size:12px;margin:6px 0 0">Experienced players ready to play now. Portal players may choose another school; your reputation affects their interest. JUCO graduates join as juniors.</p></div>
@@ -937,7 +1147,7 @@ function rPortal(v){const P2=st.portal;
      ${l.kept?'<span class="tag r1">Staying</span>':`<button class="btn sm" data-act="retain" data-v="${i}">NIL deal ${money(l.retain)}</button>`}</div></div>`).join('')}<p class="mute" style="font-size:11px">If you don't make them a NIL offer, they leave when the portal closes.</p>`:''}
    <h3>Transfer targets</h3>${P2.pool.map((x,i)=>{const p=x.p;return `<div class="card" style="padding:12px"><div class="row">${numB({num:p.num||'?'},me().kit)}<div class="sp"><b>${esc(p.fn)} ${esc(p.ln)}</b> <span class="tag ${x.juco?'r1':'r2'}">${x.juco?'JUCO':'Portal'}</span><br><small class="mute">${p.flag} ${p.pos} · ${yr(p.year)} · ${esc(x.reason)}</small></div>
      <div style="text-align:right">${rtag(p.rar)}<div class="rat" style="width:auto">${p.rating}<small class="mute" style="font-size:11px"> / ${p.pot}</small></div></div></div>
-     <div class="row" style="margin-top:8px"><small class="mute sp">Interest in you: <b style="color:${x.interest>=70?'var(--green)':x.interest>=45?'var(--yellow)':'var(--orange)'}">${x.interest}%</b></small><button class="btn sm" data-act="portalsign" data-v="${i}">Offer ${money(x.cost)}</button></div></div>`}).join('')||'<p class="mute">Everyone has found a new school.</p>'}`}
+     <div class="row" style="margin-top:8px"><small class="mute sp">Wants ${x.ask?Math.round(x.ask*100)+'% scholarship':'a walk-on spot'} · interest <b style="color:${x.interest>=70?'var(--green)':x.interest>=45?'var(--yellow)':'var(--orange)'}">${x.interest}%</b></small><button class="btn sm" data-act="portalsign" data-v="${i}" ${schAmt(x.ask)>schAvail()?'disabled':''}>Offer ${x.ask?kfmt(schAmt(x.ask))+'/yr':'walk-on'}</button></div></div>`}).join('')||'<p class="mute">Everyone has found a new school.</p>'}`}
 
 // =================== REWARDED ADS (opt-in only, no interstitials) ===================
 const ADS_PER_DAY=5;
@@ -958,7 +1168,7 @@ const RECOLOUR=150,PASS_XP=50,PASS_USD=7.99,STARTER_USD=2.99;
 const PASS_FREE=[{cash:1000},{gold:20},{pack:'std'},{cash:1500},{gold:30},{pack:'std'},{cash:2500},{gold:50},{pack:'std'},{gold:100}];
 const PASS_PREM=[{gold:50},{pack:'prem'},{cash:3000},{gold:80},{pack:'prem'},{pattern:'hoops'},{gold:120},{pack:'prem'},{cash:8000},{recruit:3}];
 const usd=n=>'$'+n.toFixed(2);
-function migrate(){st.log=st.log||{buys:[],ads:0,gold:0};st.owned=st.owned||['plain'];st.firstBuy=st.firstBuy||[];
+function migrate(){st.seen=st.seen||{arrived:1};st.tut=st.tut||{};if(!st.coa){st.coa=28000;st.pool=140000;assignSchol(sq(),st.coa,st.pool*.8);st.apps.forEach(a=>{a.ask=askFor(a.p.rar);a.walkon=a.p.rar===0})}st.log=st.log||{buys:[],ads:0,gold:0};st.owned=st.owned||['plain'];st.firstBuy=st.firstBuy||[];
   if(!st.pass||st.pass.season!==st.season)st.pass={season:st.season,xp:0,premium:false,cf:[],cp:[]}}
 function patternCSS(k){const a=k[0],b=k[1];return {stripes:`repeating-linear-gradient(90deg,${a} 0 5px,${b} 5px 8px)`,hoops:`repeating-linear-gradient(0deg,${a} 0 5px,${b} 5px 8px)`,
   halves:`linear-gradient(90deg,${a} 50%,${b} 50%)`,sash:`linear-gradient(135deg,${a} 38%,${b} 38% 62%,${a} 62%)`}[k[2]]||a}
@@ -1012,9 +1222,24 @@ function showRecolour(){sheet(`<h2>Club colours</h2><p class="mute" style="margi
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-act]');if(!t)return;const a=t.dataset.act,v=t.dataset.v;
   switch(a){
-   case 'tab':st.tab=v;save();render();window.scrollTo(0,0);break;
-   case 'ob':ob.coach=$('#obCoach').value;ob.club=$('#obClub').value;ob.nick=$('#obNick').value;ob[t.dataset.k]=t.dataset.k==='kit'?+v:v;render();break;
-   case 'start':{const c=$('#obCoach').value.trim()||'Coach',cl=$('#obClub').value.trim()||'Riverbend College',nk=$('#obNick').value.trim()||'Otters';newGame({gender:ob.gender,kit:ob.kit,club:cl,nick:nk,coach:c});render();break}
+   case 'tab':st.tab=v;if(['squad','tactics','recruit'].includes(v))st.tut[v]=1;save();render();window.scrollTo(0,0);break;
+   case 'obnext':if(ob.step===3){ob.coach=($('#obCoach').value||'').trim()}ob.step++;render();window.scrollTo(0,0);break;
+   case 'obskip':ob.step=3;render();break;
+   case 'rejobs':ob.jobs=makeJobs();render();break;
+   case 'job':showJob(+v);break;
+   case 'takejob':closeSheet();newGame(ob.coach||'Rookie',ob.jobs[+v]);render();showArrival();break;
+   case 'arrived':st.seen.arrived=1;save();closeSheet();render();break;
+   case 'help':showHandbook(v);break;
+   case 'ask':showAsk();break;
+   case 'tipok':closeTip();break;
+   case 'tipmore':{const tt=closeTip();if(tt&&tt.topic)showHandbook(tt.topic);break}
+   case 'tuthide':st.tutHide=1;save();render();break;
+   case 'makeoffer':{const i=+t.dataset.i,f=+v,a=st.apps[i],amt=schAmt(f);if(!a)break;if(sq().length>=28){toast('Roster full (28)');break}if(amt>schAvail()){toast('Not enough left in your scholarship pool');break}
+     const ch=offerChance(a,f);st.apps.splice(i,1);closeSheet();
+     if(R()<ch){a.p.schol=amt;sq().push(a.p);assignNums(sq());news(`${a.p.fn} ${a.p.ln} (${a.p.pos}) accepted ${f?Math.round(f*100)+'% scholarship ('+money(amt)+'/yr)':'a walk-on spot'}`);save();render();
+       sheet(`<div style="text-align:center"><div style="font-size:40px">✍️</div><h2>${esc(a.p.fn)} ${esc(a.p.ln)} commits!</h2><p class="mute">${f?`${money(amt)} a year (${Math.round(f*100)}% of costs)`:'Joining as a walk-on'}</p><p style="font-size:13px">Scholarship pool left: <b>${money(schAvail())}</b></p></div><button class="btn full" data-act="closesheet">Great</button>`)}
+     else{news(`${a.p.fn} ${a.p.ln} turned down your offer`);save();render();sheet(`<div style="text-align:center"><div style="font-size:40px">📭</div><h2>${esc(a.p.fn)} said no</h2><p class="mute" style="font-size:13px">${f<a.ask?'Another college offered more money.':'They chose another college closer to home.'} Offers below what a recruit hopes for are a gamble.</p></div><button class="btn full" data-act="closesheet">OK</button>`)}
+     break}
    case 'play':startMatch(v);break;
    case 'fulltable':showFullTable();break;
    case 'player':showPlayer(v);break;
@@ -1029,7 +1254,7 @@ document.addEventListener('click',e=>{
    case 'autopick':{const T=me().tactics;T.lineup=autopick(sq(),T.formation);save();rerenderTactics();break}
    case 'clearxi':me().tactics.lineup=Array(11).fill(null);save();rerenderTactics();break;
    case 'trainpick':showTrainPick();break;
-   case 'trainq':{if(st.training.length>=st.fac.training+1){toast('No free training slots');break}if(st.training.some(x=>x.id===v))break;st.training.push({id:v,focus:''});save();closeSheet();st.tab='train';render();break}
+   case 'trainq':{if(st.training.length>=st.fac.training+1){toast('No free training slots');break}if(st.training.some(x=>x.id===v))break;st.training.push({id:v,focus:''});st.tut.train=1;save();closeSheet();st.tab='train';render();break}
    case 'untrain':st.training=st.training.filter(x=>x.id!==v);save();render();break;
    case 'upgrade':{const l=st.fac[v],c=facCost(v,l+1);if(st.cash<c)break;st.cash-=c;st.fac[v]++;news(`${FAC[v].n} upgraded to level ${st.fac[v]}`);save();render();toast(`${FAC[v].n} → Lv ${st.fac[v]}`);break}
    case 'reset':if(confirm('Delete your save and start over?')){localStorage.removeItem(SAVE);st=null;render()}break;
@@ -1040,8 +1265,8 @@ document.addEventListener('click',e=>{
    case 'youth':{const i=+v,g=YOUTH[i],fee=youthFee(i);if(st.cash<fee){toast('Not enough Booster $');break}st.cash-=fee;st.agencyDay=st.day;newApps(2,{pools:US_POOLS,bonus:i===2?2:6,vetted:true,scouted:true,tag:'Youth',note:`Scouted at the ${g[0]}`});const ps=st.apps.slice(-2).map(a=>a.p);ps.forEach(p=>p.pot=Math.min(95,p.pot+ri(2,5)));news(`Scouts back from the ${g[0]} with 2 prospects`);st.rtab='inbox';save();render();toast('2 scouted prospects in your inbox');break}
    case 'camp':{const c=campCost();if(st.cash<c){toast('Not enough Booster $');break}st.cash-=c;st.camp={size:campSize(),done:st.day+2,paid:false};news(`ID camp opened: ${st.camp.size} campers signed up`);save();render();toast('Camp booked. Results in 2 days');break}
    case 'retain':{const l=st.portal.leaving[+v];if(st.cash<l.retain){toast('Not enough Booster $');break}st.cash-=l.retain;l.kept=true;news(`${l.p.ln} signed a NIL deal and withdrew from the portal`);save();render();break}
-   case 'portalsign':{const x=st.portal.pool[+v];if(sq().length>=28){toast('Roster full (28)');break}if(st.cash<x.cost){toast('Not enough Booster $');break}st.cash-=x.cost;st.portal.pool.splice(+v,1);
-     if(R()*100<x.interest){x.p.num=0;sq().push(x.p);assignNums(sq());news(`${x.p.fn} ${x.p.ln} joins from the ${x.juco?'JUCO ranks':'Transfer Portal'}`);toast(`${x.p.ln} signed!`)}else{st.cash+=Math.round(x.cost*.8);news(`${x.p.ln} chose another school`);toast(`${x.p.ln} chose another school (80% refunded)`)}save();render();break}
+   case 'portalsign':{const x=st.portal.pool[+v],amt=schAmt(x.ask);if(sq().length>=28){toast('Roster full (28)');break}if(amt>schAvail()){toast('Not enough left in your scholarship pool');break}st.portal.pool.splice(+v,1);x.p.schol=amt;
+     if(R()*100<x.interest){x.p.num=0;sq().push(x.p);assignNums(sq());news(`${x.p.fn} ${x.p.ln} joins from the ${x.juco?'JUCO ranks':'Transfer Portal'}`);toast(`${x.p.ln} signed!`)}else{news(`${x.p.ln} chose another school`);toast(`${x.p.ln} chose another school`)}save();render();break}
    case 'dayend':closeSheet();if(st.phase==='done')seasonEnd();else render();break;
    case 'bracket':sheet(`<h2>${esc(st.ko.name)}</h2>${bracketHTML(st.ko)}`);break;
    case 'offers':showOffers();break;
@@ -1050,7 +1275,8 @@ document.addEventListener('click',e=>{
    case 'scout':{const a=st.apps[+v];if(st.cash<200){toast('Not enough Booster $');break}st.cash-=200;a.scouted=true;save();render();break}
    case 'adscout':{const a=st.apps[+v];watchAd('Scout report on '+a.p.ln,()=>{a.scouted=true;render()});break}
    case 'decline':st.apps.splice(+v,1);save();render();break;
-   case 'offer':{const a=st.apps[+v];if(sq().length>=28){toast('Roster full (28)');break}if(st.cash<a.cost){toast('Not enough Booster $ for the scholarship');break}
+   case 'offer':showOffer(+v);break;
+   case 'offerOLD':{const a=st.apps[+v];if(sq().length>=28){toast('Roster full (28)');break}if(st.cash<a.cost){toast('Not enough Booster $ for the scholarship');break}
      st.cash-=a.cost;sq().push(a.p);assignNums(sq());st.apps.splice(+v,1);news(`${a.p.fn} ${a.p.ln} (${a.p.pos}) accepted a scholarship`);save();render();toast(`${a.p.ln} signed!`);break}
    case 'addouble':{const amt=+v;watchAd('+'+money(amt),()=>{st.cash+=amt;render()});t.remove();break}
    case 'adpack':{if(st.freePack===st.day){toast('Free pack already claimed today');break}if(sq().length>=28){toast('Roster full (28)');break}
