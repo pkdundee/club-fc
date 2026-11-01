@@ -1,13 +1,13 @@
 {
   "name": "Club FC",
   "short_name": "Club FC",
-  "description": "US college soccer management. Recruit, train and climb from small college to the big time.",
+  "description": "Build your college soccer program from a rundown field to national champions.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0e0f12",
-  "theme_color": "#0e0f12",
+  "background_color": "#0f1b3d",
+  "theme_color": "#0f1b3d",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
