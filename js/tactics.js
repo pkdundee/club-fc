@@ -65,6 +65,7 @@
   const ring = (f, sz = 14) => { const r = sz / 2 - 2, c = 2 * Math.PI * r, col = f >= 70 ? '#4ade80' : f >= 50 ? '#facc15' : f >= 30 ? '#fb923c' : '#f87171';
     return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="none" stroke="rgba(148,163,184,.35)" stroke-width="2.4"/><circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="none" stroke="${col}" stroke-width="2.4" stroke-dasharray="${c * Math.max(0, Math.min(1, f / 100))} ${c}" transform="rotate(-90 ${sz / 2} ${sz / 2})"/></svg>`; };
   const fcol = f => f >= 70 ? '#4ade80' : f >= 50 ? '#facc15' : f >= 30 ? '#fb923c' : '#f87171';
+  C.condRing = ring; C.condCol = fcol; C.FITPILL = PILL;
   // status icons: captain, injured, suspended, one yellow from a ban
   C.badges = p => { const car = C.car(), b = [];
     if (car.captains.includes(p.id)) b.push('<i class="bdg cap" title="Captain">C</i>');

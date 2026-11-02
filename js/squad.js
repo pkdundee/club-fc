@@ -25,9 +25,10 @@
       ${rare}<div style="padding:0 16px">${C.advice(sq.some(p => p.energy < 60) ? 'snc' : 'mot')}</div>
       <div class="filters">${[['all', 'All ' + sq.length], ['xi', 'XI ' + count('xi')], ['bench', 'Bench ' + count('bench')], ['res', 'Reserves ' + count('res')]].map(([k, n]) => `<button class="f ${filter === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${k !== 'all' ? `<i style="background:${ROLE[k][1]}"></i>` : ''}${n}</button>`).join('')}</div>
       ${list.map(p => `<button class="prow" style="--mk:${ROLE[roles[p.id]][1]}" data-act="player" data-v="${p.id}">
-        <div class="av"><div class="ering">${C.ringSVG(p.energy / 100, ec(p.energy), 56, 4)}</div><div class="face">${C.faceOf(p)}</div><span class="num">${p.num}</span></div>
+        <div class="av plain"><div class="face">${C.faceOf(p)}</div><span class="num">${p.num}</span></div>
         <div class="pinfo"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(p.id) ? ' <span class="cap">C</span>' : ''}${p.want && p.want !== p.num ? ' <span title="Wants a different number">🎟</span>' : ''}${C.inDev(p.id) ? ' <span title="In training">🏋️</span>' : ''}${p.inj ? ' <span title="Injured">🩹</span>' : ''}${p.ban ? ' <span title="Suspended">🟥</span>' : ''}</b>
-          <div class="tags"><span class="pos ${C.POSGROUP(p.pos)}">${p.pos}</span><span class="yr">${C.yrIcon(p.year)}${yrN[p.year]}</span><span class="sch">${schLabel(p)}</span>${p.rs ? '<span class="sch">🎽</span>' : ''}</div></div>
+          <div class="tags"><span class="pos ${C.POSGROUP(p.pos)}">${p.pos}</span><span class="yr plain">${yrN[p.year]}</span><span class="sch">${schLabel(p)}</span>${p.rs ? '<span class="sch">🎽</span>' : ''}</div>
+          <div class="pmatch">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}<span class="cond" style="color:${C.condCol(p.energy)}">${C.condRing(p.energy, 14)} ${Math.round(p.energy)}%</span></div></div>
         <div class="rate"><b>${p.rating}</b>${p.up > 0 ? `<span class="up">▲ +${p.up}</span>` : `<small>${moraleIcon(p.morale)}</small>`}</div></button>`).join('')}
       <p class="note" style="padding:0 16px">XI and bench come from your Tactics. Freshness drops when players play and comes back when they rest a match.</p></div>`;
   };

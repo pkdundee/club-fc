@@ -7,7 +7,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'phase-9e · 2 Nov 2026';
+  C.BUILD = 'phase-9f · 2 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -207,7 +207,7 @@
         if (v === 'finish') { car.queue.forEach(q => q.end = C.now()); (car.devq || []).forEach(q => q.end = C.now()); (car.pbq || []).forEach(q => q.end = C.now()); C.tickDev(); C.tickPB(); }
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
       case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Coins and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
-      case 'wipeyes': try { localStorage.removeItem('clubfc2_p9e'); } catch (e) { } location.reload(); break;
+      case 'wipeyes': try { localStorage.removeItem('clubfc2_p9f'); } catch (e) { } location.reload(); break;
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();
         if (v === 'vip') a2.vipUntil = Math.max(a2.vipUntil, C.now()) + 30 * 864e5;
