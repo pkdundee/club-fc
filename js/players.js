@@ -47,6 +47,11 @@
     return { skin, hair, eyes, style, female: female ? 1 : 0, beard };
   };
 
+  // top a player up to two alternative positions (the nearest ones), for saves made before 9e
+  C.ensureAlts = p => { if (p.pos === 'GK' || (p.sec || []).length >= 2) return; p.sec = p.sec || [];
+    const near = Object.keys(POS).filter(q => q !== p.pos && q !== 'GK' && !p.sec.includes(q)).sort((a, b) => Math.hypot((POS[p.pos][0] - POS[a][0]) * .6, POS[p.pos][1] - POS[a][1]) - Math.hypot((POS[p.pos][0] - POS[b][0]) * .6, POS[p.pos][1] - POS[b][1]));
+    while (p.sec.length < 2 && near.length) p.sec.push(near.shift()); };
+
   // ---------- numbers (Q29) ----------
   const LIKES = { GK: [1, 0], CB: [4, 5, 3], LB: [3], RB: [2], DM: [6], CM: [8, 14, 16], LM: [11, 7], RM: [7], AM: [10], LW: [11, 7], RW: [7, 11], ST: [9, 10] };
 
@@ -57,10 +62,11 @@
     const fn = pk(P[gender === 'w' ? 3 : 2]), ln = pk(P[4]).replace(/^OBrien$/, "O'Brien"), town = P[1].split('|')[Math.floor(r() * P[1].split('|').length)];
     const keys = pos === 'GK' ? Object.keys(C.GKATTR) : Object.keys(C.ATTR), prof = PROFILE[pos], a = {};
     for (const k of keys) a[k] = C.clamp(Math.round(rating + (prof[k] || 0) + (r() * 8 - 4)), 8, 95);
-    const sec = []; if (pos !== 'GK') { const near = Object.keys(POS).filter(q => q !== pos && q !== 'GK' && Math.hypot((POS[pos][0] - POS[q][0]) * .6, POS[pos][1] - POS[q][1]) < .3); const n = Math.floor(r() * 3); for (let i = 0; i < n && near.length; i++) sec.push(near.splice(Math.floor(r() * near.length), 1)[0]); }
+    const sec = []; if (pos !== 'GK') { const near = Object.keys(POS).filter(q => q !== pos && q !== 'GK' && Math.hypot((POS[pos][0] - POS[q][0]) * .6, POS[pos][1] - POS[q][1]) < .3); const n = 2; /* outfield players: one main position (green) and two alternatives (lime) */ for (let i = 0; i < n && near.length; i++) sec.push(near.splice(Math.floor(r() * near.length), 1)[0]); }
     const p = { id: 'p' + Math.floor(r() * 1e9).toString(36) + Date.now().toString(36).slice(-3), fn, ln, pool, flag: P[0], town, pos, sec, rar, a, year,
       look: C.makeLook(r, pool, gender === 'w'), energy: 100, morale: 70, num: 0, want: r() < .35 ? LIKES[pos][Math.floor(r() * LIKES[pos].length)] : 0,
       schol: 0, acad: false, stars: 0, dev: 0, fitB: {}, lead: Math.round(35 + r() * 55), gpa: +(2.3 + r() * 1.7).toFixed(2), up: 0 };
+    C.ensureAlts(p);
     p.rating = C.calcRating(p); p.pot = C.clamp(p.rating + Math.round((4 + r() * 10) * (1 + rar * .3) * (year <= 2 ? 1.2 : .7)), p.rating + 1, 95);
     return p;
   };

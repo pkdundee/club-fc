@@ -800,3 +800,40 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .tacdef{background:var(--bg);border-radius:12px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:8px}.tacdef b{color:var(--ink)}
 .xoi.big{width:30px;height:30px;border-radius:8px}
 .forms{flex-wrap:wrap;overflow:visible}.forms button{padding:7px 10px;font-size:13px}
+
+/* ---------- phase-9e: tactics board tokens, list view and alternatives panel ---------- */
+.board.tall{aspect-ratio:68/118}
+.tk{position:absolute;transform:translate(-50%,-50%);width:84px;display:flex;flex-direction:column;align-items:center}
+.tkf{width:42px;height:42px;border-radius:50%;overflow:hidden;border:2px solid #14b8a6;background:#475569;padding:0;box-shadow:0 2px 4px rgba(0,0,0,.35)}
+.tkf.empty{border:2px dashed #fff;background:rgba(255,255,255,.12);color:#fff;font:900 20px Nunito}
+.tkn{margin-top:-4px;max-width:84px;border:0;border-radius:999px;padding:2px 6px 2px 9px;display:flex;align-items:center;gap:3px;color:#0f172a;font:900 11.5px Nunito;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.tkn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60px}.tkn i{font-style:normal;font-size:10px}
+.tkm{display:flex;align-items:center;gap:3px;margin-top:2px}
+.tkm .tp,.tkm .tr{background:rgba(11,18,32,.75);color:#fff;font:900 9.5px/1 Nunito;border-radius:999px;padding:3px 6px}
+.tkb{position:absolute;top:-8px;left:50%;transform:translateX(-50%);display:flex;gap:2px;z-index:1}
+.bdg{display:inline-flex;align-items:center;justify-content:center;font-style:normal;min-width:15px;height:15px;border-radius:4px;font:900 9px Nunito;margin-left:3px;vertical-align:1px}
+.bdg.cap{background:#2563eb;color:#fff}.bdg.inj{background:#fee2e2;font-size:9px}.bdg.ins{background:#fff;color:#0f172a}
+.bdg.red{background:#dc2626;width:11px;min-width:11px;height:15px;box-shadow:inset 0 0 0 1.5px #fff}
+.bdg.yel{background:#f97316;width:11px;min-width:11px;height:15px;box-shadow:inset 0 0 0 1.5px #fff}
+.tview{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}.tview button{border:0;border-radius:12px;padding:8px;font-weight:900;background:var(--card);box-shadow:var(--shadow);color:var(--ink)}.tview button.on{background:var(--school);color:#fff}
+.tlist{background:#111827;border-radius:16px;padding:6px;color:#f8fafc}
+.lrw,.arow{display:grid;grid-template-columns:44px 1fr 28px auto 58px;gap:6px;align-items:center;width:100%;border:0;background:#1f2937;color:#f8fafc;border-radius:10px;padding:7px 6px;margin-bottom:4px;text-align:left;font-size:12.5px;font-weight:800}
+.lrw .lnm,.arow .anm{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.lchip{display:inline-block;text-align:center;border-radius:999px;font:900 10.5px/20px Nunito;color:#0f172a;min-width:40px}
+.lrt,.art{text-align:right}
+.ltop{display:flex;gap:3px}.ltop i{font-style:normal;font:900 9px/16px Nunito;color:#0f172a;border-radius:999px;padding:0 5px}
+.lfr,.afr{display:flex;align-items:center;gap:3px;justify-content:flex-end;font-size:11.5px}
+.arow{grid-template-columns:44px 1fr 30px 60px}
+.altp{background:#111827;border-radius:16px;padding:10px;color:#f8fafc;margin:0 -4px}
+.ahd{display:block;font:900 10.5px Nunito;letter-spacing:.6px;text-transform:uppercase;color:#94a3b8;margin:2px 2px 6px}
+.ahd2{display:flex;align-items:center;gap:8px;margin-top:12px}.ahd2 .ahd{flex:1;margin:0}
+.chk{border:1.5px solid #64748b;background:none;color:#cbd5e1;border-radius:6px;font:900 10.5px Nunito;padding:4px 8px}.chk.on{background:#4ade80;border-color:#4ade80;color:#0f172a}
+.chk:before{content:"☐ "}.chk.on:before{content:"☑ "}
+.alist{margin-top:8px;max-height:52vh;overflow-y:auto}
+.arow.lock{opacity:.45}
+.altrm{margin-top:10px;background:#4338ca;color:#fff;text-transform:uppercase;letter-spacing:.5px;font-size:14px}
+.altp .instr button{background:#1f2937;color:#e2e8f0;box-shadow:none}.altp .instr button.on{background:var(--school);color:#fff}
+.btok .bf{width:38px;height:38px;border-radius:50%;overflow:hidden;background:#475569;border:2px solid #64748b}
+.btok small{display:flex;align-items:center;gap:2px;justify-content:center}
+.btok em{font-style:normal;position:absolute;top:2px;right:2px}.btok{position:relative}
+.tk{cursor:pointer}

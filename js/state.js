@@ -1,6 +1,6 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc2_p9d';
+  const KEY = 'clubfc2_p9e';
   const FREE_SLOTS = 2;
 
   // Account-wide: Coins and purchases are shared across careers.
@@ -10,13 +10,13 @@
 
   C.load = () => {
     // first open: carry over the latest earlier save (9b, then 9) (and intro flag) so playtest progress isn't lost
-    try { for (const old of ['clubfc2_p9c', 'clubfc2_p9b', 'clubfc2_p9']) { if (!localStorage.getItem(KEY) && localStorage.getItem(old)) { localStorage.setItem(KEY, localStorage.getItem(old)); if (localStorage.getItem(old + '_intro')) localStorage.setItem(KEY + '_intro', '1'); } } } catch (e) { }
+    try { for (const old of ['clubfc2_p9d', 'clubfc2_p9c', 'clubfc2_p9b', 'clubfc2_p9']) { if (!localStorage.getItem(KEY) && localStorage.getItem(old)) { localStorage.setItem(KEY, localStorage.getItem(old)); if (localStorage.getItem(old + '_intro')) localStorage.setItem(KEY + '_intro', '1'); } } } catch (e) { }
     try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.v === 2) C.db = d; } } catch (e) { /* storage blocked: play without saving */ }
     C.db.account = Object.assign(freshAccount(), C.db.account);
     C.db.careers.forEach(c => { if (c.job && !c.job.mix) { c.job.rating = { 3: 46, 2: 42, 1: 38 }[c.job.stars] + 1; c.job.mix = [6, 6, 5, 4]; } C.ensureSquad(c);
       // 9c: Video Room and Media Centre are new; the Coaches' Office no longer earns
       if (c.b.video == null) c.b.video = 0; if (c.b.media == null) c.b.media = 1; c.store = c.store || {}; if (c.store.media == null) c.store.media = C.now(); delete c.store.hq;
-      c.queue = (c.queue || []).filter(q => C.BUILDINGS[q.key]); });
+      c.queue = (c.queue || []).filter(q => C.BUILDINGS[q.key]); (c.squad || []).forEach(C.ensureAlts); });
   };
   C.save = () => { try { localStorage.setItem(KEY, JSON.stringify(C.db)); } catch (e) { /* ignore */ } };
 

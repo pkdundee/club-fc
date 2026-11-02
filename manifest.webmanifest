@@ -1,13 +1,13 @@
 {
-  "name": "Club FC (9d)",
-  "short_name": "Club FC 9d",
+  "name": "Club FC (9e)",
+  "short_name": "Club FC 9e",
   "description": "Build your college soccer program from a rundown field to national champions.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f1b3d",
-  "theme_color": "#134e4a",
+  "theme_color": "#3b0764",
   "icons": [
     {
       "src": "icon-192.png",

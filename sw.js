@@ -1,6 +1,6 @@
 // Club FC offline cache. Bump VERSION when you publish a new build.
-const PREFIX = 'clubfc2-p9d';
-const VERSION = 'clubfc2-p9d-net1';
+const PREFIX = 'clubfc2-p9e';
+const VERSION = 'clubfc2-p9e-net1';
 const FILES = ['./', './index.html', './manifest.webmanifest', './css/style.css',
   './js/util.js', './js/data.js', './js/art-scenes.js', './img/manifest.json', './js/state.js', './js/build.js', './js/names.js', './js/art-faces.js', './js/players.js', './js/squad.js', './js/recruit.js', './js/engine.js', './js/season.js', './js/tactics.js', './js/match.js', './js/staff.js', './js/playbook.js', './js/career.js', './js/liveops.js', './js/medical.js', './js/home.js', './js/art-campus.js', './js/ui.js', './js/jobs.js', './js/help.js', './js/ad.js', './js/screens.js', './js/main.js',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'];

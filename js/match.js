@@ -69,7 +69,7 @@
     const f = C.myFixture(); if (!f) return C.toast('No match to play');
     const rot = C.autoRotate(); if (rot) C.toast(`🔄 Auto-manage rested ${rot} tired player${rot > 1 ? 's' : ''}`);
     const car = C.car(), my = f.h === 0 ? 0 : 1, opp = C.oppTeam(my === 0 ? f.a : f.h), t = C.tac();
-    if (t.xi.filter(Boolean).length < 11) return C.toast('Not enough fit players for an XI');
+    if (t.xi.filter(Boolean).length < 11) { C.toast(t.empty && t.empty.some(Boolean) ? 'Fill every position in Tactics first' : 'Not enough fit players for an XI'); return C.openTactics(); }
     M = { f, my, opp, cd: 5, speed: 1, playing: false, ev: 0 };
     M.att = C.attendance(f); M.locals = t.xi.map(C.P).filter(p => p && C.isLocal(p)).length;
     C.ui.closeAll(); drawPre(); countdown();
