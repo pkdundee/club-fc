@@ -1,6 +1,6 @@
 // Club FC: base building (Phase 1). Upgrade rules, the build queue, speed-ups and production.
 (function (C) {
-  const FREE_FINISH = 180; // builds with 3 minutes or less left can be finished free
+  const FREE_FINISH = 120; // builds with 2 minutes or less left can be finished free
 
   C.level = k => C.car().b[k];
   C.inQueue = k => C.car().queue.find(q => q.key === k);
@@ -21,7 +21,7 @@
     if (def.needHQ && lv === 0) rows.push(['🔒', `Unlocks at ${C.BUILDINGS.hq.name} Lv ${def.needHQ}`, C.level('hq') >= def.needHQ]);
     if (k !== 'hq' && to > C.tierCap()) rows.push(['🎓', `${C.TIERS[car.tier].n} cap is Lv ${C.tierCap()}`, false]);
     rows.push(['💵', `${C.short(car.cash)} / ${C.short(cost.cash)} Booster $`, car.cash >= cost.cash]);
-    if (cost.cp) rows.push(['📘', `${C.short(car.cp)} / ${cost.cp} Coaching Points`, car.cp >= cost.cp]);
+    if (cost.cp) rows.push(['<i class="cpi"></i>', `${C.short(car.cp)} / ${cost.cp} Coaching Points`, car.cp >= cost.cp]);
     return rows;
   };
   C.canUpgrade = k => !C.inQueue(k) && C.level(k) < 30 && C.requirements(k).every(r => r[2]) && C.freeSlot();
@@ -38,7 +38,9 @@
   };
 
   C.remaining = q => Math.max(0, (q.end - C.now()) / 1000);
-  C.goldToFinish = q => Math.max(1, Math.ceil(C.remaining(q) / 90));
+  // Coins: 1 per minute left for the first hour, then 1 per 2 minutes (see ECONOMY.md)
+  C.coinsFor = secs => { const m = Math.ceil(secs / 60); return m <= 60 ? Math.max(1, m) : 60 + Math.ceil((m - 60) / 2); };
+  C.goldToFinish = q => C.coinsFor(C.remaining(q));
   C.isFreeFinish = q => C.remaining(q) <= FREE_FINISH;
   C.finishNow = (q, pay) => {
     if (pay) { const g = C.goldToFinish(q); if (C.acct().gold < g) return false; C.acct().gold -= g; }
@@ -58,8 +60,8 @@
     return done;
   };
 
-  // ---- production (Coaches' Office and Booster Club make Booster $, Film Room makes Coaching Points) ----
-  C.PRODUCERS = { hq: 'cash', booster: 'cash', film: 'cp' };
+  // ---- production (Media Centre and Booster Club make Booster $, the Performance Lab makes Coaching Points) ----
+  C.PRODUCERS = { media: 'cash', booster: 'cash', film: 'cp' };
   C.stored = k => {
     const car = C.car(), lv = C.level(k); if (!lv) return 0;
     const hrs = Math.min((C.now() - car.store[k]) / 3.6e6, C.STORE_HOURS(lv));

@@ -7,8 +7,30 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', col.c2); } };
 
   let e2 = null;
+  C.BUILD = 'phase-9c · 2 Nov 2026';
+  // actions that spend something: show a preview first, act only once confirmed
+  const NEEDS_OK = { buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
+  function preview(a, v) {
+    const own = (n, x) => `<div class="srow"><span>You have</span><b>${x} ${n}</b></div>`, gold = C.short(C.acct().gold);
+    if (a === 'cmanual' || a === 'clic' || a === 'ctrait') { const c = C.coach(v), S = C.staffState(), k = C.licCost(c);
+      const t = { cmanual: ['📗 Coaching manual', `+100 XP for ${c.fn} ${c.ln} (Lv ${c.level}, ${c.xp}/${C.xpNeed(c)} XP)`, '1 manual', own('manuals', S.items.manual)],
+        clic: ['🎫 Licence upgrade', `${C.LICENCE[c.lic]} → ${C.LICENCE[Math.min(4, c.lic + 1)]} licence: level cap ${C.lvCap(c)} → ${[20, 30, 40, 50, 60][Math.min(4, c.lic + 1)]}`, `🎫 ${k.credits} Clinic Credits + 💵 ${C.short(k.cash)}`, own('Clinic Credits', S.items.credits)],
+        ctrait: ['📕 Trait upgrade', `Trait Lv ${c.trait} → ${c.trait + 1}: +8% to everything this coach does`, `📕 ${c.trait} Trait Book${c.trait > 1 ? 's' : ''}`, own('Trait Books', S.items.books)] }[a];
+      return [t[0], `<div class="card"><p style="font-weight:800">${t[1]}</p><div class="srow"><span>Costs</span><b>${t[2]}</b></div>${t[3]}</div>`, 'Confirm']; }
+    if (a === 'treatc') { const [pid, kind] = v.split('|'), p = C.P(pid), kits = (C.car().items && C.car().items.kit) || 0;
+      return kind === 'spec' ? ['Specialist treatment', `<div class="card"><p style="font-weight:800">${C.esc(p.fn + ' ' + p.ln)}: ${C.esc(p.injury.name)}. One match off their recovery (${p.inj} → ${p.inj - 1}). Once per injury.</p><div class="srow"><span>Costs</span><b>${C.GEM} ${C.TREAT.spec}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Treat']
+        : ['Rush back', `<div class="card"><p style="font-weight:800">${C.esc(p.fn + ' ' + p.ln)} plays next match, not fully fit: −15% and ×3 risk of re-injury.</p><div class="srow"><span>Costs</span><b>${kits ? '🧴 1 recovery kit' : C.GEM + ' ' + C.TREAT.rush}</b></div><div class="srow"><span>You have</span><b>${kits ? kits + ' kits' : C.GEM + ' ' + gold}</b></div></div>`, 'Rush back']; }
+    if (a === 'chire') { const c = C.staffState().market.find(x => x.id === v); if (!c) return null; const k = C.hireCost(c);
+      return ['Hire coach', `<div class="card"><p style="font-weight:800">${C.esc(c.fn + ' ' + c.ln)} · ${C.SPECS[c.spec][1]} (${C.RARITY[c.rar][0]})</p><p class="note">▶ ${C.coachBenefit(c)}</p><div class="srow"><span>Costs</span><b>${k.gold ? C.GEM + ' ' + k.gold : '💵 ' + C.short(k.cash)}</b></div><div class="srow"><span>You have</span><b>${k.gold ? C.GEM + ' ' + C.short(C.acct().gold) : '💵 ' + C.short(C.car().cash)}</b></div></div>`, 'Hire']; }
+    if (a === 'buykitc') return ['Buy a recovery kit', `<div class="card"><p style="font-weight:800">🧴 +25 Freshness to one player, any time.</p><div class="srow"><span>Costs</span><b>${C.GEM} ${C.TREAT.kit}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Buy'];
+    if (a === 'teamsess') return C.medState().team > 0 ? ['Team recovery session', `<div class="card"><p style="font-weight:800">👥 +12 Freshness for the whole squad. Free again in ${C.medState().team} match${C.medState().team > 1 ? 'es' : ''}.</p><div class="srow"><span>Costs now</span><b>${C.GEM} ${C.TREAT.team}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Run session'] : null;
+    if (a === 'buy' || a === 'buypack') return ['Confirm purchase', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><p class="note">${a === 'buypack' && C.PACKS[v] ? C.esc(C.PACKS[v].name) + ' · ' + C.PACKS[v].price : { vip: "Coach's Club · $4.99 / month", slot3: 'Extra build slot · $2.99', tslot3: 'Extra training slot · $2.99', pslot3: 'Extra research slot · $2.99', sslot3: 'Extra staff slot · $2.99', tokens: '3 Number Changes · $0.99', gold: '500 Coins · $4.99' }[v] || v}</p>`, 'Buy (test)'];
+    return null;
+  }
   function act(a, v, el) {
     const car = C.car();
+    if (NEEDS_OK[a] && !(el && el.dataset.ok)) { const pv = preview(a, v); if (pv) return C.confirm(pv[0], pv[1], pv[2], a, v); }
+    if (el && el.dataset.ok) C.ui.back();
     switch (a) {
       case 'tab': C.tab = v; C.selB = null; C.ui.closeAll(); C.render(); break;
       case 'proginfo': C.openProgramInfo(); break;
@@ -25,10 +47,10 @@
       case 'upgrade': if (C.startUpgrade(v)) { C.selB = null; C.fwEvent('upgrade'); C.toast(`🔨 ${LEVEL_NAMES(v)} upgrade started`); C.ui.closeAll(); C.render(); } break;
       case 'instant': if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } break;
       case 'speed': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
-        if (C.finishNow(q, !free)) { C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } else C.toast('Not enough Gold'); break; }
+        if (C.finishNow(q, !free)) { C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } else C.toast('Not enough Coins'); break; }
       case 'adspeed': { const q = C.inQueue(v); if (!q) break; C.toast('▶ Ad finished (test): −15 minutes'); C.adSpeedUp(q); C.fwEvent('speed');
         if (!C.inQueue(v)) { C.ui.closeAll(); C.render(); } else C.ui.refresh(); break; }
-      case 'collect': { const amt = C.collect(v); if (amt) C.fwEvent(C.PRODUCERS[v] === 'cp' ? 'collect_cp' : 'collect_cash'); if (amt) C.toast(`${C.PRODUCERS[v] === 'cp' ? '📘' : '💵'} +${C.short(amt)} collected`); if (C.ui.isOpen()) C.ui.refresh(); C.redrawMap(); C.updateLive(); break; }
+      case 'collect': { const amt = C.collect(v); if (amt) C.fwEvent(C.PRODUCERS[v] === 'cp' ? 'collect_cp' : 'collect_cash'); if (amt) C.toast(`${C.PRODUCERS[v] === 'cp' ? '<i class="cpi"></i>' : '💵'} +${C.short(amt)} collected`); if (C.ui.isOpen()) C.ui.refresh(); C.redrawMap(); C.updateLive(); break; }
       case 'slotinfo': { const s = C.SLOTS.find(x => x.id === v); C.toast(`🔒 ${s.name}: ${s.why}`); if (v !== 'prog') C.openStore(); break; }
       // careers
       case 'careers': C.openCareers(); break;
@@ -48,8 +70,10 @@
       case 'signjob': C.openIdentity(); break;
       case 'pron': C.market().coach = (C.$('#coachName') || {}).value || ''; C.market().pron = v; C.ui.refresh(); break;
       case 'startjob': { const M = C.market(); const coach = ((C.$('#coachName') || {}).value || '').trim() || 'Rookie';
-        C.newCareer({ coach, pron: M.pron, job: M.jobs[M.pick] }); C.ui.closeAll(); C.tab = 'campus'; C.applyTheme(); C.render(); welcome(); break; }
-      case 'switchcar': C.db.active = +v; C.save(); C.ui.closeAll(); C.tab = 'campus'; C.applyTheme(); C.render(); break;
+        C.newCareer({ coach, pron: M.pron, job: M.jobs[M.pick] }); C.ui.closeAll(); C.tab = 'campus'; C.applyTheme(); C.render(); C.openFirstCoach(welcome); break; }
+      case 'firstcoach': C.pickFirstCoach(v); C.render(); break;
+      case 'sguide': C.car().seen.staffGuide = 1; C.save(); C.render(); break;
+      case 'switchcar': C.db.active = +v; C.save(); C.ui.closeAll(); C.tab = 'season'; C.applyTheme(); C.render(); break;
       case 'delcar': C.ui.open('Delete a career', () => C.db.careers.map((c, i) => `<button class="lrow" data-act="delone" data-v="${i}"><span class="li">🗑</span><span class="lt"><b>${C.esc(c.coach)} · ${C.esc(C.COLLEGES[c.college].short)}</b><small>Tap to delete. This can't be undone.</small></span></button>`).join('')); break;
       case 'delone': C.deleteCareer(+v); C.ui.closeAll(); C.applyTheme(); C.render(); C.toast('Career deleted'); break;
       // settings + store
@@ -60,7 +84,7 @@
       case 'plan': { const [pid, f] = v.split('|'); const r = C.startPlan(pid, f);
         if (r === true) { C.toast('🏋️ Training plan started'); C.ui.back(); C.ui.refresh(); if (C.tab === 'squad') C.render(); }
         else C.toast(r === 'cash' ? 'Not enough Booster $' : r === 'cap' ? "At this player's limit" : 'All training slots are busy'); break; }
-      case 'devspeed': { const q = C.inDev(v); if (!q) break; const free = C.isFreeFinish(q); if (!free) { const g = C.goldToFinish(q); if (C.acct().gold < g) { C.toast('Not enough Gold'); break; } C.acct().gold -= g; }
+      case 'devspeed': { const q = C.inDev(v); if (!q) break; const free = C.isFreeFinish(q); if (!free) { const g = C.goldToFinish(q); if (C.acct().gold < g) { C.toast('Not enough Coins'); break; } C.acct().gold -= g; }
         q.end = C.now(); C.tickDev().forEach(m => C.toast(m)); C.fwEvent('speed'); C.ui.refresh(); if (C.tab === 'squad') C.render(); break; }
       case 'devslot': { const s2 = C.DEVSLOTS.find(x => x.id === v); C.toast(`🔒 ${s2.name}: ${s2.why}`); if (v !== 'prog') C.openStore(); break; }
       case 'numbers': C.openNumbers(v); break;
@@ -80,7 +104,7 @@
       case 'orole': C.offerSet('role', v); break;
       case 'osend': C.sendOffer(); break;
       case 'camp': { const r = C.runCamp(); if (r === true) { C.toast('🏕 3 players came to your ID Camp'); C.render(); } else C.toast(r === 'cash' ? 'Not enough Booster $' : 'The next camp is not ready yet'); break; }
-      case 'agency': { const r = C.hireAgency(); if (r === true) { C.toast('🌍 Your scout found a player'); C.render(); } else C.toast('Not enough Gold'); break; }
+      case 'agency': { const r = C.hireAgency(); if (r === true) { C.toast('🌍 Your scout found a player'); C.render(); } else C.toast('Not enough Coins'); break; }
       case 'portalgo': C.ui.closeAll(); C.tab = 'recruit'; C.setRoute('portal'); break;
       case 'keep': C.openKeep(v); break;
       case 'keepopt': { const [pid, k] = v.split('|'); const r = C.keepOption(pid, k); if (r === true) { C.toast('🤝 Done. Their chance of leaving dropped'); C.ui.refresh(); C.render(); } else if (r) C.toast(r === 'pool' ? 'Not enough scholarship money left' : 'Not enough Booster $'); break; }
@@ -105,7 +129,7 @@
       case 'mauto': C.matchAuto(); break;
       case 'report': C.openReport(+v); break;
       case 'seav': C.setSeasonView(v); break;
-      case 'nextseason': { const r = C.startNextSeason(); C.render(); C.toast(r.up ? `🎉 ${C.college().short} moved up to ${C.TIERS[car.tier].n}! Building caps raised.` : `🎓 ${r.left.length} seniors graduated${r.walk.length ? ` · ${r.walk.length} walk-ons joined` : ''}`); break; }
+      case 'nextseason': { const r = C.startNextSeason(); C.render(); C.toast(r.up ? `🎉 ${C.college().short} moved up to ${C.TIERS[car.tier].n}! Building caps raised.` : `🎓 ${r.left.length} seniors graduated${r.walk.length ? ` · ${r.walk.length} walk-ons joined` : ''} · 💵 Director's budget +${C.short(r.budget)}`); break; }
       case 'tactics': C.openTactics(); break;
       case 'form': C.setForm(v); C.ui.refresh(); break;
       case 'ment': C.tac().ment = +v; C.save(); C.ui.refresh(); break;
@@ -121,8 +145,8 @@
       case 'coach': C.openCoach(v); break;
       case 'market': C.openCoachMarket(); break;
       case 'search': C.openSearch(); break;
-      case 'dosearch': { const r = C.search(); if (r === 'gold') C.toast('Not enough Gold'); else { C.ui.back(); if (r.coach) C.openCoach(r.coach.id); C.toast(r.coach ? `🎉 ${C.RARITY[r.coach.rar][0]} ${C.SPECS[r.coach.spec][1]}: ${r.coach.fn} ${r.coach.ln}` : `Repeat ${C.SPECS[r.dup.spec][1]}: +${r.credits} 🎫 Clinic Credits`); C.render(); } break; }
-      case 'chire': { const r = C.hire(v); if (r === 'gold') C.toast('Not enough Gold'); else if (r === 'cash') C.toast('Not enough Booster $'); else if (r) { C.ui.back(); C.ui.refresh(); C.toast(`✍️ ${r.fn} ${r.ln} joins your staff`); C.render(); } break; }
+      case 'dosearch': { const r = C.search(); if (r === 'gold') C.toast('Not enough Coins'); else { C.ui.back(); if (r.coach) C.openCoach(r.coach.id); C.toast(r.coach ? `🎉 ${C.RARITY[r.coach.rar][0]} ${C.SPECS[r.coach.spec][1]}: ${r.coach.fn} ${r.coach.ln}` : `Repeat ${C.SPECS[r.dup.spec][1]}: +${r.credits} 🎫 Clinic Credits`); C.render(); } break; }
+      case 'chire': { const r = C.hire(v); if (r === 'gold') C.toast('Not enough Coins'); else if (r === 'cash') C.toast('Not enough Booster $'); else if (r) { C.ui.back(); C.ui.refresh(); C.toast(`✍️ ${r.fn} ${r.ln} joins your staff`); C.render(); } break; }
       case 'cassign': { const r = C.assign(v); if (r === 'full') C.toast('All staff slots are full'); C.ui.refresh(); C.render(); break; }
       case 'crelease': if (C.releaseCoach(v)) { C.ui.back(); C.render(); C.toast('Coach released'); } break;
       case 'cmanual': { const r = C.useManual(v); C.toast(r === 'none' ? 'No coaching manuals left' : r === 'cap' ? 'At the level cap: raise the licence' : r ? `⬆ Level up! Lv ${C.coach(v).level}` : '+100 XP'); C.ui.refresh(); C.render(); break; }
@@ -131,8 +155,8 @@
       case 'sslotinfo': { const s2 = C.STAFFSLOTS.find(x => x.id === v); C.toast(`🔒 ${s2.name}: ${s2.why}`); if (v !== 'prog') C.openStore(); break; }
       case 'playbook': C.openPlaybook(); break;
       case 'pbnode': C.openPBNode(v); break;
-      case 'pbgo': { const r = C.pbStart(v); if (r === true) { C.toast('📘 Research started'); C.ui.back(); C.ui.refresh(); } else C.toast({ max: 'Fully researched', locked: 'Locked', busy: 'Already researching', slots: 'All research slots are busy', cp: 'Not enough Coaching Points', cash: 'Not enough Booster $' }[r]); break; }
-      case 'pbspeed': { const q = C.pbInQueue(v); if (!q) break; if (!C.isFreeFinish(q)) { const g = C.goldToFinish(q); if (C.acct().gold < g) { C.toast('Not enough Gold'); break; } C.acct().gold -= g; } q.end = C.now(); C.tickPB().forEach(m => C.toast(m)); C.ui.refresh(); break; }
+      case 'pbgo': { const r = C.pbStart(v); if (r === true) { C.toast('📋 Research started'); C.ui.back(); C.ui.refresh(); } else C.toast({ max: 'Fully researched', locked: 'Locked', busy: 'Already researching', slots: 'All research slots are busy', cp: 'Not enough Coaching Points', cash: 'Not enough Booster $' }[r]); break; }
+      case 'pbspeed': { const q = C.pbInQueue(v); if (!q) break; if (!C.isFreeFinish(q)) { const g = C.goldToFinish(q); if (C.acct().gold < g) { C.toast('Not enough Coins'); break; } C.acct().gold -= g; } q.end = C.now(); C.tickPB().forEach(m => C.toast(m)); C.ui.refresh(); break; }
       case 'pbslot': { const s2 = C.PBSLOTS.find(x => x.id === v); C.toast(`🔒 ${s2.name}: ${s2.why}`); if (v !== 'prog') C.openStore(); break; }
       // career (Phase 7)
       case 'offers': C.openOffers(); break;
@@ -142,7 +166,7 @@
         C.ui.open('New job', () => `<div class="scenebn">${C.artSlot('handshake', C.sceneHandshake(r.col.c1, r.col.c2))}</div><div class="collegecard">${C.crestSVG(r.col.c1, r.col.c2, r.col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(r.col.full)}</b><br><small class="mutey">${C.tierLabel()}</small></div></div>
           <div class="card" style="margin-top:12px;font-size:14px;font-weight:700;line-height:1.5">🧳 Your program buildings, staff and Playbook came with you.<br>${r.joined.length ? '✔ Followed you: ' + r.joined.map(p => C.esc(p.ln)).join(', ') : 'Nobody followed you.'}${r.declined.length ? '<br>✖ Stayed behind: ' + r.declined.map(p => C.esc(p.ln)).join(', ') : ''}<br>🏠 Your first game is a homecoming friendly at your old college.</div>
           <button class="btn full pri" data-act="close">Let's go</button>`); break; }
-      case 'declineoffers': C.declineOffers(); C.ui.closeAll(); C.render(); C.toast('❤️ Loyalty noted: ◆ 50, 💵 5K and a happier Director'); break;
+      case 'declineoffers': C.declineOffers(); C.ui.closeAll(); C.render(); C.toast('❤️ Loyalty noted: <i class="coin"></i> 50, 💵 5K and a happier Director'); break;
       case 'reclass': if (C.applyReclass()) { C.toast('🔁 Approved: next season is a transition season'); C.ui.refresh(); C.render(); } break;
       // live-ops and store (Phase 8)
       case 'events': C.openEvents(); break;
@@ -155,7 +179,15 @@
       case 'passclaim': { const [t, i] = v.split('|'); const r = C.passClaim(t, +i); if (r === 'prem') C.toast('Unlock the premium track first'); else if (r) { C.toast('🎟 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
       case 'buypack': { const r = C.buyPack(v); C.toast(r === 'owned' ? 'Already bought' : '✅ Test purchase complete'); C.ui.refresh(); C.render(); break; }
       case 'kit': C.buyKit(v); C.toast(`${C.KITS[v][0]} ${C.KITS[v][1]}`); C.ui.refresh(); C.render(); break;
+      // fitness and injuries (phase-9c)
+      case 'medical': C.openMedical(); break;
+      case 'treat': case 'treatc': { const [pid, kind] = v.split('|'); const r = C.treat(pid, kind);
+        C.toast(r === true ? { physio: '🩺 Physio done: one match off', spec: '🩺 Treated: one match off', rush: '⚡ Rushed back for the next match', kit: '🧴 +25 Freshness' }[kind] : { coins: 'Not enough Coins', none: 'No physio sessions left', nokit: 'No recovery kits', no: "Can't do that for this injury" }[r] || 'Not possible'); C.ui.refresh(); C.render(); break; }
+      case 'teamsess': { const r = C.teamSession(); C.toast(r === true ? '👥 Team recovery session: +12 Freshness' : 'Not enough Coins'); C.ui.refresh(); C.render(); break; }
+      case 'buykitc': { const r = C.buyRecoveryKit(); C.toast(r === true ? '🧴 Recovery kit bought' : 'Not enough Coins'); C.ui.refresh(); break; }
+      case 'adphysio': { const r = C.adPhysio(); C.toast(r === true ? '▶ Ad finished (test): +1 physio session' : r === 'used' ? 'Used today' : 'No ads left today'); C.ui.refresh(); break; }
       case 'settings': C.openSettings(); break;
+      case 'checkupdate': C.toast('Checking…'); (navigator.serviceWorker ? navigator.serviceWorker.getRegistration().then(r => r && r.update()) : Promise.resolve()).catch(() => {}).finally(() => setTimeout(() => location.reload(), 600)); break;
       case 'theme': C.acct().theme = v; C.save(); C.applyTheme(); C.ui.refresh(); break;
       case 'testcap': C.acct().testCap = +v; C.save(); C.ui.refresh(); C.redrawMap(); break;
       case 'cheat': if (v === 'gold') C.acct().gold += 500; if (v === 'cash') car.cash += 20000; if (v === 'cp') car.cp += 100;
@@ -168,8 +200,8 @@
         if (v === 'portal') { const m = C.portalOpen() ? C.closePortalNow() : (C.openPortalWindow(), '🚪 Transfer window open for 3 days'); C.save(); C.ui.closeAll(); C.tab = 'recruit'; C.setRoute('portal'); C.toast(m); break; }
         if (v === 'finish') { car.queue.forEach(q => q.end = C.now()); (car.devq || []).forEach(q => q.end = C.now()); (car.pbq || []).forEach(q => q.end = C.now()); C.tickDev(); C.tickPB(); }
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
-      case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Gold and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
-      case 'wipeyes': try { localStorage.removeItem('clubfc2_p9'); } catch (e) { } location.reload(); break;
+      case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Coins and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
+      case 'wipeyes': try { localStorage.removeItem('clubfc2_p9c'); } catch (e) { } location.reload(); break;
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();
         if (v === 'vip') a2.vipUntil = Math.max(a2.vipUntil, C.now()) + 30 * 864e5;
@@ -186,7 +218,7 @@
   function welcome() {
     const col = C.college();
     C.ui.open('Welcome', () => `<div class="scenebn">${C.artSlot('arrival', C.sceneArrival(col.c1, col.c2))}</div><div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(col.full)}</b><br><small style="color:var(--mute);font-weight:800">${C.esc(col.mascot)} · ${col.state} · Tier 5</small></div></div>
-      <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Coach ${C.esc(C.car().coach)}, welcome. ${C.esc(C.STORIES[C.car().job.story].title)}.<br><br>🔨 Tap a building to upgrade it, or an empty plot to build.<br>💵 Tap the bubbles to collect Booster $ and 📘 Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
+      <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Coach ${C.esc(C.car().coach)}, welcome. ${C.esc(C.STORIES[C.car().job.story].title)}.<br><br>🔨 Tap a building to upgrade it, or an empty plot to build.<br>💵 Tap the bubbles to collect Booster $ and <i class="cpi"></i> Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
       <button class="btn full pri" data-act="close">Let's build</button>`);
   }
 
@@ -223,6 +255,12 @@
 
   // start
   C.load(); C.tickRealDay(); C.applyTheme(); C.render();
+  const cs = C.$('#calstrip .next'); if (cs) cs.scrollIntoView({ inline: 'center', block: 'nearest' });
   C.loadArtManifest().then(() => { if (!C.ui.isOpen()) C.render(); });
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  // offline support; when a new upload takes over, reload once so the new version shows straight away
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    const had = !!navigator.serviceWorker.controller; let reloaded = false;
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded) { reloaded = true; location.reload(); } });
+  }
 })(window.CFC);

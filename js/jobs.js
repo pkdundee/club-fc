@@ -80,7 +80,6 @@
     (replace ? C.ui.replace : C.ui.open)('Job openings', boardHTML);
   };
 
-  const bar = (label, v, col) => `<div class="tb"><span>${label}</span><i><u style="width:${Math.round(v * 100)}%;background:${col}"></u></i></div>`;
   const ladder = lvl => `<span class="ladder">${[1, 2, 3, 4, 5].map(i => `<i class="${i === lvl ? 'on' : ''}"></i>`).join('')}</span>`;
   function jobCard(j) {
     const col = C.COLLEGES[j.college], st = STORIES[j.story], ty = TYPES[j.type], sv = (j.rating - 34) / 16, bv = C.clamp(j.cash / 40000, 0, 1), pv = j.limit ? C.clamp(j.eq / 10, 0, 1) : 0;
@@ -90,7 +89,10 @@
         <button class="star ${M.short.has(j.id) ? 'on' : ''}" data-act="shortlist" data-v="${j.id}" aria-label="Shortlist">${M.short.has(j.id) ? '★' : '☆'}</button></div>
       <div class="lvlbadge">${ladder(1)} Level 1 · Small college <span class="mute">(${ty.hint})</span></div>
       <div class="jstory"><b>${C.esc(st.title)}</b> · ${st.kind}</div>
-      <div class="tbars">${bar('Squad', sv, '#3b82f6')}${bar('Budget', bv, '#16a34a')}${bar('Scholarships', pv, '#f59e0b')}</div>
+      <div class="jvals">
+        <div><small>Squad</small><b class="st">${'★'.repeat(j.stars)}<i>${'★'.repeat(3 - j.stars)}</i></b><em>avg ${j.rating}</em><span style="--w:${(C.clamp(sv, 0, 1) * 100).toFixed(0)}%;--c:#3b82f6"></span></div>
+        <div><small>Budget</small><b>💵 ${C.short(j.cash)}</b><em>one-off</em><span style="--w:${(bv * 100).toFixed(0)}%;--c:#16a34a"></span></div>
+        <div><small>Scholarships</small><b>${j.eq ? '🎓 ' + j.eq + '/' + j.limit : '📚 Aid'}</b><em>${j.eq ? C.short(j.pool) + '/yr' : 'academic only'}</em><span style="--w:${(pv * 100).toFixed(0)}%;--c:#f59e0b"></span></div></div>
     </div>`;
   }
   function boardHTML() {

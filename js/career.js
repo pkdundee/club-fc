@@ -90,7 +90,7 @@
         <div class="kgrid"><div class="k"><small>Squad</small><b>avg ${o.rating}</b></div><div class="k"><small>Scholarships</small><b>${C.short(o.pool)}/yr</b></div><div class="k"><small>Booster budget</small><b>${C.short(o.cash)}</b></div><div class="k"><small>Story</small><b>${C.esc(C.STORIES[o.story].title)}</b></div></div>
         <h3 class="jh">School buildings (yours → theirs)</h3>${cmp(o)}
         <button class="btn full pri" data-act="takeoffer" data-v="${i}" style="margin-top:10px">Take this job…</button></div>`; }).join('')}
-      <button class="btn full sec2" data-act="declineoffers">Stay loyal to ${C.esc(col.short)} (◆ 50, 💵 5K, Director 🙂)</button>`;
+      <button class="btn full sec2" data-act="declineoffers">Stay loyal to ${C.esc(col.short)} (<i class="coin"></i> 50, 💵 5K, Director 🙂)</button>`;
   });
   C.openMove = idx => { invite = []; C.ui.open('Who comes with you?', () => {
     const car = C.car(), o = car.offers[idx], c = C.COLLEGES[o.college], cand = car.squad.filter(p => p.year < 4).sort((a, b) => b.rating - a.rating);

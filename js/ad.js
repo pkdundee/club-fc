@@ -38,7 +38,7 @@
     { title: 'Day 2 · Strength', reward: { gold: 50, cp: 30 }, tasks: [['gym', 'Build the Gym', c => c.b.gym >= 1], ['spd', 'Use a speed-up', c => n(c, 'speed') >= 1]] },
     { title: 'Day 3 · Learn the game', reward: { gold: 60, cash: 4000 }, tasks: [['ask', 'Search a question in Help', c => !!c.seen.ask], ['hb', "Read 'Scholarships' in the Handbook", c => !!c.seen.hb_schol]] },
     { title: 'Day 4 · Headquarters', reward: { gold: 60, cp: 40 }, tasks: [['hq3', "Coaches' Office Lv 3", c => c.b.hq >= 3], ['std2', 'Stadium Lv 2', c => c.b.stadium >= 2]] },
-    { title: 'Day 5 · Film study', reward: { gold: 70, cash: 6000 }, tasks: [['film2', 'Film Room Lv 2', c => c.b.film >= 2], ['cp3', 'Collect Coaching Points 3 times', c => n(c, 'collect_cp') >= 3]] },
+    { title: 'Day 5 · Sports science', reward: { gold: 70, cash: 6000 }, tasks: [['film2', 'Performance Lab Lv 2', c => c.b.film >= 2], ['cp3', 'Collect Coaching Points 3 times', c => n(c, 'collect_cp') >= 3]] },
     { title: 'Day 6 · Busy campus', reward: { gold: 80, cp: 60 }, tasks: [['tr2', 'Training Ground Lv 2', c => c.b.training >= 2], ['up6', 'Start 6 upgrades in total', c => n(c, 'upgrade') >= 6]] },
     { title: 'Day 7 · Big week', reward: { gold: 200, cash: 15000, item: 'rareRecruit' }, tasks: [['hq4', "Coaches' Office Lv 4", c => c.b.hq >= 4], ['bst', 'Build the Booster Club', c => c.b.booster >= 1]] }
   ];
@@ -49,7 +49,7 @@
   C.fwDone = (car, d) => DAYS[d].tasks.every(t => t[2](car));
   C.fwClaimable = () => { const car = C.car(); if (!car) return 0; C.fwInit(car); let k = 0; for (let d = 0; d <= C.fwUnlocked(car); d++) if (!car.fw.claimed.includes(d) && C.fwDone(car, d)) k++; return k; };
   C.fwActive = () => { const car = C.car(); if (!car) return false; C.fwInit(car); return car.fw.claimed.length < 7; };
-  const rw = r => [r.gold ? `◆ ${r.gold}` : '', r.cash ? `💵 ${C.short(r.cash)}` : '', r.cp ? `📘 ${r.cp}` : '', r.item ? '🎁 Rare recruit' : ''].filter(Boolean).join(' · ');
+  const rw = r => [r.gold ? `<i class="coin"></i> ${r.gold}` : '', r.cash ? `💵 ${C.short(r.cash)}` : '', r.cp ? `<i class="cpi"></i> ${r.cp}` : '', r.item ? '🎁 Rare recruit' : ''].filter(Boolean).join(' · ');
   C.openFirstWeek = () => C.ui.open("Coach's First Week", () => {
     const car = C.car(); C.fwInit(car); const open = C.fwUnlocked(car);
     return `<div class="raytake" style="margin-top:0"><span>📅</span><p><b>Your first week</b>One chapter a day for your first week. Missed a day? You can catch up.</p></div>

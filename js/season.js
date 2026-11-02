@@ -5,6 +5,7 @@
   const CONF = ['Prairie', 'Gulf Coast', 'Heartland', 'Frontier', 'Great Lakes', 'Sun Belt', 'Big Sky', 'Tidewater'];
   const GOALS = { 3: ['Top 4 and reach the conference final', s => s.pos <= 4 && s.final], 2: ['Finish in the top half', s => s.pos <= 4], 1: ['Stay out of the bottom 2', s => s.pos <= 6] };
   C.SEASON_GOAL = GOALS;
+  C.SEASON_BUDGET = { 5: 8000, 4: 20000, 3: 45000, 2: 90000, 1: 160000 };  // the Director's budget each new season (ECONOMY.md)
   const pois = (r, l) => { let k = 0, p = Math.exp(-l), s = p, u = r(); while (u > s && k < 9) { k++; p *= l / k; s += p; } return k; };
 
   // ---------- setup ----------
@@ -75,7 +76,7 @@
       if (e.slot.pos === 'GK' && m.score[1 - my] === 0 && s.mins > 60) ss.cs++;
       if (s.yc) { ss.yc++; if (ss.yc % 5 === 0) p.ban = 1; }
       if (e.red) p.ban = 1;
-      if (e.injured) { p.inj = 1 + Math.floor(r() * 3) - (C.level('med') >= 10 ? 1 : 0); if (r() < .12) p.inj += 3; p.inj = Math.max(1, Math.round(p.inj * (1 - C.level('med') * .02))); }
+      if (e.injured) C.assignInjury(p, r);
       const boost = 1 + C.pbv('mor') + C.staffF('mot') * .5; p.morale = C.clamp(p.morale + (res > 0 ? 2 * boost : res < 0 ? -2 : 0) + (rt >= 7.5 ? 2 * boost : rt < 5.5 ? -2 : 0), 10, 100);
       // development from what they did (tiny steps, capped by potential)
       const age = ([0, 1.4, 1.2, 1, .8][p.year] || 1) * (1 + C.pbv('xp') + C.staffF('dev') * .2), g = {};
@@ -91,6 +92,7 @@
     for (const p of car.squad) {
       if (!played.has(p.id)) { if (p.ban) p.ban--; else if (p.inj) p.inj--; if (p.promise === 'starter' || p.promise === 'rotation') p.morale = Math.max(10, p.morale - 3); }
     }
+    const flu = C.afterMatchMedical(m, my, played, r);
     // money and the AD
     let gate = 0;
     if (f.h === 0) { gate = Math.round(C.attendance(f) * 3 * (1 + C.pbv('gate'))); car.cash += gate; }
@@ -101,7 +103,7 @@
     S.fx.filter(x => x.md === S.md && x !== f && x.hs == null).forEach(x => quickResult(x, rr, x.ko));
     const rep = { md: S.md, h: f.h, a: f.a, hs: f.hs, as: f.as, pens: f.pens, stats: m.st, ev: m.events.filter(e => ['goal', 'red', 'yellow', 'injury', 'penalty'].includes(e.type)).map(e => ({ min: e.min, side: e.side, type: e.type, who: e.who ? e.who.p.fn[0] + '. ' + e.who.p.ln : '' })),
       rated: rated.slice(0, 22).map(x => ({ side: x.e.side, id: x.e.p.id, n: x.e.p.fn[0] + '. ' + x.e.p.ln, pos: x.e.slot.pos, r: x.r, g: x.e.st.g, a: x.e.st.a, mins: Math.round(x.e.st.mins) })), potm: potm ? { side: potm.e.side, n: potm.e.p.fn + ' ' + potm.e.p.ln } : null,
-      gains, gate, conf: car.adConf - conf0, my, staffUps, cp: res > 0 ? 15 : res === 0 ? 8 : 5, bonus: C.bonusLines() };
+      gains, gate, conf: car.adConf - conf0, my, staffUps, flu, injuries: m.ents.filter(e => e.side === my && e.injured).map(e => { const p = C.P(e.p.id); return p && p.injury ? [p.fn[0] + '. ' + p.ln, p.injury.icon, p.injury.name, p.injury.season ? 'season' : p.inj] : null; }).filter(Boolean), cp: res > 0 ? 15 : res === 0 ? 8 : 5, bonus: C.bonusLines() };
     S.reports[S.md] = rep; car.restAt = C.now();
     advance(); C.save(); return rep;
   };
@@ -130,7 +132,9 @@
     const pos = S.regPos || C.myPos(), st = { pos, final: !!(fin && (fin.h === 0 || fin.a === 0)), champ: champ === 0 };
     const goal = GOALS[car.job.stars], met = C.isTransition(car) ? pos <= 4 : goal[1](st);
     car.adConf = C.clamp(car.adConf + (met ? 15 : -15) + (st.champ ? 10 : 0), 0, 100);
-    S.end = { pos, met, champ: st.champ, final: st.final, champName: champ != null ? S.teams[champ].name : '' };
+    // prize money from the Director (ECONOMY.md): goal met, conference final, champions
+    const k = 6 - car.tier, prize = (met ? 5000 * k : 0) + (st.final ? 3000 * k : 0) + (st.champ ? 8000 * k : 0); car.cash += prize;
+    S.end = { pos, met, champ: st.champ, final: st.final, champName: champ != null ? S.teams[champ].name : '', prize };
     S.phase = 'done'; S.md = 17;
     if (!C.portalOpen()) C.openPortalWindow();
     C.careerSeasonEnd();
@@ -154,17 +158,19 @@
     }
     car.captains = car.captains.filter(id => C.P(id)); car.devq = car.devq.filter(q => C.P(q.pid));
     const walk = []; const r = C.rng(C.now() & 0xffffff);
-    while (car.squad.length < 18) { const pos = ['GK', 'CB', 'CM', 'ST', 'LB', 'RB', 'LW', 'RW', 'DM'][car.squad.length % 9]; const p = C.genPlayer(r, { gender: car.gender, pos, rating: car.job.rating - 7, year: 1 }); p.from = 'Walk-on tryout'; car.squad.push(p); walk.push(p); }
+    while (car.squad.length < 22) { const pos = ['GK', 'CB', 'CM', 'ST', 'LB', 'RB', 'LW', 'RW', 'DM'][car.squad.length % 9]; const p = C.genPlayer(r, { gender: car.gender, pos, rating: car.job.rating - 7, year: 1 }); p.from = 'Walk-on tryout'; car.squad.push(p); walk.push(p); }
     C.assignNumbers(car.squad);
     const up = C.reclassStep(car);
     car.season++; car.sea = null; if (car.tac) { car.tac.xi = []; car.tac.bench = []; } car.offers = [];
+    const budget = C.SEASON_BUDGET[car.tier] || 8000; car.cash += budget;
     if (car.rec) car.rec.jobsUsed = 0;
     C.ensureSeason(car); C.save();
-    return { left, walk, up };
+    return { left, walk, up, budget };
   };
 
   // ---------- energy recovers in real time (the natural pace limit, Q13) ----------
-  C.recover = () => {
+  C.recover = () => false;  // 9c: Freshness changes only with matches (no real-time recovery)
+  C.recoverOld = () => {
     const car = C.car(); if (!car || !car.squad) return false; const t = C.now(); if (!car.restAt) { car.restAt = t; return false; }
     const hrs = (t - car.restAt) / H; if (hrs < 1 / 60) return false;
     const rate = C.recRate();
@@ -184,6 +190,23 @@
   };
   C.WEATHER = [['☀️', 'Clear', 'a clear evening'], ['🌤', 'Mild', 'a mild night'], ['🌧', 'Rain', 'steady rain'], ['🌬', 'Windy', 'a swirling wind'], ['🌙', 'Floodlights', 'under the lights']];
 
+  // ================= Home tab (was Season): next match, calendar strip, form, then fixtures / table / stats =================
+  function calStrip() {
+    const S = C.sea(), mine = S.fx.filter(f => f.h === 0 || f.a === 0);
+    const cell = f => { const opp = S.teams[f.h === 0 ? f.a : f.h], done = f.hs != null, gf = f.h === 0 ? f.hs : f.as, ga = f.h === 0 ? f.as : f.hs;
+      const res = done ? (Math.sign(gf - ga) || (f.pens ? Math.sign(f.h === 0 ? f.pens[0] - f.pens[1] : f.pens[1] - f.pens[0]) * .5 : 0)) : null;
+      const lab = f.md === 0 ? 'HC' : f.md <= 14 ? 'M' + f.md : f.md === 15 ? 'SF' : 'F';
+      return `<button class="calc ${f.md === S.md && !done ? 'next' : ''} ${res == null ? '' : res > 0 ? 'w' : res < 0 ? 'l' : 'd'}" ${done && S.reports[f.md] ? `data-act="report" data-v="${f.md}"` : ''}><small>${lab}</small>${C.crestSVG(opp.c1, opp.c2, opp.abbr.slice(0, 2), 26)}<b>${done ? gf + '–' + ga : f.h === 0 ? 'H' : 'A'}</b></button>`; };
+    return `<div class="calstrip" id="calstrip">${mine.map(cell).join('')}</div>`;
+  }
+  function formCard() {
+    const car = C.car(), S = C.sea(), t = C.table().find(x => x.i === 0), form = t ? t.form.slice(-5) : [];
+    const conf = ['😟', '🙁', '😐', '🙂', '😀'][Math.min(4, Math.floor((car.adConf ?? 50) / 20))];
+    return `<div class="card formc"><div><small>Form</small><b class="form">${form.length ? form.map(r => `<i class="${r.toLowerCase()}">${r}</i>`).join('') : '—'}</b></div>
+      <div><small>Position</small><b>${t && t.p ? C.ord(C.myPos()) : '—'}</b></div><div><small>Director</small><b>${conf}</b></div>
+      <p class="goal">🎯 ${C.esc(GOALS[car.job.stars][0])}</p></div>`;
+  }
+
   // ================= Season tab =================
   let view = 'fix';
   C.setSeasonView = v => { view = v; C.render(); };
@@ -197,7 +220,7 @@
         const label = md === 0 ? '🏠 Homecoming (friendly)' : md <= ROUNDS ? 'Match ' + md : md === 15 ? 'Conference semi-final' : 'Conference final';
         const row = x => { const me = x.h === 0 || x.a === 0, done = x.hs != null; const res = done && me ? (x.h === 0 ? Math.sign(x.hs - x.as) : Math.sign(x.as - x.hs)) || (x.pens ? (x.h === 0 ? Math.sign(x.pens[0] - x.pens[1]) : Math.sign(x.pens[1] - x.pens[0])) * .5 : 0) : null;
           return `<button class="fxrow ${me ? 'me' : ''}" ${done && me && S.reports[x.md] ? `data-act="report" data-v="${x.md}"` : ''}><span class="ft">${crest(x.h, 22)}<b>${C.esc(nm(x.h))}</b></span><span class="fs ${res == null ? '' : res > 0 ? 'w' : res < 0 ? 'l' : 'd'}">${done ? `${x.hs}–${x.as}${x.pens ? `<small>p ${x.pens[0]}–${x.pens[1]}</small>` : ''}` : md === S.md && me ? 'Next' : 'v'}</span><span class="ft r"><b>${C.esc(nm(x.a))}</b>${crest(x.a, 22)}</span></button>`; };
-        return `<div class="fxmd ${md === S.md ? 'cur' : ''}"><h4>${label}</h4>${f ? row(f) : ''}${others.length ? `<details><summary>Other results</summary>${others.map(row).join('')}</details>` : ''}</div>`; }).join('');
+        return `<div class="fxmd ${md === S.md ? 'fxnow' : ''}"><h4>${label}</h4>${f ? row(f) : ''}${others.length ? `<details><summary>Other results</summary>${others.map(row).join('')}</details>` : ''}</div>`; }).join('');
     }
     if (view === 'table') body = `<div class="card tbl2"><div class="tr2 th"><span>#</span><span></span><span>P</span><span>W</span><span>D</span><span>L</span><span>GD</span><span>Pts</span></div>
       ${T.map((t, i) => `<div class="tr2 ${t.i === 0 ? 'me' : ''} ${i === 3 ? 'cut' : ''}"><span>${i + 1}</span><span class="tn">${crest(t.i, 20)}${C.esc(nm(t.i))}</span><span>${t.p}</span><span>${t.w}</span><span>${t.d}</span><span>${t.l}</span><span>${t.gf - t.ga > 0 ? '+' : ''}${t.gf - t.ga}</span><b>${t.pts}</b></div>`).join('')}
@@ -206,10 +229,11 @@
       const top = (k, f, n = 5) => sq.slice().sort((a, b) => f(b) - f(a)).filter(p => f(p) > 0).slice(0, n);
       const list = (title, arr, f, fmt) => `<h3 class="jh">${title}</h3><div class="card">${arr.length ? arr.map(p => `<button class="srow" data-act="player" data-v="${p.id}" style="width:100%"><span>${C.esc(p.fn[0] + '. ' + p.ln)} <small class="mutey">${p.pos}</small></span><b>${fmt(f(p))}</b></button>`).join('') : '<p class="note" style="margin:0">No matches yet.</p>'}</div>`;
       body = list('⚽ Goals', top('g', p => p.ss.g), p => p.ss.g, v => v) + list('🅰️ Assists', top('a', p => p.ss.a), p => p.ss.a, v => v) + list('⭐ Average rating', top('r', p => p.ss.apps >= 2 ? p.ss.rs / p.ss.apps : 0), p => p.ss.rs / p.ss.apps, v => v.toFixed(2)) + list('🏆 Player of the Match', top('p', p => p.ss.potm), p => p.ss.potm, v => v); }
-    const endCard = S.end ? `<div class="card seasonend">${S.end.champ ? `<div class="scenebn" style="margin:-14px -14px 10px">${C.artSlot('trophy', C.sceneTrophy(col.c1, col.c2))}</div>` : ''}<b>${S.end.champ ? '🏆 Conference champions!' : `Season ${S.n} over · finished ${C.ord(S.end.pos)}`}</b><p>${S.end.met ? '✔ Director\'s goal met' : '✖ Director\'s goal missed'}: ${GOALS[car.job.stars][0]}.${S.end.champName && !S.end.champ ? ' Champions: ' + C.esc(S.end.champName) + '.' : ''}</p>
+    const endCard = S.end ? `<div class="card seasonend">${S.end.champ ? `<div class="scenebn" style="margin:-14px -14px 10px">${C.artSlot('trophy', C.sceneTrophy(col.c1, col.c2))}</div>` : ''}<b>${S.end.champ ? '🏆 Conference champions!' : `Season ${S.n} over · finished ${C.ord(S.end.pos)}`}</b><p>${S.end.met ? '✔ Director\'s goal met' : '✖ Director\'s goal missed'}: ${GOALS[car.job.stars][0]}.${S.end.prize ? ` 💵 Prize money: <b>${C.short(S.end.prize)}</b>.` : ''}${S.end.champName && !S.end.champ ? ' Champions: ' + C.esc(S.end.champName) + '.' : ''}</p>
       <p class="note" style="margin:6px 0">${C.portalOpen() ? '🚪 The transfer window is open. Seniors graduate when the new season starts.' : 'Seniors graduate when the new season starts.'}</p>
       ${car.offers && car.offers.length ? `<button class="btn full offbn" data-act="offers">📨 ${car.offers.length} job offer${car.offers.length > 1 ? 's' : ''}</button>` : ''}${C.careerCardHTML()}<button class="btn full pri" data-act="nextseason">Start Season ${S.n + 1}${C.portalOpen() ? ' (closes the window)' : ''}</button></div>` : '';
-    return `<div class="view scrolly"><div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Season ${S.n}</b><small>${C.esc(S.conf)}${C.isTransition(car) ? ' · 🔁 Transition' : ''} · ${S.end ? 'Finished' : 'Pos ' + C.ord(C.myPos())} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div></div>
+    return `<div class="view scrolly"><div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Home</b><small>Season ${S.n} · ${C.esc(S.conf)}${C.isTransition(car) ? ' · 🔁 Transition' : ''} · ${S.end ? 'Finished' : C.table()[0].p ? 'Pos ' + C.ord(C.myPos()) : 'Preseason'} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div></div>
+      <div class="homebn">${C.gamedayHTML()}</div>${calStrip()}${formCard()}
       ${endCard}<div class="filters">${[['fix', '📅 Fixtures'], ['table', '📊 Table'], ['stats', '⭐ Stats']].map(([k, n]) => `<button class="f ${view === k ? 'on' : ''}" data-act="seav" data-v="${k}">${n}</button>`).join('')}</div>
       <div style="padding:0 16px 16px">${body}</div></div>`;
   };

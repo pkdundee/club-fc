@@ -151,7 +151,7 @@ function decor(I,x,y,S,kind){let out='';
 // ---------------- live campus ----------------
 const STEP=58,S=46,K4=1.7,W4=600,H4=900;
 const cell=(s,d)=>{const i=(s+d)/2,j=(s-d)/2;return [i*STEP,j*STEP]};
-const ART={film:{wall:'brick',roof:'#3f3f46'},med:{wall:'white'},recruit:{wall:'brick',roof:'#7c2d12'},dorms:{wall:'brick',roof:'#334155'},gym:{wall:'glass'},booster:{wall:'white',roof:'#7c2d12'},academic:{wall:'brick',roof:'#1e3a5f'}};
+const ART={film:{wall:'glass',roof:'#0f766e'},video:{wall:'brick',roof:'#111827'},media:{wall:'white',roof:'#0369a1'},med:{wall:'white'},recruit:{wall:'brick',roof:'#7c2d12'},dorms:{wall:'brick',roof:'#334155'},gym:{wall:'glass'},booster:{wall:'white',roof:'#7c2d12'},academic:{wall:'brick',roof:'#1e3a5f'}};
 const TOP={hq:46,stadium:30,training:14,skills:10};
 const DROP={hq:10,stadium:6,training:4,skills:4};
 function medCross(I){return (bx,by,w,d,h)=>{const [cx,cy]=I.P(bx+w,by+d/2,h*.55);const k=I.K;return `<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) skewY(-26.565)"><rect x="${-3.5*k}" y="${-1.2*k}" width="${7*k}" height="${2.4*k}" fill="#ef4444"/><rect x="${-1.2*k}" y="${-3.5*k}" width="${2.4*k}" height="${7*k}" fill="#ef4444"/></g>`}}
@@ -207,16 +207,22 @@ function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=co
    // icon buttons on an arc round the bottom of the building, the main one at the right end
    const acts=C.buildingActions(k), n=acts.length, cy=(by+fy)/2, R=Math.max(34,fy-cy+6);
    const ang=n===1?[62]:acts.map((_,i)=>128-i*(76/(n-1)));
-   acts.forEach((a,i)=>{ const big=a.main, r=big?12.3:9.6, t=ang[i]*Math.PI/180;
-    add(`<g data-act="${a.act}" data-v="${a.v}" transform="translate(${(bx+Math.cos(t)*R).toFixed(1)},${(cy+Math.sin(t)*R).toFixed(1)}) scale(${sc})">${big&&a.hot?'<circle r="16" fill="#38bdf8" opacity=".35" class="uppulse"/>':''}
-     <g class="${big&&a.hot?'upar':''}"><circle r="${r}" fill="${a.col||'#2563eb'}" stroke="#fff" stroke-width="2"/>${a.icon==='up'?`<path d="M0 ${-r*.62} L${r*.56} 0 H${r*.22} V${r*.58} H${-r*.22} V0 H${-r*.56}Z" fill="#fff"/>`:`<text y="${r*.36}" text-anchor="middle" font-size="${r*1.05}">${a.icon}</text>`}</g>
+   // every button the same size; the upgrade button stays still (Q: playtest round 2)
+   acts.forEach((a,i)=>{ const r=12.3, t=ang[i]*Math.PI/180;
+    add(`<g data-act="${a.act}" data-v="${a.v}" transform="translate(${(bx+Math.cos(t)*R).toFixed(1)},${(cy+Math.sin(t)*R).toFixed(1)}) scale(${sc})">
+     <g><circle r="${r}" fill="${a.col||'#2563eb'}" stroke="#fff" stroke-width="2"/>${a.icon==='up'?`<path d="M0 ${-r*.62} L${r*.56} 0 H${r*.22} V${r*.58} H${-r*.22} V0 H${-r*.56}Z" fill="#fff"/>`:`<text y="${r*.36}" text-anchor="middle" font-size="${r*1.05}">${a.icon}</text>`}</g>
      </g>`); });
   } else if(ready&&!(C.selB&&!opts.preview)){
    // not selected: a small blue-and-white arrow on the building's left corner, like Last War
-   const [lx,ly]=o.corners[3];
-   add(`<g data-act="bld" data-v="${k}" transform="translate(${(lx+8).toFixed(1)},${(ly-8).toFixed(1)}) scale(${sc})"><g class="upar"><path d="M0 -5.4 L4.8 .2 H1.9 V4.8 H-1.9 V.2 H-4.8Z" fill="#2563eb" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></g></g>`);
+   // inside the green tile: 28% of the way from the left corner towards the tile centre
+   const [lx,ly]=o.corners[3], tcx=(o.corners[0][0]+o.corners[2][0])/2, tcy=(o.corners[0][1]+o.corners[2][1])/2;
+   add(`<g data-act="bld" data-v="${k}" transform="translate(${(lx+(tcx-lx)*.28).toFixed(1)},${(ly+(tcy-ly)*.28-4).toFixed(1)}) scale(${sc})"><g class="upar"><path d="M0 -5.4 L4.8 .2 H1.9 V4.8 H-1.9 V.2 H-4.8Z" fill="#2563eb" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></g></g>`);
   }
-  if(amt)add(`<g data-act="collect" data-v="${k}" transform="translate(${(bx+(sel?def.name.length*2.6*sc+24:30)).toFixed(1)},${(by-(sel?10:6)).toFixed(1)}) scale(${sc})"><g class="hammer"><path d="M-12 -10 h24 a4 4 0 0 1 4 4 v8 a4 4 0 0 1 -4 4 h-9 l-3 4 l-3 -4 h-9 a4 4 0 0 1 -4 -4 v-8 a4 4 0 0 1 4 -4z" fill="#fff" stroke="${C.PRODUCERS[k]==='cp'?'#38bdf8':'#16a34a'}" stroke-width="1.4"/><text x="-9" y="0" font-size="8">${C.PRODUCERS[k]==='cp'?'📘':'💵'}</text><text x="12" y="-.4" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9" fill="#14532d">${C.short(amt)}</text></g></g>`);
+  // collect token: centred over the building at the road intersection behind it (just outside the tile)
+  if(amt){ const [tx,ty]=o.corners[0], cp=C.PRODUCERS[k]==='cp';
+   add(`<g data-act="collect" data-v="${k}" transform="translate(${tx.toFixed(1)},${(ty-(sel?30:6)).toFixed(1)}) scale(${sc})"><g class="hammer"><path d="M-14 -11 h28 a4 4 0 0 1 4 4 v9 a4 4 0 0 1 -4 4 h-11 l-3 4 l-3 -4 h-11 a4 4 0 0 1 -4 -4 v-9 a4 4 0 0 1 4 -4z" fill="#fff" stroke="${cp?'#0d9488':'#16a34a'}" stroke-width="1.4"/>
+    ${cp?'<g transform="translate(-9,-2.5)"><circle r="5" fill="#0d9488"/><path d="M-2.6 -1.6h4a.9.9 0 0 1 .9.9v.5h-3.7a2 2 0 1 1-1.2-1.4z" fill="#fff"/></g>':'<text x="-13" y="1" font-size="8">💵</text>'}
+    <text x="14" y="0.8" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="10" fill="#14532d">${cp?'':'$'}${C.short(amt)}</text></g></g>`); }
  }
  return parts.join('')}
 

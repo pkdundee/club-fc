@@ -521,7 +521,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .tacbn{margin-top:10px;width:100%;border:0;border-radius:14px;padding:10px;background:rgba(255,255,255,.16);color:#fff;font-weight:900;font-size:14px}
 .gameday .gdc{font-size:28px}
 .fxmd{margin-top:12px}.fxmd h4{font:800 12px Nunito;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;margin:0 0 6px}
-.fxmd.cur h4{color:var(--school2)}
+.fxmd.fxnow h4{color:var(--school2)}
 .fxmd details summary{font-size:12px;font-weight:800;color:var(--mute);padding:6px 2px;cursor:pointer}
 .fxrow{display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;gap:6px;width:100%;border:0;background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:8px 10px;margin-top:6px;color:var(--ink);font-size:13px}
 .fxrow.me{box-shadow:inset 0 0 0 2px var(--school2),var(--shadow)}
@@ -703,3 +703,71 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 /* splash: title up in the night sky, above the scoreboard; tagline and buttons stay at the bottom */
 .splash{justify-content:flex-start;padding-top:calc(15vh + env(safe-area-inset-top))}
 .splash p{margin-top:auto}
+
+/* ---------- phase-9b: playtest round 2 ---------- */
+.jvals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.jvals>div{background:var(--bg);border-radius:12px;padding:6px 8px 8px;position:relative;overflow:hidden}
+.jvals small{display:block;font-size:10.5px;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.3px}
+.jvals b{display:block;font-size:15px;font-weight:900;white-space:nowrap}.jvals b.st{color:var(--gold);letter-spacing:1px}.jvals b.st i{font-style:normal;color:var(--line)}
+.jvals em{display:block;font-style:normal;font-size:11px;font-weight:800;color:var(--mute)}
+.jvals span{position:absolute;left:0;bottom:0;height:3px;width:var(--w);background:var(--c)}
+/* one look for Gems everywhere: a purple badge with a white diamond, like the campus bar */
+.gem{display:inline-flex;align-items:center;justify-content:center;width:1.25em;height:1.25em;border-radius:50%;background:#7c3aed;color:#fff;font-style:normal;font-size:.8em;line-height:1;vertical-align:.08em;box-shadow:inset 0 -1px 0 rgba(0,0,0,.25)}
+/* compact upgrade popup: fits a small phone without scrolling */
+.uc .top{padding:8px 10px 4px}.uc .pic{width:44%}.uc .ttl{padding-top:2px}.uc .ttl b{font-size:24px}.uc .lv{font-size:21px;margin-top:4px}.uc .xp{font-size:15px;margin-top:4px}
+.uc .desc{font-size:12px;padding:0 12px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uc .tbl{padding:4px 6px}.uc .tr{padding:4px 6px}.uc .tr .k,.uc .tr .v{font-size:16px}
+.uc .costh{padding:4px 0 2px;margin-top:4px;font-size:15px}
+.uc .crs{display:flex;flex-wrap:wrap;gap:4px 6px;justify-content:center;padding:2px 0 4px}
+.uc .crc{display:inline-flex;align-items:center;gap:4px;background:#f3f1ed;border-radius:6px;padding:3px 7px;font:600 15px/1 Teko,sans-serif;color:#334155}
+.uc .crc.bad{color:#b91c1c;background:#fee2e2}.uc .crc .ok{color:#16a34a;font:900 13px Nunito}.uc .crc .no{color:#ef4444;font:900 13px Nunito}
+.uc .orig{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 16px 6px;font-size:15px}
+.uc .bt button{padding:6px 4px 7px;font-size:18px}
+.uc .bt .fin em{color:#78350f}.uc .bt .fin em.short{color:#dc2626}
+.uc .adrow{padding:8px 16px 0}
+.uc{padding-bottom:12px}
+/* Home tab */
+.homebn .gameday{position:relative;left:auto;right:auto;bottom:auto;margin:12px 16px 0}
+.calstrip{display:flex;gap:6px;overflow-x:auto;padding:10px 16px 2px;scrollbar-width:none}.calstrip::-webkit-scrollbar{display:none}
+.calc{flex:none;width:56px;border:0;border-radius:12px;background:var(--card);box-shadow:var(--shadow);padding:5px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink)}
+.calc small{font-size:10px;font-weight:900;color:var(--mute)}.calc b{font:600 16px/1 Teko,sans-serif}
+.calc.w{background:#16a34a;color:#fff}.calc.l{background:#dc2626;color:#fff}.calc.d{background:#94a3b8;color:#fff}.calc.w small,.calc.l small,.calc.d small{color:rgba(255,255,255,.85)}
+.calc.next{box-shadow:inset 0 0 0 3px var(--school2),var(--shadow)}
+.formc{margin:10px 16px 0;display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:6px;text-align:center}
+.formc small{display:block;font-size:11px;font-weight:800;color:var(--mute)}.formc b{font:600 22px/1.1 Teko,sans-serif}
+.formc .form{display:flex;gap:3px;justify-content:center}.formc .form i{font-style:normal;font:900 11px/20px Nunito;width:20px;height:20px;border-radius:5px;color:#fff;background:#94a3b8}
+.formc .form i.w{background:#16a34a}.formc .form i.l{background:#dc2626}
+.formc .goal{grid-column:1/-1;font-size:13px;font-weight:800;color:var(--mute);margin-top:2px}
+/* campus without the match bar */
+.zbtns{bottom:92px}
+.uc .ttl{padding-right:30px}.uc .ttl b{font-size:22px;letter-spacing:0;line-height:.95}
+
+/* ---------- phase-9c: icons ---------- */
+/* Coins: a gold coin, the same everywhere */
+.coin{display:inline-block;width:1.15em;height:1.15em;border-radius:50%;vertical-align:-.18em;font-style:normal;background:radial-gradient(circle at 35% 30%,#fff7c2 0 12%,#fcd34d 30%,#f59e0b 70%,#b45309 100%);box-shadow:inset 0 0 0 .12em #fde68a,inset 0 0 0 .2em #d97706,0 1px 1px rgba(0,0,0,.25)}
+.res i.coin{width:20px;height:20px;background:radial-gradient(circle at 35% 30%,#fff7c2 0 12%,#fcd34d 30%,#f59e0b 70%,#b45309 100%)}
+/* Coaching Points: a teal badge with a coach's whistle */
+.cpi{display:inline-block;width:1.2em;height:1.2em;border-radius:50%;vertical-align:-.2em;font-style:normal;background:#0d9488 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 8h9a2 2 0 0 1 2 2v1H11.5A4.5 4.5 0 1 1 9 8z' fill='%23fff'/%3E%3Ccircle cx='9' cy='12.5' r='1.6' fill='%230d9488'/%3E%3Crect x='14' y='6' width='2' height='3' rx='.6' fill='%23fff'/%3E%3C/svg%3E") center/78% no-repeat;box-shadow:inset 0 -1px 0 rgba(0,0,0,.2)}
+.res i.cpi{width:20px;height:20px;background-color:#0d9488}
+/* Tactics: X's and O's with an arrow (a play diagram) */
+.xoi{display:inline-block;width:1.25em;height:1.25em;border-radius:5px;vertical-align:-.22em;font-style:normal;background:#166534 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 4l4 4M8 4l-4 4'/%3E%3Ccircle cx='17' cy='17' r='3'/%3E%3Cpath d='M8 12c3 0 5 1 6 3' stroke-dasharray='2 2'/%3E%3Cpath d='M12.5 14.5l1.8.6-.4-1.9'/%3E%3Ccircle cx='17' cy='6' r='2.2'/%3E%3C/svg%3E") center/86% no-repeat}
+.kitsw{display:inline-block;width:10px;height:10px;border-radius:3px;border:2px solid;margin-right:4px;vertical-align:-1px}
+.sbar .tn small{font:800 9px Nunito;opacity:.7;margin-left:3px}
+.sqbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.medtop{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.medtop>div{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:8px 4px}
+.medtop b{font:600 26px/1 Teko,sans-serif}.medtop small{display:block;font-size:11px;font-weight:900}.medtop em{display:block;font-style:normal;font-size:10.5px;font-weight:800;color:var(--mute)}
+.medrow{display:flex;gap:10px;align-items:center;background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:8px 10px;margin-top:8px}
+.medbt{display:flex;flex-direction:column;gap:4px;align-items:flex-end}.medbt .btn{padding:6px 10px;font-size:12px}.medbt .btn.off{opacity:.4}
+.sevt{font-size:10px;font-weight:900;border-radius:6px;padding:1px 6px;color:#fff;background:#f59e0b;vertical-align:1px}.sevt.s1{background:#ea580c}.sevt.s2{background:#b91c1c}
+/* staff: coach of the day, search card, guide, first pick */
+.sguide{margin:12px 16px 0}.sguide ol{margin:6px 0 8px 18px;font-size:13px;font-weight:700;line-height:1.4}
+.cotd{display:flex;gap:10px;align-items:center;width:calc(100% - 32px);margin:12px 16px 0;border:0;border-radius:18px;padding:10px;text-align:left;color:#fff;background:linear-gradient(135deg,#1e3a8a,#7c3aed);box-shadow:var(--shadow);position:relative}
+.cotd .cf{width:62px;height:62px;border-radius:14px;overflow:hidden;background:#dbeafe;flex:none;box-shadow:0 0 0 3px var(--rc)}
+.cotd .ci{flex:1;min-width:0}.cotd small{font-size:11px;font-weight:900;color:#fde68a}.cotd b{display:block;font-size:16px}.cotd em{font-style:normal;font-size:12px;font-weight:800}.cotd p{font-size:12.5px;font-weight:800;color:#bbf7d0;margin-top:2px}
+.cotd .hirebtn{position:absolute;right:10px;top:10px;background:var(--school2);border-radius:10px;padding:5px 9px;font-size:12px;font-weight:900}
+.searchc{display:flex;gap:10px;align-items:center;width:calc(100% - 32px);margin:10px 16px 0;border:0;border-radius:18px;padding:10px 12px;text-align:left;background:var(--card);box-shadow:var(--shadow);color:var(--ink)}
+.searchc>span{font-size:30px}.searchc div{flex:1}.searchc b{font-size:15px}.searchc p{font-size:12px;font-weight:700;color:var(--mute)}.searchc em{font-style:normal;font-weight:900;background:#16a34a;color:#fff;border-radius:10px;padding:5px 9px;font-size:13px}
+.newdot{font-style:normal;font-size:9px;background:#ef4444;color:#fff;border-radius:6px;padding:1px 5px;vertical-align:2px}
+.tab .ti{position:relative}.tabdot{position:absolute;top:-2px;right:-6px;width:9px;height:9px;border-radius:50%;background:#ef4444;border:2px solid var(--card)}
+.ccard.pick .ben{font-size:13px;font-weight:900;color:var(--fit5);margin:3px 0}

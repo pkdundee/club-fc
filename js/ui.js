@@ -48,6 +48,8 @@
   window.addEventListener('popstate', () => { if (stack.length) { stack.pop(); draw(); } });
 
   let tt;
+  // Nothing spends on a single tap: preview what it does and what it costs, then confirm (playtest round 3)
+  C.confirm = (title, body, label, act, v) => C.ui.open(title, () => `${body}<div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Cancel</button><button class="btn pri" data-act="${act}" data-v="${C.esc(v)}" data-ok="1">${label}</button></div>`);
   C.toast = msg => {
     let t = C.$('#toast'); if (t) t.remove();
     C.$('#app').insertAdjacentHTML('beforeend', `<div id="toast">${msg}</div>`);

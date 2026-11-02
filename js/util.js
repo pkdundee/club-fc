@@ -32,6 +32,7 @@ window.CFC = window.CFC || {};
   C.rng = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
     t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 
+  C.GEM = '<i class="coin"></i>';  // the premium currency (Coins), drawn the same way everywhere
   C.crestSVG = (c1, c2, letters, size = 40) => `<svg viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true"><path d="M20 2 L37 8 V20 C37 30 29 36 20 39 C11 36 3 30 3 20 V8 Z" fill="${c1}" stroke="${c2}" stroke-width="2.5"/><path d="M20 7 L32 11 V20 C32 27 26 32 20 34 C14 32 8 27 8 20 V11Z" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1"/><text x="20" y="25" text-anchor="middle" font-family="Graduate,serif" font-size="${letters.length > 2 ? 10 : 12}" fill="#fff">${letters}</text><path d="M12 30 Q20 26 28 30" stroke="${c2}" stroke-width="2" fill="none"/></svg>`;
 
   C.ringSVG = (pct, col, size = 54, w = 4) => { const r = (size - w) / 2, c = 2 * Math.PI * r;

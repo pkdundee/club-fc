@@ -19,6 +19,15 @@
     while (t.bench.length < 7 && rest.length) t.bench.push(rest.shift().id);
     return t;
   };
+  // auto-manage rotation: swap XI players under 50% Freshness for a fresh player who fits (keeps promises where possible)
+  C.autoRotate = () => {
+    const car = C.car(), t = C.tac(); if (!t.auto) return 0; const F = C.FORMATIONS[t.form]; let n = 0;
+    t.xi.forEach((id, i) => { const p = C.P(id); if (!p || p.energy >= 50) return;
+      const pos = F[i][0], cand = car.squad.filter(q => C.available(q) && !t.xi.includes(q.id) && q.energy >= Math.max(45, p.energy + 25) && C.fit(q, pos) >= 3 && q.rating >= p.rating - 10)
+        .sort((a, b) => (b.rating * [0, .5, .7, .85, .95, 1][C.fit(b, pos)]) - (a.rating * [0, .5, .7, .85, .95, 1][C.fit(a, pos)]))[0];
+      if (!cand) return; const bi = t.bench.indexOf(cand.id); if (bi >= 0) t.bench[bi] = p.id; t.xi[i] = cand.id; n++; });
+    if (n) C.save(); return n;
+  };
   C.autoPick = () => { const t = C.tac(); t.xi = []; t.bench = []; C.tac(); C.save(); };
   C.roles = () => { const t = C.tac(), out = {}; C.squad().forEach(p => out[p.id] = t.xi.includes(p.id) ? 'xi' : t.bench.includes(p.id) ? 'bench' : 'res'); return out; };
   C.setForm = f => { const t = C.tac(), old = C.FORMATIONS[t.form], F = C.FORMATIONS[f], ids = t.xi.slice(), nx = [];

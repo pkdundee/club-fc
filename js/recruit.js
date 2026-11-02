@@ -252,13 +252,13 @@
     const tiles = [
       tile('inbox', '📨', 'Applications', count('inbox') >= 8 ? 'Inbox full' : `Next <span data-until="${R.nextApp}">${C.dur((R.nextApp - t) / 1000)}</span>`, count('inbox')),
       tile('camp', '🏕', 'ID Camp', t < R.campReady ? `Ready in <span data-until="${R.campReady}">${C.dur((R.campReady - t) / 1000)}</span>` : `Run · 💵 ${C.short(C.campCost())}`, count('camp')),
-      isJC() ? tile('agency', '🌍', 'Agency scout', `◆ ${agencyGold()} a recruit`, count('agency')) : tile('jc', '🚌', 'JC transfers', `New in <span data-until="${R.jcNext}">${C.dur((R.jcNext - t) / 1000)}</span>`, count('jc')),
-      isJC() ? '' : tile('agency', '🌍', 'Agency scout', `◆ ${agencyGold()} a recruit`, count('agency')),
+      isJC() ? tile('agency', '🌍', 'Agency scout', `<i class="coin"></i> ${agencyGold()} a recruit`, count('agency')) : tile('jc', '🚌', 'JC transfers', `New in <span data-until="${R.jcNext}">${C.dur((R.jcNext - t) / 1000)}</span>`, count('jc')),
+      isJC() ? '' : tile('agency', '🌍', 'Agency scout', `<i class="coin"></i> ${agencyGold()} a recruit`, count('agency')),
       tile('portal', '🚪', 'Transfer portal', P ? `Open · closes in <span data-until="${P.end}">${C.dur((P.end - t) / 1000)}</span>` : 'Opens after the season', P ? count('portal') : 0, 'wide ' + (P ? 'live' : ''))
     ].join('');
     let body = '';
     if (route === 'camp') body = `<button class="btn full pri" data-act="camp" ${t < R.campReady ? 'disabled' : ''} style="margin:10px 16px 0;width:calc(100% - 32px)">${t < R.campReady ? '🏕 Next camp in ' + C.dur((R.campReady - t) / 1000) : `🏕 Run an ID Camp · 💵 ${C.short(C.campCost())}`}</button><p class="note" style="padding:0 16px">3 players attend. You see them play, so their ratings are exact.</p>`;
-    if (route === 'agency') body = `<button class="btn full pri" data-act="agency" style="margin:10px 16px 0;width:calc(100% - 32px)">🌍 Hire an agency scout · ◆ ${agencyGold()}</button><p class="note" style="padding:0 16px">One international recruit, Uncommon or better.</p>`;
+    if (route === 'agency') body = `<button class="btn full pri" data-act="agency" style="margin:10px 16px 0;width:calc(100% - 32px)">🌍 Hire an agency scout · <i class="coin"></i> ${agencyGold()}</button><p class="note" style="padding:0 16px">One international recruit, Uncommon or better.</p>`;
     if (route === 'jc') body = `<p class="note" style="padding:0 16px">Juniors from two-year colleges: ready now, with 2 seasons left.</p>`;
     if (route === 'portal') body = portalHTML(P, R);
     const list = R.list.filter(x => x.src === route).sort((a, b) => (b.rival ? 1 : 0) - (a.rival ? 1 : 0) || b.rating - a.rating);
@@ -314,7 +314,7 @@
       ${x.rival ? `<div class="card rivalc">⚔ <b>${C.esc(x.rival.c)}</b> has made an offer. Decision in <b data-until="${x.rival.end}">${C.dur((x.rival.end - C.now()) / 1000)}</b></div>` : ''}
       <h3 class="jh">${x.pos === 'GK' ? 'Goalkeeping' : 'Skills'} ${x.scouted ? '' : '<small class="devp">estimates</small>'}</h3>
       <div class="card"><div class="attrs">${Object.keys(A).map(k => `<div class="attr ${C.KEY[x.pos].includes(k) ? 'key' : ''}"><span class="ai">${A[k][0]}</span><div class="ab"><div><span>${A[k][1]}</span><em>${attrTxt(x, x.a[k])}</em></div><div class="bar"><i style="width:${x.scouted ? x.a[k] : round5(x.a[k])}%;background:${x.scouted ? 'var(--fit4)' : 'var(--silver)'}"></i></div></div></div>`).join('')}</div></div>
-      ${x.scouted ? '' : `<button class="btn full sec2" data-act="scout" data-v="${id}" style="margin-top:10px">🔍 Scout for exact ratings · 📘 ${SCOUT_CP}</button>`}
+      ${x.scouted ? '' : `<button class="btn full sec2" data-act="scout" data-v="${id}" style="margin-top:10px">🔍 Scout for exact ratings · <i class="cpi"></i> ${SCOUT_CP}</button>`}
       <div class="jbtns"><button class="btn sec2" data-act="rpass" data-v="${id}">Not interested</button><button class="btn pri" data-act="offer" data-v="${id}">✉️ ${x.deal.round ? 'Improve offer' : 'Make an offer'}</button></div>`;
   }
 })(window.CFC);

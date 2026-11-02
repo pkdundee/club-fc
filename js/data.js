@@ -31,16 +31,16 @@
   const pct = v => (Math.round(v * 10) / 10) + '%';
   const seats = l => Math.round(200 + 50 * l + 5 * l * l);
   C.prod = {
-    hq: l => 400 + 120 * l,                                   // Booster $ per hour
-    booster: l => l ? Math.round(300 * l * Math.pow(1.1, l)) : 0, // Booster $ per hour
+    media: l => l ? 200 + 80 * l : 0,                          // Booster $ per hour (match video and streaming)
+    booster: l => l ? Math.round(150 + 100 * l * Math.pow(1.06, l)) : 0, // Booster $ per hour (donations)
     film: l => 4 + 2 * l                                       // Coaching Points per hour
   };
   C.STORE_HOURS = l => 6 + l * .2;
 
   C.BUILDINGS = {
     hq: { name: "Coaches' Office", icon: '🏛', owner: 'program', start: 1, mult: 1.6,
-      desc: 'Your headquarters. Its level caps every other building, and it is the key requirement for moving up.',
-      stats: l => [['🧱', 'Building cap', 'Lv ' + l], ['💵', 'Booster $ / hour', C.money(C.prod.hq(l))], ['🧢', 'Staff slots', 1 + Math.floor(l / 8)]] },
+      desc: 'Your headquarters. Its level caps every other building and unlocks slots. It earns nothing itself.',
+      stats: l => [['🧱', 'Building cap', 'Lv ' + l], ['🔨', 'Build slots', l >= 10 ? '+1 earned' : 'Lv 10: +1'], ['🧢', 'Staff slots', l >= 8 ? '+1 earned' : 'Lv 8: +1']] },
     stadium: { name: 'Stadium', icon: '🏟', owner: 'school', start: 1, mult: 1.3,
       desc: 'Seats, gate income and home advantage. Bigger crowds, louder atmosphere.',
       stats: l => [['seat', 'Seats', seats(l).toLocaleString()], ['💵', 'Gate income / home game', C.money(seats(l) * 3)], ['📣', 'Home advantage', pct(1 + .2 * l)]] },
@@ -49,16 +49,22 @@
       stats: l => [['📈', 'Team training', '+' + pct(2 * l)], ['🏋️', 'Development speed', '+' + pct(1.5 * l)]] },
     gym: { name: 'Gym', icon: '🏋️', owner: 'program', start: 0, mult: 1.1,
       desc: 'Strength and conditioning: faster energy recovery and fewer injuries.',
-      stats: l => [['🔋', 'Energy recovery', '+' + pct(1.5 * l)], ['🩹', 'Injury chance', '−' + pct(l)]] },
+      stats: l => [['🔋', 'Freshness recovery', '+' + pct(1.5 * l)], ['🩹', 'Injury chance', '−' + pct(l)]] },
     med: { name: 'Sports Medicine', icon: '🩺', owner: 'program', start: 1, mult: 1.1,
       desc: 'Faster recovery from injuries, and free recovery items each day.',
       stats: l => [['⏱', 'Injury recovery', '+' + pct(3 * l)], ['💊', 'Recovery items / day', 1 + Math.floor(l / 5)]] },
-    film: { name: 'Film Room', icon: '🎬', owner: 'program', start: 1, mult: 1.15,
-      desc: 'Produces Coaching Points and speeds up Playbook research.',
-      stats: l => [['📘', 'Coaching Points / hour', C.prod.film(l)], ['🔬', 'Research speed', '+' + pct(l)]] },
+    film: { name: 'Performance Lab', icon: '🔬', owner: 'program', start: 1, mult: 1.15,
+      desc: 'Sports science and data. Produces Coaching Points for your Playbook.',
+      stats: l => [['<i class="cpi"></i>', 'Coaching Points / hour', C.prod.film(l)], ['🔬', 'Research speed', '+' + pct(l)]] },
     recruit: { name: 'Recruiting Office', icon: '✉️', owner: 'program', start: 1, mult: 1.15,
       desc: 'More applications, sharper scouting and more campus jobs to offer recruits.',
       stats: l => [['📨', 'Applications / day', 3 + l], ['🔍', 'Rating range', '±' + Math.max(1, 4 - Math.floor(l / 3))], ['💼', 'Campus jobs / season', 2 + Math.floor(l / 3)]] },
+    video: { name: 'Video Room', icon: '🎞', owner: 'program', start: 0, mult: 1.15, needHQ: 3,
+      desc: 'Game film: opponent reports before matches, sharper scouting and highlight reels for recruits.',
+      stats: l => [['📄', 'Opponent report', l >= 5 ? 'Full (shape, key players)' : l ? 'Basic (shape)' : '—'], ['🎯', 'Match familiarity', '+' + pct(.5 * l)], ['💛', 'Recruit interest', '+' + Math.round(1.5 * l)]] },
+    media: { name: 'Media Centre', icon: '📡', owner: 'school', start: 1, mult: 1.1,
+      desc: 'Sells match video and streaming subscriptions to fans and families. Earns Booster $ every hour.',
+      stats: l => [['💵', 'Booster $ / hour', C.money(C.prod.media(l))], ['📦', 'Storage', C.STORE_HOURS(l).toFixed(1) + 'h']] },
     dorms: { name: 'Dorms', icon: '🏠', owner: 'school', start: 1, mult: 1.1,
       desc: 'Campus life: bigger roster and more appeal to recruits.',
       stats: l => [['👕', 'Roster size', Math.min(28, 24 + Math.ceil(l / 3))], ['💛', 'Recruit appeal', '+' + pct(l)]] },
@@ -75,7 +81,7 @@
 
   // Cost to reach level `to` (Booster $, Coaching Points) and build time in seconds.
   C.costOf = (key, to) => { const m = C.BUILDINGS[key].mult;
-    return { cash: Math.round(1200 * m * Math.pow(1.33, to - 1) / 50) * 50, cp: to >= 3 ? Math.round(8 * m * Math.pow(1.3, to - 3)) : 0 }; };
+    return { cash: Math.round(1200 * m * Math.pow(1.33, to - 1) / 50) * 50, cp: 0 }; };  // buildings cost Booster $ only (Coaching Points are for the Playbook)
   C.timeOf = (key, to) => Math.round((to <= 1 ? 30 : 40 * Math.pow(1.38, to)) * C.BUILDINGS[key].mult);
 
   // What visibly changes at each level (matches the art rules in art-campus.js)
@@ -105,9 +111,9 @@
     { s: 1, d: -1, b: 'film' }, { s: 1, d: 1, b: 'med' },
     { s: 2, d: -2, b: 'recruit' }, { s: 2, d: 0, b: 'hq' }, { s: 2, d: 2, b: 'skills' },
     { s: 3, d: -1, b: 'dorms' }, { s: 3, d: 1, b: 'training' },
-    { s: 4, d: -2, b: 'gym' }, { s: 4, d: 0, b: 'stadium', span: 1 }, { s: 4, d: 2, k: 'parking' },
+    { s: 4, d: -2, b: 'gym' }, { s: 4, d: 0, b: 'stadium', span: 1 }, { s: 4, d: 2, b: 'video' },
     { s: 6, d: -2, b: 'booster' }, { s: 6, d: 2, b: 'academic' },
-    { s: 7, d: -1, k: 'quad' }, { s: 7, d: 1, k: 'lake' },
+    { s: 7, d: -1, b: 'media' }, { s: 7, d: 1, k: 'lake' },
     { s: 8, d: -2, k: 'land', tier: 4 }, { s: 8, d: 0, k: 'land', tier: 4 }, { s: 8, d: 2, k: 'trees' },
     { s: 9, d: -1, k: 'trees' }, { s: 9, d: 1, k: 'land', tier: 3 },
     { s: 10, d: -2, k: 'trees' }, { s: 10, d: 0, k: 'land', tier: 3 }, { s: 10, d: 2, k: 'trees' }

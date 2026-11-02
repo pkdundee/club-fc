@@ -9,8 +9,8 @@
   const lo = () => { const a = C.acct(); if (!a.lo) a.lo = { cal: { claimed: 0, last: '' }, day: '', tasks: [], week: '', weekDone: 0, chest: false, pass: { start: C.now(), xp: 0, prem: false, f: [], p: [] }, vipDay: '', cos: [], kit: '' }; return a.lo; };
   C.lo = lo;
 
-  // ---------- rewards: Gold is account-wide; everything else goes to the career you're playing ----------
-  const NAMES = { gold: ['◆', 'Gold'], cash: ['💵', 'Booster $'], cp: ['📘', 'Coaching Points'], manual: ['📗', 'Coaching manuals'], credits: ['🎫', 'Clinic Credits'], books: ['📕', 'Trait Books'], tokens: ['🎟', 'Number Changes'], rare: ['🎁', 'Rare recruit'], coach: ['🧑‍🏫', 'Rare coach'] };
+  // ---------- rewards: Coins are account-wide; everything else goes to the career you're playing ----------
+  const NAMES = { gold: ['<i class="coin"></i>', 'Coins'], cash: ['💵', 'Booster $'], cp: ['<i class="cpi"></i>', 'Coaching Points'], manual: ['📗', 'Coaching manuals'], credits: ['🎫', 'Clinic Credits'], books: ['📕', 'Trait Books'], tokens: ['🎟', 'Number Changes'], rare: ['🎁', 'Rare recruit'], coach: ['🧑‍🏫', 'Rare coach'] };
   C.rwText = r => Object.keys(r).map(k => `${NAMES[k][0]} ${k === 'cash' ? C.short(r[k]) : r[k] > 1 || !['rare', 'coach'].includes(k) ? r[k] : ''}`.trim()).join(' · ');
   C.giveReward = r => { const car = C.car(), S = car && C.staffState();
     for (const k in r) { const v = r[k];
@@ -31,7 +31,7 @@
 
   // ---------- daily tasks + weekly chest ----------
   const TASKS = [['match', '⚽', 'Play a match', 1], ['win', '🏆', 'Win a match', 1], ['collect', '💵', 'Collect income 3 times', 3], ['upgrade', '🔨', 'Start an upgrade', 1], ['train', '🏋️', 'Start a training plan', 1],
-    ['research', '📘', 'Start Playbook research', 1], ['offer', '✉️', 'Make a recruiting offer', 1], ['ad', '▶', 'Watch a rewarded ad', 1], ['speed', '⏩', 'Use a speed-up', 1]];
+    ['research', '📋', 'Start Playbook research', 1], ['offer', '✉️', 'Make a recruiting offer', 1], ['ad', '▶', 'Watch a rewarded ad', 1], ['speed', '⏩', 'Use a speed-up', 1]];
   function rollDay() { const L = lo(); if (L.day === dayKey()) return; L.day = dayKey(); const r = C.rng(new Date().getDate() * 131 + new Date().getMonth()); const pool = TASKS.slice();
     L.tasks = [0, 1, 2].map(() => { const t = pool.splice(Math.floor(r() * pool.length), 1)[0]; return { id: t[0], n: 0, goal: t[3], claimed: false }; });
     if (L.week !== weekKey()) { L.week = weekKey(); L.weekDone = 0; L.chest = false; } }
@@ -70,7 +70,7 @@
   // ---------- packs and cosmetics (test store) ----------
   C.PACKS = {
     starter: { name: 'Starter Pack', icon: '🎒', price: '$1.99', once: true, r: { gold: 500, manual: 3, credits: 20, cash: 20000, coach: 1 } },
-    g100: { name: '100 Gold', icon: '◆', price: '$0.99', r: { gold: 100 } }, g550: { name: '550 Gold', icon: '◆', price: '$4.99', r: { gold: 550 } }, g1200: { name: '1,200 Gold', icon: '◆', price: '$9.99', r: { gold: 1200 } },
+    g100: { name: '100 Coins', icon: '<i class="coin"></i>', price: '$0.99', r: { gold: 100 } }, g550: { name: '550 Coins', icon: '<i class="coin"></i>', price: '$4.99', r: { gold: 550 } }, g1200: { name: '1,200 Coins', icon: '<i class="coin"></i>', price: '$9.99', r: { gold: 1200 } },
     xp: { name: 'Coach XP bundle', icon: '📗', price: '$2.99', r: { manual: 10, books: 2 } }, clinic: { name: 'Clinic Credit pack', icon: '🎫', price: '$2.99', r: { credits: 60 } },
     pass: { name: 'Season Pass: premium track', icon: '🎟', price: '$9.99', pass: true }
   };
@@ -112,8 +112,8 @@
       const tasks = C.tasks().map((t, i) => `<div class="task ${t.claimed ? 'done' : ''}"><span>${t.def[1]}</span><div><b>${t.def[2]}</b><div class="hbar"><i style="width:${t.n / t.goal * 100}%;background:var(--fit5)"></i></div></div>${t.claimed ? '✔' : `<button class="btn sm2" data-act="taskclaim" data-v="${i}" ${t.n >= t.goal ? '' : 'disabled'}>${t.n}/${t.goal}</button>`}</div>`).join('');
       return `${tabs}<h3 class="jh" style="margin-top:4px">28-day calendar <small class="devp">day ${day + 1}</small></h3><div class="calg">${cal}</div>
         <button class="btn full ${can ? 'pri' : 'sec2'}" data-act="calclaim" ${can ? '' : 'disabled'} style="margin-top:8px">${can ? 'Claim day ' + (day + 1) + ': ' + C.rwText(CAL[day]) : '✔ Come back tomorrow'}</button>
-        ${C.isVip() ? `<button class="btn full ${L.vipDay !== dayKey() ? 'pri' : 'sec2'}" data-act="vipdaily" style="margin-top:8px" ${L.vipDay !== dayKey() ? '' : 'disabled'}>👑 Coach's Club daily: ◆ 25</button>` : ''}
-        <h3 class="jh">Today's tasks <small class="devp">◆ 20 · 📘 20 each</small></h3>${tasks}
+        ${C.isVip() ? `<button class="btn full ${L.vipDay !== dayKey() ? 'pri' : 'sec2'}" data-act="vipdaily" style="margin-top:8px" ${L.vipDay !== dayKey() ? '' : 'disabled'}>👑 Coach's Club daily: <i class="coin"></i> 25</button>` : ''}
+        <h3 class="jh">Today's tasks <small class="devp"><i class="coin"></i> 20 · <i class="cpi"></i> 20 each</small></h3>${tasks}
         <div class="card chest"><span>🧰</span><div><b>Weekly chest</b><small>${Math.min(L.weekDone, C.CHEST_GOAL)} / ${C.CHEST_GOAL} tasks · ${C.rwText(C.CHEST)}</small><div class="hbar"><i style="width:${Math.min(100, L.weekDone / C.CHEST_GOAL * 100)}%;background:var(--gold)"></i></div></div>
           <button class="btn sm2" data-act="chest" ${!L.chest && L.weekDone >= C.CHEST_GOAL ? '' : 'disabled'}>${L.chest ? '✔' : 'Open'}</button></div>
         <h3 class="jh">Rewarded ads <small class="devp">${C.adsLeft()} left today</small></h3><button class="btn full sec2" data-act="adreward" ${C.adsLeft() > 0 ? '' : 'disabled'}>▶ ${C.isVip() ? 'Claim (Coach\'s Club skips the ad)' : 'Watch an ad (test)'} for a random reward</button>`;

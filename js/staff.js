@@ -5,7 +5,7 @@
   C.SPECS = {
     tac: ['🧠', 'Tactician', 'Match-day quality: attack, defence and passing'],
     dev: ['🏋️', 'Development coach', 'Faster training plans and match development'],
-    snc: ['💪', 'Strength & conditioning', 'Energy recovery, fewer injuries, less fatigue'],
+    snc: ['💪', 'Strength & conditioning', 'Freshness recovery, fewer injuries, less fatigue'],
     gk: ['🧤', 'Goalkeeper coach', 'Keeper performance and development'],
     rec: ['🔍', 'Recruiting coordinator', 'Sharper scouting, more applications, better offers'],
     mot: ['📣', 'Motivator', 'Morale and keeping players from the portal'],
@@ -42,9 +42,16 @@
   C.staffPower = () => C.onStaff().reduce((s, c) => s + Math.round(C.coachQ(c) * 10 + c.trait * 40), 0);
   // strength 0..1 of a specialism on staff (the generalist counts at 40%)
   C.staffF = spec => { let f = 0; for (const c of C.onStaff()) { const q = C.coachQ(c) / 100; if (c.spec === spec) f = Math.max(f, q * (1 + (c.trait - 1) * .08)); else if (c.spec === 'gen') f = Math.max(f, q * .4); } return f; };
+  // what a coach would actually change, in real numbers (before → after)
+  C.coachBenefit = c => {
+    const q = C.coachQ(c) / 100 * (c.spec === 'gen' ? .4 : 1) * (1 + (c.trait - 1) * .08), mm = s => C.dur(s);
+    const base = Math.round((1200 + 40 * 50) / (1 + C.level('training') * .03));
+    return { tac: `Team match quality +${Math.round(4 * q * 10) / 10}%`, dev: `Training plans: ${mm(base)} → ${mm(Math.round(base / (1 + .25 * q)))}`, snc: `Resting a match: +30 → +${Math.round(30 * (1 + .3 * q))} Freshness`,
+      gk: `Keeper saves +${Math.round(6 * q * 10) / 10}%`, rec: `Applications: ${3 + C.level('recruit')} → ${Math.round((3 + C.level('recruit')) * (1 + .3 * q) * 10) / 10} a day`, mot: `Portal risk −${Math.round(30 * q)}% · morale after wins +${Math.round(50 * q)}%`, gen: 'A little of everything (40% strength)' }[c.spec];
+  };
   C.coachEffects = c => {
     const q = C.coachQ(c) / 100 * (c.spec === 'gen' ? .4 : 1), p = v => '+' + Math.round(v * 100) + '%', t = c.trait;
-    const E = { tac: [`Match quality ${p(.04 * q)}`], dev: [`Training speed ${p(.25 * q)}`, `Match development ${p(.2 * q)}`], snc: [`Energy recovery ${p(.3 * q)}`, `Injuries −${Math.round(30 * q)}%`, `Fatigue −${Math.round(8 * q)}%`],
+    const E = { tac: [`Match quality ${p(.04 * q)}`], dev: [`Training speed ${p(.25 * q)}`, `Match development ${p(.2 * q)}`], snc: [`Freshness recovery ${p(.3 * q)}`, `Injuries −${Math.round(30 * q)}%`, `Fatigue −${Math.round(8 * q)}%`],
       gk: [`Keeper performance ${p(.06 * q)}`], rec: [`Applications ${p(.3 * q)}`, `Offer appeal ${p(.08 * q)}`], mot: [`Morale gains ${p(.5 * q)}`, `Portal risk −${Math.round(30 * q)}%`] };
     return c.spec === 'gen' ? ['A little of everything (40% strength)'] : E[c.spec].concat([`${TRAITS[c.spec][0]} ${TRAITS[c.spec][1]} Lv ${t}: ${t > 1 ? '+' + (t - 1) * 8 + '% to all of the above' : 'upgrade with Trait Books for +8% a level'}`]);
   };
@@ -54,14 +61,16 @@
   C.assign = id => { const S = st(); if (S.on.includes(id)) { S.on = S.on.filter(x => x !== id); C.save(); return true; } if (S.on.length >= C.staffSlots()) return 'full'; S.on.push(id); C.save(); return true; };
   C.hireCost = c => c.rar >= 3 ? { gold: c.rar === 3 ? 150 : 300 } : { cash: Math.round((2000 + c.rar * 3000 + c.level * 150) / 100) * 100 };
   C.refreshMarket = (force) => { const S = st(); if (!force && C.now() < S.mNext && S.market.length) return; const r = C.rng(C.now() & 0xffffff), hunt = C.pbv ? C.pbv('hunt') : 0;
-    S.market = [0, 1, 2, 3].map(() => genCoach(r, pickRar(r, hunt * 3))); S.mNext = C.now() + 48 * H; C.save(); };
+    S.market = [0, 1, 2, 3].map(() => genCoach(r, pickRar(r, hunt * 3))); S.mNext = C.now() + 48 * H; S.mNew = true; C.save(); };
   C.hire = id => { const S = st(), c = S.market.find(x => x.id === id); if (!c) return false; const cost = C.hireCost(c), car = C.car();
     if (cost.gold && C.acct().gold < cost.gold) return 'gold'; if (cost.cash && car.cash < cost.cash) return 'cash';
     if (cost.gold) C.acct().gold -= cost.gold; if (cost.cash) car.cash -= cost.cash;
     S.market = S.market.filter(x => x !== c); S.list.push(c); if (S.on.length < C.staffSlots()) S.on.push(c.id); C.save(); return c; };
   C.releaseCoach = id => { const S = st(); if (id === 'ray' && S.list.length === 1) return false; S.list = S.list.filter(c => c.id !== id); S.on = S.on.filter(x => x !== id); C.save(); return true; };
   // Coaching Search: visible odds; a repeat specialism at the same rarity becomes Clinic Credits
-  C.search = () => { const a = C.acct(), S = st(); if (a.gold < SEARCH_GOLD) return 'gold'; a.gold -= SEARCH_GOLD; const r = C.rng((C.now() ^ Math.floor(Math.random() * 1e9)) & 0x7fffffff), c = genCoach(r, pickRar(r));
+  C.searchCost = () => st().freeUsed ? SEARCH_GOLD : 0;
+  C.search = () => { const a = C.acct(), S = st(), cost = C.searchCost(); if (a.gold < cost) return 'gold'; a.gold -= cost; S.freeUsed = true; S.pity = (S.pity || 0) + 1;
+    const r = C.rng((C.now() ^ Math.floor(Math.random() * 1e9)) & 0x7fffffff); let rar = pickRar(r); if (S.pity >= 10) rar = Math.max(2, rar); if (rar >= 2) S.pity = 0; const c = genCoach(r, rar);
     if (S.list.some(x => x.spec === c.spec && x.rar === c.rar)) { const n = 10 + c.rar * 10; S.items.credits += n; C.save(); return { dup: c, credits: n }; }
     S.list.push(c); if (S.on.length < C.staffSlots()) S.on.push(c.id); C.save(); return { coach: c }; };
 
@@ -103,15 +112,18 @@
     const S = st(), col = C.college(), on = C.onStaff(); C.refreshMarket();
     const slots = C.STAFFSLOTS.map((s, i) => { const c = on[i]; if (c) return `<button class="sslot" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><span class="sf">${C.coachFace(c)}</span><b>${C.SPECS[c.spec][0]}</b></button>`;
       return C.staffSlotOpen(s.id) ? `<button class="sslot free" data-act="toast" data-v="Hire or assign a coach"><span class="sf">➕</span><b>Free</b></button>` : `<button class="sslot lock" data-act="sslotinfo" data-v="${s.id}"><span class="sf">🔒</span><b>${s.id === 'vip' ? 'VIP' : s.id === 'iap' ? '$' : 'HQ 8'}</b></button>`; }).join('');
-    const card = c => `<button class="ccard" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><div class="cf">${C.coachFace(c)}</div><div class="ci"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]}</small>
+    const card = c => `<button class="ccard" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><div class="cf">${C.coachFace(c)}</div><div class="ci"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]} · ${C.coachBenefit(c)}</small>
         <div class="cbar"><i style="width:${C.coachQ(c)}%"></i></div><div class="ctags"><span class="lic">${C.LICENCE[c.lic]}</span><span>Lv ${c.level}</span><span>${TRAITS[c.spec][0]} ${c.trait}</span><span class="rarp" style="background:${C.RARITY[c.rar][1]}">${C.RARITY[c.rar][0]}</span></div></div>
         ${S.on.includes(c.id) ? '<em class="onduty">On duty</em>' : ''}</button>`;
     const bench = S.list.filter(c => !S.on.includes(c.id));
-    return `<div class="view scrolly"><div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Staff</b><small>⚡ Staff Power ${C.staffPower().toLocaleString()} · 📗 ${S.items.manual} · 🎫 ${S.items.credits} · 📕 ${S.items.books}</small></div></div>
+    return `<div class="view scrolly"><div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Staff</b><small>🏅 Staff Power ${C.staffPower().toLocaleString()} · 📗 ${S.items.manual} · 🎫 ${S.items.credits} · 📕 ${S.items.books}</small></div></div>
         <div class="sslots">${slots}</div></div>
-      <div class="stiles"><button class="stile pb" data-act="playbook"><span>📘</span><b>Playbook</b><small>${C.pbRunning()} researching · ${C.pbTotal()} levels</small></button>
-        <button class="stile" data-act="market"><span>🧑‍🏫</span><b>Coaching market</b><small>New in <span data-until="${S.mNext}">${C.dur((S.mNext - C.now()) / 1000)}</span></small></button>
-        <button class="stile" data-act="search"><span>🎲</span><b>Coaching Search</b><small>◆ ${SEARCH_GOLD} · odds shown</small></button></div>
+      ${C.car().seen.staffGuide ? '' : `<div class="card sguide"><b>How staff works</b><ol><li><b>Slots:</b> only coaches on duty help. You start with 1 slot.</li><li><b>Hire:</b> the market refreshes every 2 days; Coaching Search draws a random coach.</li><li><b>Upgrade:</b> manuals add XP, Clinic Credits raise the licence, Trait Books power up the trait.</li></ol><button class="btn sm2" data-act="sguide">Got it</button></div>`}
+      ${(() => { const top = S.market.slice().sort((a, b) => b.rar - a.rar || b.level - a.level)[0]; return top ? `<button class="cotd" data-act="coach" data-v="${top.id}" style="--rc:${C.RARITY[top.rar][1]}"><div class="cf">${C.coachFace(top)}</div><div class="ci"><small>⭐ Coach of the day</small><b>${C.esc(top.fn)} ${C.esc(top.ln)}</b><em>${C.SPECS[top.spec][0]} ${C.SPECS[top.spec][1]} · <span class="rarp" style="background:${C.RARITY[top.rar][1]}">${C.RARITY[top.rar][0]}</span></em><p>${C.coachBenefit(top)}</p></div><span class="hirebtn">Hire · ${C.hireCost(top).gold ? C.GEM + ' ' + C.hireCost(top).gold : '💵 ' + C.short(C.hireCost(top).cash)}</span></button>` : ''; })()}
+      <button class="searchc" data-act="search"><span>🎲</span><div><b>Coaching Search</b><p>Draw a random coach. Odds shown · Rare or better within ${10 - (S.pity || 0)} searches.</p></div><em>${C.searchCost() ? C.GEM + ' ' + C.searchCost() : 'FREE'}</em></button>
+      <div class="stiles"><button class="stile pb" data-act="playbook"><span>📋</span><b>Playbook</b><small>${C.pbRunning()} researching · ${C.pbTotal()} levels</small></button>
+        <button class="stile" data-act="market"><span>🧑‍🏫</span><b>Coaching market${S.mNew ? ' <i class="newdot">NEW</i>' : ''}</b><small>4 coaches · new in <span data-until="${S.mNext}">${C.dur((S.mNext - C.now()) / 1000)}</span></small></button>
+</div>
       <h3 class="jh" style="padding:0 16px">On duty</h3><div class="clist">${on.map(card).join('')}</div>
       ${bench.length ? `<h3 class="jh" style="padding:0 16px">Not assigned</h3><div class="clist">${bench.map(card).join('')}</div>` : ''}
       <p class="note" style="padding:0 16px">Coaches and your Playbook belong to you: they move with you to every new job.</p></div>`;
@@ -125,17 +137,25 @@
         <div class="nameplate"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><div class="tags"><span class="lic big">${C.LICENCE[c.lic]} licence</span><span class="rarp" style="background:${C.RARITY[c.rar][1]}">${C.RARITY[c.rar][0]}</span></div><small class="hometown">${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]} · ${c.pers} · age ${c.age}</small></div></div>
       <div class="kpis" style="margin-top:12px"><div class="kpi"><b>${c.level}</b><small>Level / ${cap}</small></div><div class="kpi"><b>${Math.round(C.coachQ(c))}</b><small>Quality</small></div><div class="kpi"><b>${TRAITS[c.spec][0]}${c.trait}</b><small>Trait</small></div><div class="kpi"><b>${C.LICENCE[c.lic]}</b><small>Licence</small></div></div>
       ${hired ? `<div class="card" style="margin-top:10px"><small class="mutey">XP ${c.xp} / ${C.xpNeed(c)}</small><div class="hbar"><i style="width:${Math.min(100, c.xp / C.xpNeed(c) * 100)}%;background:var(--school2)"></i></div></div>` : ''}
-      <h3 class="jh">What they do</h3><div class="card">${C.coachEffects(c).map(e => `<div class="eff">✔ ${e}</div>`).join('')}<p class="note" style="margin:6px 0 0">${C.SPECS[c.spec][2]}.</p></div>
+      <h3 class="jh">What they'd do for you</h3><div class="card"><div class="eff" style="color:var(--fit5)">▶ ${C.coachBenefit(c)}</div>${C.coachEffects(c).map(e => `<div class="eff">✔ ${e}</div>`).join('')}<p class="note" style="margin:6px 0 0">${C.SPECS[c.spec][2]}.</p></div>
       ${hired ? `<h3 class="jh">Upgrade</h3>
         <button class="lrow" data-act="cmanual" data-v="${c.id}"><span class="li">📗</span><span class="lt"><b>Coaching manual · +100 XP</b><small>${S.items.manual} owned${c.level >= cap ? ' · at the level cap: raise the licence' : ''}</small></span></button>
         <button class="lrow ${c.lic >= 4 ? 'lock' : ''}" data-act="clic" data-v="${c.id}"><span class="li">🎫</span><span class="lt"><b>${c.lic >= 4 ? 'Pro licence: top rank' : `Licence ${C.LICENCE[c.lic]} → ${C.LICENCE[c.lic + 1]} · level cap ${LV_CAP[c.lic + 1]}`}</b><small>${c.lic >= 4 ? '' : `Needs Lv ${cap} · 🎫 ${k.credits} Clinic Credits · 💵 ${C.short(k.cash)}`}</small></span></button>
         <button class="lrow ${c.trait >= 5 ? 'lock' : ''}" data-act="ctrait" data-v="${c.id}"><span class="li">📕</span><span class="lt"><b>${TRAITS[c.spec][1]} ${c.trait >= 5 ? 'Lv 5 (max)' : `Lv ${c.trait} → ${c.trait + 1}`}</b><small>${c.trait >= 5 ? '' : `📕 ${c.trait} Trait Book${c.trait > 1 ? 's' : ''} (${S.items.books} owned)`}</small></span></button>
         <div class="jbtns"><button class="btn ${on ? 'sec2' : 'pri'}" data-act="cassign" data-v="${c.id}">${on ? 'Take off duty' : 'Put on duty'}</button><button class="btn danger" data-act="crelease" data-v="${c.id}">Release</button></div>`
-      : `<button class="btn full pri" data-act="chire" data-v="${c.id}">Hire · ${C.hireCost(c).gold ? '◆ ' + C.hireCost(c).gold : '💵 ' + C.short(C.hireCost(c).cash)}</button>`}`;
+      : `<button class="btn full pri" data-act="chire" data-v="${c.id}">Hire · ${C.hireCost(c).gold ? '<i class="coin"></i> ' + C.hireCost(c).gold : '💵 ' + C.short(C.hireCost(c).cash)}</button>`}`;
   });
-  C.openCoachMarket = () => C.ui.open('Coaching market', () => { const S = st(); C.refreshMarket();
-    return `<p class="note" style="margin-top:0">New coaches every 2 days. Common to Rare cost Booster $; Super Rare and Ultra Rare cost Gold.</p>
-      ${S.market.map(c => `<button class="ccard" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><div class="cf">${C.coachFace(c)}</div><div class="ci"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]} · ${c.pers}</small><div class="ctags"><span>Lv ${c.level}</span><span class="rarp" style="background:${C.RARITY[c.rar][1]}">${C.RARITY[c.rar][0]}</span></div></div><em class="price">${C.hireCost(c).gold ? '◆ ' + C.hireCost(c).gold : '💵 ' + C.short(C.hireCost(c).cash)}</em></button>`).join('') || '<p class="note">Everyone has been hired. New coaches soon.</p>'}`; });
+  C.openCoachMarket = () => { st().mNew = false; C.save(); C.ui.open('Coaching market', () => { const S = st(); C.refreshMarket();
+    return `<p class="note" style="margin-top:0">New coaches every 2 days. Common to Rare cost Booster $; Super Rare and Ultra Rare cost Coins.</p>
+      ${S.market.map(c => `<button class="ccard" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><div class="cf">${C.coachFace(c)}</div><div class="ci"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]} · ${c.pers}</small><div class="ctags"><span>Lv ${c.level}</span><span class="rarp" style="background:${C.RARITY[c.rar][1]}">${C.RARITY[c.rar][0]}</span></div></div><em class="price">${C.hireCost(c).gold ? '<i class="coin"></i> ' + C.hireCost(c).gold : '💵 ' + C.short(C.hireCost(c).cash)}</em></button>`).join('') || '<p class="note">Everyone has been hired. New coaches soon.</p>'}`; }); };
+  // career start: choose your first assistant (Ray the generalist or one of two specialists)
+  let afterPick = null;
+  C.openFirstCoach = then => { const S = st(), r = C.rng(C.now() & 0xffffff), specs = ['dev', 'snc', 'tac', 'rec', 'mot', 'gk'].sort(() => r() - .5);
+    S.cands = [S.list.find(c => c.id === 'ray') || ray(), genCoach(r, 1, specs[0]), genCoach(r, r() < .5 ? 1 : 0, specs[1])]; afterPick = then || null; C.save();
+    C.ui.open('Your first assistant', () => `<p class="note" style="margin-top:0">Pick one assistant coach to start with. You can hire more later in the Staff tab.</p>
+      ${st().cands.map(c => `<button class="ccard pick" data-act="firstcoach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><div class="cf">${C.coachFace(c)}</div><div class="ci"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]} · ${c.pers}, age ${c.age}</small><p class="ben">▶ ${C.coachBenefit(c)}</p><div class="ctags"><span>Lv ${c.level}</span><span class="rarp" style="background:${C.RARITY[c.rar][1]}">${C.RARITY[c.rar][0]}</span></div></div></button>`).join('')}`); };
+  C.pickFirstCoach = id => { const S = st(), c = (S.cands || []).find(x => x.id === id); if (!c) return; S.list = [c]; S.on = [c.id];
+    S.market = S.cands.filter(x => x !== c && x.id !== 'ray').concat(S.market).slice(0, 4); S.cands = null; C.save(); C.ui.closeAll(); const f = afterPick; afterPick = null; if (f) f(); };
   C.openSearch = () => C.ui.open('Coaching Search', () => `<div class="card"><b>Odds</b>${ODDS.map((o, i) => `<div class="srow"><span><span class="rarp" style="background:${C.RARITY[i][1]}">${C.RARITY[i][0]}</span></span><b>${o}%</b></div>`).join('')}<p class="note" style="margin:6px 0 0">A repeat (same specialism and rarity as a coach you have) becomes Clinic Credits instead.</p></div>
-      <button class="btn full pri" data-act="dosearch" style="margin-top:12px">🎲 Search · ◆ ${SEARCH_GOLD}</button><p class="note">You have ◆ ${C.acct().gold}.</p>`);
+      <button class="btn full pri" data-act="dosearch" style="margin-top:12px">🎲 Search · ${C.searchCost() ? C.GEM + ' ' + C.searchCost() : 'FREE'}</button><p class="note">Rare or better guaranteed within ${10 - (st().pity || 0)} searches.</p><p class="note">You have <i class="coin"></i> ${C.acct().gold}.</p>`);
 })(window.CFC);

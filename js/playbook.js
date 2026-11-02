@@ -36,7 +36,7 @@
     car.cp -= k.cp; car.cash -= k.cash; const t = C.now(); car.pbq.push({ key, to, start: t, end: t + C.pbTime(key, to) * 1000 }); C.save(); return true;
   };
   C.tickPB = () => { const car = C.car(); if (!car || !car.pbq) return []; const done = car.pbq.filter(q => q.end <= C.now()), msg = [];
-    for (const q of done) { pb()[q.key] = q.to; msg.push(`📘 ${node(q.key).n[0]} Lv ${q.to} researched`); }
+    for (const q of done) { pb()[q.key] = q.to; msg.push(`📋 ${node(q.key).n[0]} Lv ${q.to} researched`); }
     if (done.length) { car.pbq = car.pbq.filter(q => q.end > C.now()); C.save(); } return msg; };
 
   // ---------- everything the Playbook and staff add, in one place ----------
@@ -57,8 +57,8 @@
     const car = C.car(); pb();
     const slots = C.PBSLOTS.map((s, i) => { const q = car.pbq[i];
       if (q) { const f = 1 - C.remaining(q) / ((q.end - q.start) / 1000); return `<button class="dq" data-act="pbnode" data-v="${q.key}"><span class="c">${C.ringSVG(f, '#38bdf8', 46)}<i style="font-style:normal;font-size:20px">${node(q.key).B[1]}</i></span><b data-until="${q.end}">${C.dur(C.remaining(q))}</b></button>`; }
-      return C.pbSlotOpen(s.id) ? `<button class="dq free" data-act="toast" data-v="Tap a node to research it"><span class="c">📘</span><b>Free</b></button>` : `<button class="dq lock" data-act="pbslot" data-v="${s.id}"><span class="c">🔒</span><b>${s.id === 'vip' ? 'VIP' : s.id === 'iap' ? '$' : 'Earn'}</b></button>`; }).join('');
-    return `<div class="raytake" style="margin-top:0"><span>📘</span><p><b>Your Playbook · 📘 ${C.short(car.cp)} · 💵 ${C.short(car.cash)}</b>Know-how that travels with you to every job. Each tier opens when the one before reaches Lv 5.</p></div>
+      return C.pbSlotOpen(s.id) ? `<button class="dq free" data-act="toast" data-v="Tap a node to research it"><span class="c">📋</span><b>Free</b></button>` : `<button class="dq lock" data-act="pbslot" data-v="${s.id}"><span class="c">🔒</span><b>${s.id === 'vip' ? 'VIP' : s.id === 'iap' ? '$' : 'Earn'}</b></button>`; }).join('');
+    return `<div class="raytake" style="margin-top:0"><span>📋</span><p><b>Your Playbook · <i class="cpi"></i> ${C.short(car.cp)} · 💵 ${C.short(car.cash)}</b>Know-how that travels with you to every job. Each tier opens when the one before reaches Lv 5.</p></div>
       <div class="dqrow pbq"><span>Research</span>${slots}</div>
       ${C.PB.map(B => `<div class="pbb"><h4>${B[1]} ${B[2]}</h4><div class="pbn">${B[3].map((n, t) => { const key = B[0] + '.' + t, lv = C.pbLv(key), un = C.pbUnlocked(key), q = C.pbInQueue(key);
         return `<button class="pbnode ${un ? '' : 'lock'} ${lv >= n[3] ? 'max' : ''} ${q ? 'run' : ''}" data-act="pbnode" data-v="${key}"><small>${['I', 'II', 'III'][t]}</small><b>${C.esc(n[0])}</b><div class="pbl"><i style="width:${lv / n[3] * 100}%"></i></div><em>${q ? '⏳' : un ? lv + '/' + n[3] : '🔒'}</em></button>`; }).join('')}</div></div>`).join('')}`;
@@ -68,9 +68,9 @@
     const k = to <= n[3] ? C.pbCost(key, to) : null;
     return `<div class="pbhead"><span>${B[1]}</span><div><b>${C.esc(n[0])}</b><small>${B[2]} · Tier ${['I', 'II', 'III'][t]} · Lv ${lv} / ${n[3]}</small></div></div>
       <div class="card"><div class="srow"><span>Now</span><b>${n[1] === 'slot' ? (lv ? n[4] : '—') : '+' + Math.round(lv * n[2] * 1000) / 10 + '% ' + n[4]}</b></div>${k ? `<div class="srow"><span>Next</span><b style="color:var(--fit5)">${n[1] === 'slot' ? n[4] : '+' + Math.round(to * n[2] * 1000) / 10 + '% ' + n[4]}</b></div>` : ''}</div>
-      ${q ? `<div class="card devnow" style="margin-top:10px"><span>⏳</span><div><b>Researching Lv ${q.to}</b><small><span data-until="${q.end}">${C.dur(C.remaining(q))}</span> left</small></div><button class="btn sm2" data-act="pbspeed" data-v="${key}">${C.isFreeFinish(q) ? 'Free' : '◆ ' + C.goldToFinish(q)}</button></div>`
-        : !un ? `<p class="note">🔒 Opens when ${C.esc(B[3][t - 1][0])} reaches Lv 5.</p>` : k ? `<div class="card" style="margin-top:10px"><div class="srow"><span>📘 Coaching Points</span><b style="color:${car.cp >= k.cp ? 'inherit' : '#dc2626'}">${k.cp}</b></div>${k.cash ? `<div class="srow"><span>💵 Booster $</span><b style="color:${car.cash >= k.cash ? 'inherit' : '#dc2626'}">${C.short(k.cash)}</b></div>` : ''}<div class="srow"><span>⏱ Time</span><b>${C.dur(C.pbTime(key, to))}</b></div></div>
-        <button class="btn full pri" data-act="pbgo" data-v="${key}" style="margin-top:12px">📘 Research Lv ${to}</button>` : '<p class="note">✨ Fully researched.</p>'}
+      ${q ? `<div class="card devnow" style="margin-top:10px"><span>⏳</span><div><b>Researching Lv ${q.to}</b><small><span data-until="${q.end}">${C.dur(C.remaining(q))}</span> left</small></div><button class="btn sm2" data-act="pbspeed" data-v="${key}">${C.isFreeFinish(q) ? 'Free' : '<i class="coin"></i> ' + C.goldToFinish(q)}</button></div>`
+        : !un ? `<p class="note">🔒 Opens when ${C.esc(B[3][t - 1][0])} reaches Lv 5.</p>` : k ? `<div class="card" style="margin-top:10px"><div class="srow"><span><i class="cpi"></i> Coaching Points</span><b style="color:${car.cp >= k.cp ? 'inherit' : '#dc2626'}">${k.cp}</b></div>${k.cash ? `<div class="srow"><span>💵 Booster $</span><b style="color:${car.cash >= k.cash ? 'inherit' : '#dc2626'}">${C.short(k.cash)}</b></div>` : ''}<div class="srow"><span>⏱ Time</span><b>${C.dur(C.pbTime(key, to))}</b></div></div>
+        <button class="btn full pri" data-act="pbgo" data-v="${key}" style="margin-top:12px">📋 Research Lv ${to}</button>` : '<p class="note">✨ Fully researched.</p>'}
       <p class="note">Bonuses are small and capped: tactics, players and fitness still decide matches.</p>`;
   });
 })(window.CFC);

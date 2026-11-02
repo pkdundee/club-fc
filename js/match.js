@@ -20,6 +20,7 @@
     knock: ['🎙 Duane: {p} takes a knock but plays on.'],
     sub: ['🎙 Duane: Change for {t}: {p} on, {o} off.', '📊 Bev: Fresh legs. {p} has been stretching since kick-off.'],
     claim: ['🎙 Duane: {k} comes and claims it. Confident!'],
+    offside: ['🎙 Duane: Flag\'s up! {p} was offside.', '📊 Bev: Offside. The assistant referee has been waiting all half for that.', '🎙 Duane: {p} went too early. Offside.'],
     ht: ['🎙 Duane: That\'s half-time! {score}.', '📊 Bev: Halftime. The pep band has been warming up for this.'],
     ft: ['🎙 Duane: FULL TIME! {score}!', '📊 Bev: And that\'s the ball game. I\'ll have the stats sheet out by Tuesday.'],
     fill: ['📊 Bev: Possession {poss}%-{poss2}%. I counted. By hand.', '📊 Bev: {sh1} shots to {sh2}. Neither team is shy.', '🎙 Duane: Listen to this {crowdword} crowd!', '📊 Bev: The {mascot} are the {t} mascot. I asked.', '🎙 Duane: The {mascot} faithful are on their feet!', '📊 Bev: Fun fact: this pitch is roughly regulation size.', '🎙 Duane: Patient build-up here…', '📊 Bev: Weather update: still {weathershort}.', '🎙 Duane: Hold on to your foam fingers, folks!', '📊 Bev: {local} local players in the line-up. Their families brought cowbells.']
@@ -66,6 +67,7 @@
   const label = f => f.md === 0 ? 'Homecoming friendly' : f.md <= 14 ? `Conference · Match ${f.md}` : f.md === 15 ? 'Conference semi-final' : 'Conference final';
   C.openPreMatch = () => {
     const f = C.myFixture(); if (!f) return C.toast('No match to play');
+    const rot = C.autoRotate(); if (rot) C.toast(`🔄 Auto-manage rested ${rot} tired player${rot > 1 ? 's' : ''}`);
     const car = C.car(), my = f.h === 0 ? 0 : 1, opp = C.oppTeam(my === 0 ? f.a : f.h), t = C.tac();
     if (t.xi.filter(Boolean).length < 11) return C.toast('Not enough fit players for an XI');
     M = { f, my, opp, cd: 5, speed: 1, playing: false, ev: 0 };
@@ -82,9 +84,9 @@
     host().innerHTML = `<div class="pre"><div class="prehd"><small>${label(f)} · ${w[0]} ${w[1]} · 👥 ${M.att.toLocaleString()}</small>
         <div class="vsrow"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'}</small></div><span class="vsx">VS</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
         <div class="radio">📻 K${col.abbr} campus radio with Duane &amp; Bev</div></div>
-      ${avgE < 75 ? `<div class="tiredw">⚠ Your XI averages ${avgE}% energy. Full recovery in ${C.dur(C.fullRecovery())}.</div>` : ''}
+      ${t.xi.map(C.P).filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${t.xi.map(C.P).filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match or use a recovery kit in the Medical Room.</div>` : ''}
       <div class="lus"><div><h4>${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div><div><h4>${M.opp.form}</h4>${oppRows}</div></div>
-      <div class="prebtns"><button class="btn sec2" data-act="mtac">📋 Tactics</button><button class="btn sec2" data-act="mquick">⏩ Quick result</button><button class="btn sec2" data-act="mleave">✕</button></div>
+      <div class="prebtns"><button class="btn sec2" data-act="mtac"><i class="xoi"></i> Tactics</button><button class="btn sec2" data-act="mquick">⏩ Quick result</button><button class="btn sec2" data-act="mleave">✕</button></div>
       <button class="btn full pri kick" data-act="mkick">▶ Kick off <span id="cdn">${M.cd ? '· ' + M.cd : ''}</span></button>
       ${M.cd ? '<button class="cdpause" data-act="mcdstop">Tap to stop the countdown</button>' : ''}</div>`;
   }
@@ -96,7 +98,7 @@
   C.kickOff = () => {
     clearInterval(M.cdT); const [A, B] = teamPair(), S = C.sea();
     M.m = C.createMatch(A, B, (C.car().created & 0xffff) * 131 + S.n * 977 + M.f.md * 7, { knockout: !!M.f.ko, med: [C.level('med') * (M.my === 0 ? 1 : 0), C.level('med') * (M.my === 1 ? 1 : 0)] });
-    M.playing = true; M.last = performance.now(); M.acc = 0; M.lineT = 0; M.fillT = 0;
+    M.playing = true; M.last = performance.now(); M.acc = 0; M.lineT = 0; M.fillT = 0; M.kits = kitsFor(M.m.teams);
     drawLive(); say(line('ko')); setTimeout(() => M && M.m && say(line('ko').replace(/^.*$/, L.ko[1])), 2500);
     crowdOn(Math.min(1, M.att / 3000)); whistle(1);
     M.raf = requestAnimationFrame(loop);
@@ -125,9 +127,10 @@
     const m = M.m;
     while (M.ev < m.events.length) {
       const e = m.events[M.ev++];
-      if (['goal', 'save', 'miss', 'block', 'yellow', 'red', 'injury', 'sub', 'penalty', 'back', 'claim', 'knock'].includes(e.type)) M.lastEvT = m.t;
+      if (['goal', 'save', 'miss', 'block', 'yellow', 'red', 'injury', 'sub', 'penalty', 'back', 'claim', 'knock', 'offside'].includes(e.type)) M.lastEvT = m.t;
       if (e.type === 'goal') { say(line('goal', e)); setTimeout(() => M && M.m && say(line('goal2', e)), 2200 / M.speed); swell(3.2, 4); if (e.side === M.my && M.my === 0) sting(); whistle(1); feed(e); }
       else if (e.type === 'save' || e.type === 'miss') { if (Math.random() < (M.speed === 1 ? .8 : .4)) say(line(e.type, e)); ooh(); swell(1.8, 1.5); }
+      else if (e.type === 'offside') { say(line('offside', e)); whistle(1); }
       else if (['block', 'yellow', 'red', 'injury', 'knock', 'sub', 'back', 'claim', 'penalty'].includes(e.type)) { const k = e.type === 'penalty' ? 'pen' : e.type; if (e.type !== 'claim' || Math.random() < .3) say(line(k, e)); if (['yellow', 'red', 'penalty'].includes(e.type)) whistle(1); if (['yellow', 'red', 'injury', 'sub', 'penalty'].includes(e.type)) feed(e); }
       else if (e.type === 'ht') { say(line('ht')); whistle(2); }
       else if (e.type === 'ft') { say(line('ft')); whistle(3); }
@@ -139,13 +142,25 @@
     const who = e.who ? e.who.p.ln : '', mine = e.side === M.my;
     n.insertAdjacentHTML('afterbegin', `<div class="${mine ? 'me' : ''}"><b>${e.min}'</b> ${ic} ${C.esc(who)}${e.type === 'sub' && e.extra && e.extra.off ? ' for ' + C.esc(e.extra.off.p.ln) : ''}</div>`); }
 
+  // kits: home team in home colours; away team switches to its away kit if the two look alike; keepers get a colour nobody else wears
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const cdist = (a, b) => { const x = rgb(a), y = rgb(b), rm = (x[0] + y[0]) / 2; return Math.sqrt((2 + rm / 256) * (x[0] - y[0]) ** 2 + 4 * (x[1] - y[1]) ** 2 + (2 + (255 - rm) / 256) * (x[2] - y[2]) ** 2); };
+  const lum = h => { const c = rgb(h); return .3 * c[0] + .59 * c[1] + .11 * c[2]; };
+  const alike = (a, b) => cdist(a, b) < 260 || (Math.abs(lum(a) - lum(b)) < 70 && cdist(a, b) < 340);
+  function kitsFor(T) {
+    const home = [T[0].c1, T[0].c2]; let away = [T[1].c1, T[1].c2];
+    if (alike(home[0], away[0])) away = !alike(home[0], T[1].c2) ? [T[1].c2, T[1].c1] : ['#f8fafc', T[1].c1];
+    const gks = ['#facc15', '#22d3ee', '#a3e635', '#f472b6', '#fb923c'].filter(c => !alike(c, home[0]) && !alike(c, away[0]));
+    return { kit: [home, away], gk: [[gks[0] || '#facc15', home[0]], [gks[1] || gks[0] || '#22d3ee', away[0]]] };
+  }
   function drawLive() {
     const m = M.m, T = m.teams;
-    host().innerHTML = `<div class="live"><div class="sbar">${C.crestSVG(T[0].c1, T[0].c2, T[0].abbr.slice(0, 2), 30)}<b class="tn">${C.esc(T[0].abbr)}</b><b class="sc" id="msc">0 – 0</b><b class="tn">${C.esc(T[1].abbr)}</b>${C.crestSVG(T[1].c1, T[1].c2, T[1].abbr.slice(0, 2), 30)}
+    const K = M.kits.kit, sw = k => `<i class="kitsw" style="background:${k[0]};border-color:${k[1]}"></i>`;
+    host().innerHTML = `<div class="live"><div class="sbar">${C.crestSVG(T[0].c1, T[0].c2, T[0].abbr.slice(0, 2), 30)}<b class="tn">${sw(K[0])}${C.esc(T[0].abbr)}<small>H</small></b><b class="sc" id="msc">0 – 0</b><b class="tn">${sw(K[1])}${C.esc(T[1].abbr)}<small>A</small></b>${C.crestSVG(T[1].c1, T[1].c2, T[1].abbr.slice(0, 2), 30)}
         <span class="mn" id="mmin">1'</span><button class="mic" data-act="msound">${C.acct().sound ? '🔊' : '🔇'}</button></div>
       <div class="pitchw"><canvas id="pitch"></canvas></div><div class="tick" id="tick"></div>
       <div class="spd">${[1, 5, 10].map(s => `<button class="${M.speed === s ? 'on' : ''}" data-act="mspeed" data-v="${s}">${s}×</button>`).join('')}<button data-act="mpause" id="mpz">⏸</button><button data-act="mskip" data-v="ht" ${m.half > 1 ? 'disabled' : ''}>⏭ HT</button><button data-act="mskip" data-v="ft">⏭ FT</button></div>
-      <div class="mrow"><div class="mfeed" id="mfeed"></div><div class="mbtns"><button class="btn sm2" data-act="msubs">🔁 Subs</button><button class="btn sm2" data-act="mment">📋 Plan</button></div></div>
+      <div class="mrow"><div class="mfeed" id="mfeed"></div><div class="mbtns"><button class="btn sm2" data-act="msubs">🔁 Subs</button><button class="btn sm2" data-act="mment"><i class="xoi"></i> Plan</button></div></div>
       <div class="pend" id="mpend"></div></div>`;
     sizeCanvas();
   }
@@ -175,12 +190,11 @@
       g.beginPath(); g.arc(X(PW / 2), Y(end + d * 11), 9.15 * k, (d > 0) === flip ? Math.PI * 1.2 : Math.PI * .2, (d > 0) === flip ? Math.PI * 1.8 : Math.PI * .8); g.stroke(); }
     // players: circles ~4.5% of pitch width
     const r = M.cw * .0235, T = m.teams;
-    const clash = (a, b) => { const h = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16)); const x = h(a), y = h(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 120; };
-    const kit = [[T[0].c1, T[0].c2], clash(T[0].c1, T[1].c1) ? [T[1].c2, T[1].c1] : [T[1].c1, T[1].c2]], gkKit = [['#facc15', T[0].c1], ['#22d3ee', kit[1][0]]];
+    const kit = (M.kits || kitsFor(T)).kit, gkKit = (M.kits || kitsFor(T)).gk;
     g.font = `900 ${Math.round(r * 1.05)}px Nunito`; g.textAlign = 'center'; g.textBaseline = 'middle';
     for (const e of m.ents) { if (!e.on || e.bin) continue; const gk = e.slot.pos === 'GK', [f1, f2] = gk ? gkKit[e.side] : kit[e.side];
       g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(X(e.x) + 1.5, Y(e.y) + 2, r, r * .8, 0, 0, 7); g.fill();
-      g.fillStyle = f1; g.strokeStyle = m.ball.owner === e ? '#fff' : f2; g.lineWidth = m.ball.owner === e ? 2.5 : 1.8; g.beginPath(); g.arc(X(e.x), Y(e.y), r, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = f1; g.strokeStyle = f2; g.lineWidth = 1.8; g.beginPath(); g.arc(X(e.x), Y(e.y), r, 0, 7); g.fill(); g.stroke();
       g.fillStyle = gk ? '#111827' : f2; g.fillText(e.p.num, X(e.x), Y(e.y) + .5);
       if (e.knock && e.side === M.my) { g.fillStyle = '#ef4444'; g.beginPath(); g.arc(X(e.x) + r, Y(e.y) - r, r * .35, 0, 7); g.fill(); } }
     const b = m.ball; g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.arc(X(b.x) + 1, Y(b.y) + 1.5, k * .5, 0, 7); g.fill();
@@ -195,13 +209,13 @@
   function halfTime() {
     const m = M.m, S = m.st, my = M.my;
     host().insertAdjacentHTML('beforeend', `<div class="htcard" id="htc"><b>Half-time</b><div class="hts">${m.teams[0].short} ${m.score[0]} – ${m.score[1]} ${m.teams[1].short}</div>
-      ${statBars(S, my)}<div class="jbtns"><button class="btn sec2" data-act="msubs">🔁 Subs</button><button class="btn sec2" data-act="mment">📋 Plan</button></div><button class="btn full pri" data-act="m2h">▶ Second half</button></div>`);
+      ${statBars(S, my)}<div class="jbtns"><button class="btn sec2" data-act="msubs">🔁 Subs</button><button class="btn sec2" data-act="mment"><i class="xoi"></i> Plan</button></div><button class="btn full pri" data-act="m2h">▶ Second half</button></div>`);
   }
   C.secondHalf = () => { const n = C.$('#htc'); if (n) n.remove(); C.resumeHT(M.m); M.playing = true; whistle(1); const hb = C.$('[data-act=mskip][data-v=ht]'); if (hb) hb.disabled = true; };
   function statBars(S, my) {
     const row = (lab, a, b) => { const t = a + b || 1; return `<div class="sbr"><span>${a}</span><div><i style="width:${a / t * 100}%"></i></div><em>${lab}</em><div class="r"><i style="width:${b / t * 100}%"></i></div><span>${b}</span></div>`; };
     const pos = Math.round(S.poss[0] / (S.poss[0] + S.poss[1] || 1) * 100);
-    return `<div class="sbars">${row('Possession %', pos, 100 - pos)}${row('Shots', S.shots[0], S.shots[1])}${row('On target', S.sot[0], S.sot[1])}${row('Corners', S.corners[0], S.corners[1])}${row('Fouls', S.fouls[0], S.fouls[1])}${row('Cards', S.yc[0] + S.rc[0], S.yc[1] + S.rc[1])}</div>`;
+    return `<div class="sbars">${row('Possession %', pos, 100 - pos)}${row('Shots', S.shots[0], S.shots[1])}${row('On target', S.sot[0], S.sot[1])}${row('Corners', S.corners[0], S.corners[1])}${row('Fouls', S.fouls[0], S.fouls[1])}${row('Offsides', (S.offs || [0, 0])[0], (S.offs || [0, 0])[1])}${row('Cards', S.yc[0] + S.rc[0], S.yc[1] + S.rc[1])}</div>`;
   }
 
   // ---------- in-match plan: mentality and auto-manage ----------
@@ -247,9 +261,10 @@
       ${r.potm ? `<div class="potm">🏅 Player of the Match: <b>${C.esc(r.potm.n)}</b></div>` : ''}
       <h3 class="jh">Team stats</h3><div class="card">${statBars(r.stats, my)}</div>
       <h3 class="jh">Your players</h3><div class="card rated">${mine.map(x => `<button class="srow" data-act="player" data-v="${x.id}"><span><span class="pchip" style="background:var(--school)">${x.pos}</span> ${C.esc(x.n)} ${x.g ? '⚽'.repeat(x.g) : ''}${x.a ? ' 🅰️'.repeat(x.a) : ''}</span><b class="rt ${x.r >= 7.5 ? 'hi' : x.r < 6 ? 'lo' : ''}">${x.r.toFixed(1)}</b></button>`).join('')}</div>
+      ${(r.injuries && r.injuries.length) || r.flu ? `<h3 class="jh">Medical</h3><div class="card">${(r.injuries || []).map(i => `<div class="eff">${i[1]} ${C.esc(i[0])}: ${C.esc(i[2])} · ${i[3] === 'season' ? 'out for the season' : 'out ' + i[3] + ' match' + (i[3] > 1 ? 'es' : '')}</div>`).join('')}${r.flu ? `<div class="eff">🤒 Flu bug: ${r.flu.map(C.esc).join(', ')} miss the next match</div>` : ''}<button class="btn full sec2" data-act="medical" style="margin-top:8px">🩺 Medical Room</button></div>` : ''}
       ${gains ? `<h3 class="jh">Development</h3><div class="card">${gains}</div>` : ''}
       ${r.bonus && r.bonus.length ? `<h3 class="jh">Your edge</h3><div class="card edge">${r.bonus.slice(0, 8).map(b => `<div>${C.esc(b)}</div>`).join('')}</div>` : ''}
-      ${fresh ? `${C.advice('snc')}<div class="card fin"><div>${r.gate ? `💵 Gate income <b>+${C.short(r.gate)}</b>` : '🚌 Away game'}</div><div>📘 Coaching Points <b>+${r.cp || 0}</b></div>${(r.staffUps || []).map(u => `<div>🧑‍🏫 ${C.esc(u)}</div>`).join('')}<div>🏛 Director confidence <b>${r.conf > 0 ? '▲' : r.conf < 0 ? '▼' : '='}</b></div><div>📊 ${S.end ? 'Season over' : 'Now ' + C.ord(C.myPos()) + ' in the table'}</div></div>
+      ${fresh ? `${C.advice('snc')}<div class="card fin"><div>${r.gate ? `💵 Gate income <b>+${C.short(r.gate)}</b>` : '🚌 Away game'}</div><div><i class="cpi"></i> Coaching Points <b>+${r.cp || 0}</b></div>${(r.staffUps || []).map(u => `<div>🧑‍🏫 ${C.esc(u)}</div>`).join('')}<div>🏛 Director confidence <b>${r.conf > 0 ? '▲' : r.conf < 0 ? '▼' : '='}</b></div><div>📊 ${S.end ? 'Season over' : 'Now ' + C.ord(C.myPos()) + ' in the table'}</div></div>
         <button class="btn full pri" data-act="close">Continue</button>` : ''}`;
   }
 })(window.CFC);

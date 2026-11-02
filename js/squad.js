@@ -21,7 +21,7 @@
     const rare = car.items && car.items.rareRecruit ? `<button class="rarebn" data-act="rare">🎁 You have a Rare recruit from your First Week. <b>Sign them</b>${car.squad.length >= C.rosterCap() ? ' (roster full: upgrade the Dorms or release a player)' : ''}</button>` : '';
     return `<div class="view scrolly">
       <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎓 ${C.short(C.poolLeft())} scholarships left · 🎟 ${car.tokens}</small></div></div>
-        <div class="dqrow"><span>Training plans</span>${dev}</div><button class="tacbn" data-act="tactics">📋 Tactics · ${C.tac().form}</button></div>
+        <div class="dqrow"><span>Training plans</span>${dev}</div><div class="sqbtns"><button class="tacbn" data-act="tactics"><i class="xoi"></i> Tactics · ${C.tac().form}</button><button class="tacbn" data-act="medical">🩺 Medical${car.squad.filter(p => p.inj).length ? ' · ' + car.squad.filter(p => p.inj).length : ''}</button></div></div>
       ${rare}<div style="padding:0 16px">${C.advice(sq.some(p => p.energy < 60) ? 'snc' : 'mot')}</div>
       <div class="filters">${[['all', 'All ' + sq.length], ['xi', 'XI ' + count('xi')], ['bench', 'Bench ' + count('bench')], ['res', 'Reserves ' + count('res')]].map(([k, n]) => `<button class="f ${filter === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${k !== 'all' ? `<i style="background:${ROLE[k][1]}"></i>` : ''}${n}</button>`).join('')}</div>
       ${list.map(p => `<button class="prow" style="--mk:${ROLE[roles[p.id]][1]}" data-act="player" data-v="${p.id}">
@@ -29,7 +29,7 @@
         <div class="pinfo"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(p.id) ? ' <span class="cap">C</span>' : ''}${p.want && p.want !== p.num ? ' <span title="Wants a different number">🎟</span>' : ''}${C.inDev(p.id) ? ' <span title="In training">🏋️</span>' : ''}${p.inj ? ' <span title="Injured">🩹</span>' : ''}${p.ban ? ' <span title="Suspended">🟥</span>' : ''}</b>
           <div class="tags"><span class="pos ${C.POSGROUP(p.pos)}">${p.pos}</span><span class="yr">${C.yrIcon(p.year)}${yrN[p.year]}</span><span class="sch">${schLabel(p)}</span>${p.rs ? '<span class="sch">🎽</span>' : ''}</div></div>
         <div class="rate"><b>${p.rating}</b>${p.up > 0 ? `<span class="up">▲ +${p.up}</span>` : `<small>${moraleIcon(p.morale)}</small>`}</div></button>`).join('')}
-      <p class="note" style="padding:0 16px">XI and bench come from your Tactics. Energy recovers over time, faster with a better Gym.</p></div>`;
+      <p class="note" style="padding:0 16px">XI and bench come from your Tactics. Freshness drops when players play and comes back when they rest a match.</p></div>`;
   };
   C.setSquadFilter = v => { filter = v; C.render(); };
   // Promises (Q7a): line-up for the first few matches, then real starts and appearances
@@ -47,7 +47,7 @@
     const acol = v => v >= 65 ? 'var(--fit5)' : v >= 55 ? 'var(--fit4)' : v >= 45 ? 'var(--fit3)' : v >= 30 ? 'var(--fit2)' : 'var(--fit1)';
     const heroBg = gk ? 'radial-gradient(120% 90% at 50% 20%,#facc15 0%,#ca8a04 55%,#713f12 100%)' : `radial-gradient(120% 90% at 50% 20%,${C.shade(col.c1, .25)} 0%,${col.c1} 55%,${C.shade(col.c1, -.5)} 100%)`;
     const devHTML = q ? `<div class="card devnow"><span>🏋️</span><div><b>${q.focus.startsWith('pos:') ? 'Retraining: ' + q.focus.slice(4) : 'Training: ' + A[q.focus][1]}</b><small><span data-dtimer="${id}">${C.dur(C.remaining(q))}</span> left</small></div>
-        <button class="btn sm2" data-act="devspeed" data-v="${id}">${C.isFreeFinish(q) ? 'Free' : '◆ ' + C.goldToFinish(q)}</button></div>`
+        <button class="btn sm2" data-act="devspeed" data-v="${id}">${C.isFreeFinish(q) ? 'Free' : '<i class="coin"></i> ' + C.goldToFinish(q)}</button></div>`
       : `<button class="btn full pri" data-act="train" data-v="${id}">🏋️ Train</button>`;
     const P = C.portalOpen(), risk = P && P.risk[id], roleNow = C.roles()[id];
     const kept = C.promiseKept(p, roleNow);
@@ -59,7 +59,7 @@
           <small class="hometown">${p.flag} ${C.esc(p.town)} · GPA ${p.gpa}</small></div></div>
       <div class="kpis" style="margin-top:12px">
         <div class="kpi"><b>${p.rating}</b><small>Rating</small></div><div class="kpi"><b style="color:var(--fit5)">${p.pot}</b><small>Potential</small></div>
-        <div class="kpi"><div class="mini">${C.ringSVG(p.energy / 100, ec(p.energy), 40, 4)}<span>${Math.round(p.energy)}%</span></div><small>Energy</small></div>
+        <div class="kpi"><div class="mini">${C.ringSVG(p.energy / 100, ec(p.energy), 40, 4)}<span>${Math.round(p.energy)}%</span></div><small>Freshness</small></div>
         <div class="kpi"><b style="font-size:24px">${moraleIcon(p.morale)}</b><small>Morale</small></div></div>
       <h3 class="jh">${gk ? 'Goalkeeping' : 'Skills'} <button class="hlink" data-act="help" data-v="attrs">?</button></h3>
       <div class="card"><div class="attrs">${Object.keys(A).map(k => `<div class="attr ${C.KEY[p.pos].includes(k) ? 'key' : ''}"><span class="ai">${A[k][0]}</span><div class="ab"><div><span>${A[k][1]}</span><em>${p.a[k]}</em></div><div class="bar"><i style="width:${p.a[k]}%;background:${acol(p.a[k])}"></i></div></div></div>`).join('')}</div>
