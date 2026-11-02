@@ -52,7 +52,7 @@
   const kitOf = p => { const col = C.college(); return p.pos === 'GK' ? ['#facc15', '#111827'] : C.kitColours(col.c1, col.c2); };
 
   // ================= tactics board =================
-  C.openTactics = (fromMatch) => C.ui.open('Tactics', () => boardHTML(fromMatch));
+  C.openTactics = (fromMatch) => C.ui.open('Tactics', () => `<div class="tacdef"><i class="xoi"></i> <b>Your default setup</b> · used for every match until you change it</div>` + boardHTML(fromMatch));
   function boardHTML(fromMatch) {
     const car = C.car(), t = C.tac(), F = C.FORMATIONS[t.form];
     const tokens = F.map((s, i) => { const p = C.P(t.xi[i]); const left = s[1] * 100, top = 92 - s[2] * 84;

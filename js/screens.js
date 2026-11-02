@@ -1,6 +1,6 @@
 // Club FC: screens (Phases 0–4). Campus, upgrade card, careers, settings, test store, coming-soon tabs.
 (function (C) {
-  C.tab = 'season';  // 'season' is shown as Home: matches, calendar and the season
+  C.tab = 'home';  // Home is the hub; 'season' is shown as Matchday (matches, calendar and the season)
   const W = () => C.campusSize[0], H = () => C.campusSize[1];
   let zoom = 1, view = null;
 
@@ -9,7 +9,9 @@
   // ================= main render =================
   C.render = () => {
     const app = C.$('#screen');
+    if (C.booting) return;   // the title screen is showing
     if (!C.car()) { app.innerHTML = splashHTML(); return; }
+    if (C.tab === 'home') { app.innerHTML = C.homeHTML(); app.insertAdjacentHTML('beforeend', tabsHTML()); return; }
     if (C.tab === 'campus') { app.innerHTML = campusHTML(); mountMap(); }
     else if (C.tab === 'squad') app.innerHTML = C.squadHTML();
     else if (C.tab === 'recruit') app.innerHTML = C.recruitHTML();
@@ -20,8 +22,8 @@
   };
 
   function tabsHTML() {
-    const t = [['season', '🏠', 'Home'], ['campus', '🏫', 'Campus'], ['squad', '👕', 'Squad'], ['staff', '🧢', 'Staff'], ['recruit', '✉️', 'Recruit']];
-    const dot = k => k === 'staff' && C.car().staff && C.car().staff.mNew ? '<i class="tabdot"></i>' : '';
+    const t = [['home', '🏠', 'Home'], ['season', '🏟', 'Matchday'], ['campus', '🏫', 'Campus'], ['squad', '👕', 'Squad'], ['recruit', '✉️', 'Recruit']];
+    const dot = k => k === 'home' && C.car() && ((C.car().staff && C.car().staff.mNew) || C.loClaimable() || !C.giftClaimed()) ? '<i class="tabdot"></i>' : '';
     return `<nav class="tabs">${t.map(([k, i, n]) => `<button class="tab ${C.tab === k ? 'on' : ''}" data-act="tab" data-v="${k}"><span class="ti">${i}${dot(k)}</span>${n}</button>`).join('')}</nav>`;
   }
 
@@ -62,7 +64,7 @@
     const S = C.sea(), f = C.myFixture();
     if (!f) return `<div class="gameday"><span class="gdc">🏆</span><div class="vs"><div><small>SEASON ${S.n} · ${S.end ? 'FINISHED ' + C.ord(S.end.pos).toUpperCase() : 'WAITING'}</small>${S.end && S.end.champ ? 'Conference champions!' : 'Season review'}</div></div><button class="go" data-act="tab" data-v="season">Review</button></div>`;
     const opp = S.teams[f.h === 0 ? f.a : f.h], xi = C.tac().xi.map(C.P).filter(Boolean), e = Math.round(xi.reduce((s, p) => s + p.energy, 0) / (xi.length || 1));
-    return `<div class="gameday">${C.crestSVG(opp.c1, opp.c2, opp.abbr.slice(0, 2), 34)}<div class="vs"><div><small>${f.md === 0 ? 'HOMECOMING' : f.md <= 14 ? 'MATCH ' + f.md + ' OF 14' : f.md === 15 ? 'SEMI-FINAL' : 'FINAL'} · ${f.h === 0 ? 'HOME' : 'AWAY'} · 🔋 ${e}%</small>vs ${C.esc(opp.name)}</div></div><button class="go" data-act="prematch">▶ Play</button></div>`;
+    return `<div class="gameday">${C.crestSVG(opp.c1, opp.c2, opp.abbr.slice(0, 2), 34)}<div class="vs"><div><small>${f.md === 0 ? 'HOMECOMING' : f.md <= 14 ? 'MATCH ' + f.md + ' OF 14' : f.md === 15 ? 'SEMI-FINAL' : 'FINAL'} · ${f.h === 0 ? 'HOME' : 'AWAY'} · 🔋 ${e}%</small>vs ${C.esc(opp.name)}</div></div><button class="gotac" data-act="tactics" aria-label="Tactics"><i class="xoi"></i></button><button class="go" data-act="prematch">▶ Play</button></div>`;
   }
 
   let dragged = false;
@@ -135,7 +137,7 @@
 
   // ================= building actions when selected on the map (Last War style) =================
   // only shortcuts that aren't already a tap away elsewhere (tabs, campus buttons, collect bubbles)
-  const SHORTCUTS = { hq: [['📊', 'Program', 'proginfo', '']], film: [['📋', 'Playbook', 'playbook', '']], med: [['🩺', 'Medical Room', 'medical', '']] };
+  const SHORTCUTS = { hq: [['📊', 'Program', 'proginfo', ''], ['🧢', 'Staff', 'tab', 'staff']], film: [['📋', 'Playbook', 'playbook', '']], med: [['🩺', 'Medical Room', 'medical', '']] };
   C.buildingActions = k => {
     const lvl = C.level(k), q = C.inQueue(k), ready = C.readyArrow(k), out = [];
     if (lvl) (SHORTCUTS[k] || []).forEach(([icon, label, act, v]) => out.push({ icon, label, act, v }));

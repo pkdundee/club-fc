@@ -7,9 +7,9 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'phase-9c · 2 Nov 2026';
+  C.BUILD = 'phase-9d · 2 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
-  const NEEDS_OK = { buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
+  const NEEDS_OK = { buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
     const own = (n, x) => `<div class="srow"><span>You have</span><b>${x} ${n}</b></div>`, gold = C.short(C.acct().gold);
     if (a === 'cmanual' || a === 'clic' || a === 'ctrait') { const c = C.coach(v), S = C.staffState(), k = C.licCost(c);
@@ -22,6 +22,7 @@
         : ['Rush back', `<div class="card"><p style="font-weight:800">${C.esc(p.fn + ' ' + p.ln)} plays next match, not fully fit: −15% and ×3 risk of re-injury.</p><div class="srow"><span>Costs</span><b>${kits ? '🧴 1 recovery kit' : C.GEM + ' ' + C.TREAT.rush}</b></div><div class="srow"><span>You have</span><b>${kits ? kits + ' kits' : C.GEM + ' ' + gold}</b></div></div>`, 'Rush back']; }
     if (a === 'chire') { const c = C.staffState().market.find(x => x.id === v); if (!c) return null; const k = C.hireCost(c);
       return ['Hire coach', `<div class="card"><p style="font-weight:800">${C.esc(c.fn + ' ' + c.ln)} · ${C.SPECS[c.spec][1]} (${C.RARITY[c.rar][0]})</p><p class="note">▶ ${C.coachBenefit(c)}</p><div class="srow"><span>Costs</span><b>${k.gold ? C.GEM + ' ' + k.gold : '💵 ' + C.short(k.cash)}</b></div><div class="srow"><span>You have</span><b>${k.gold ? C.GEM + ' ' + C.short(C.acct().gold) : '💵 ' + C.short(C.car().cash)}</b></div></div>`, 'Hire']; }
+    if (a === 'buydeal') { const dl = C.todayDeal(); return ["Today's deal", `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><div class="card" style="margin-top:8px"><p style="font-weight:900;font-size:16px">${dl.icon} ${C.esc(dl.name)}</p><p class="note">${C.rwText(dl.r)}</p><div class="srow"><span>Price</span><b><s style="opacity:.5">${dl.was}</s> ${dl.price}</b></div></div>`, 'Buy (test)']; }
     if (a === 'buykitc') return ['Buy a recovery kit', `<div class="card"><p style="font-weight:800">🧴 +25 Freshness to one player, any time.</p><div class="srow"><span>Costs</span><b>${C.GEM} ${C.TREAT.kit}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Buy'];
     if (a === 'teamsess') return C.medState().team > 0 ? ['Team recovery session', `<div class="card"><p style="font-weight:800">👥 +12 Freshness for the whole squad. Free again in ${C.medState().team} match${C.medState().team > 1 ? 'es' : ''}.</p><div class="srow"><span>Costs now</span><b>${C.GEM} ${C.TREAT.team}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Run session'] : null;
     if (a === 'buy' || a === 'buypack') return ['Confirm purchase', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><p class="note">${a === 'buypack' && C.PACKS[v] ? C.esc(C.PACKS[v].name) + ' · ' + C.PACKS[v].price : { vip: "Coach's Club · $4.99 / month", slot3: 'Extra build slot · $2.99', tslot3: 'Extra training slot · $2.99', pslot3: 'Extra research slot · $2.99', sslot3: 'Extra staff slot · $2.99', tokens: '3 Number Changes · $0.99', gold: '500 Coins · $4.99' }[v] || v}</p>`, 'Buy (test)'];
@@ -73,7 +74,7 @@
         C.newCareer({ coach, pron: M.pron, job: M.jobs[M.pick] }); C.ui.closeAll(); C.tab = 'campus'; C.applyTheme(); C.render(); C.openFirstCoach(welcome); break; }
       case 'firstcoach': C.pickFirstCoach(v); C.render(); break;
       case 'sguide': C.car().seen.staffGuide = 1; C.save(); C.render(); break;
-      case 'switchcar': C.db.active = +v; C.save(); C.ui.closeAll(); C.tab = 'season'; C.applyTheme(); C.render(); break;
+      case 'switchcar': C.db.active = +v; C.save(); C.ui.closeAll(); C.tab = 'home'; C.applyTheme(); C.render(); break;
       case 'delcar': C.ui.open('Delete a career', () => C.db.careers.map((c, i) => `<button class="lrow" data-act="delone" data-v="${i}"><span class="li">🗑</span><span class="lt"><b>${C.esc(c.coach)} · ${C.esc(C.COLLEGES[c.college].short)}</b><small>Tap to delete. This can't be undone.</small></span></button>`).join('')); break;
       case 'delone': C.deleteCareer(+v); C.ui.closeAll(); C.applyTheme(); C.render(); C.toast('Career deleted'); break;
       // settings + store
@@ -186,6 +187,9 @@
       case 'teamsess': { const r = C.teamSession(); C.toast(r === true ? '👥 Team recovery session: +12 Freshness' : 'Not enough Coins'); C.ui.refresh(); C.render(); break; }
       case 'buykitc': { const r = C.buyRecoveryKit(); C.toast(r === true ? '🧴 Recovery kit bought' : 'Not enough Coins'); C.ui.refresh(); break; }
       case 'adphysio': { const r = C.adPhysio(); C.toast(r === true ? '▶ Ad finished (test): +1 physio session' : r === 'used' ? 'Used today' : 'No ads left today'); C.ui.refresh(); break; }
+      // Home (phase-9d)
+      case 'dailygift': { const r = C.claimGift(); if (r) { C.toast('🎁 ' + C.rwText(r)); C.render(); } break; }
+      case 'buydeal': { const r = C.buyDeal(); C.toast(r === true ? '✅ Test purchase complete' : 'Already bought today'); C.render(); break; }
       case 'settings': C.openSettings(); break;
       case 'checkupdate': C.toast('Checking…'); (navigator.serviceWorker ? navigator.serviceWorker.getRegistration().then(r => r && r.update()) : Promise.resolve()).catch(() => {}).finally(() => setTimeout(() => location.reload(), 600)); break;
       case 'theme': C.acct().theme = v; C.save(); C.applyTheme(); C.ui.refresh(); break;
@@ -201,7 +205,7 @@
         if (v === 'finish') { car.queue.forEach(q => q.end = C.now()); (car.devq || []).forEach(q => q.end = C.now()); (car.pbq || []).forEach(q => q.end = C.now()); C.tickDev(); C.tickPB(); }
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
       case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Coins and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
-      case 'wipeyes': try { localStorage.removeItem('clubfc2_p9c'); } catch (e) { } location.reload(); break;
+      case 'wipeyes': try { localStorage.removeItem('clubfc2_p9d'); } catch (e) { } location.reload(); break;
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();
         if (v === 'vip') a2.vipUntil = Math.max(a2.vipUntil, C.now()) + 30 * 864e5;
@@ -254,9 +258,12 @@
   }, 1000);
 
   // start
-  C.load(); C.tickRealDay(); C.applyTheme(); C.render();
+  // launch: title/loading screen for a few seconds, then Home (or the start-a-career screen)
+  C.load(); C.tickRealDay(); C.applyTheme(); C.booting = true; C.tab = 'home';
+  C.$('#screen').innerHTML = C.titleHTML();
+  const ready = C.loadArtManifest ? C.loadArtManifest() : Promise.resolve();
+  Promise.all([ready, new Promise(r => setTimeout(r, C.TITLE_MS))]).then(() => { C.booting = false; C.render(); });
   const cs = C.$('#calstrip .next'); if (cs) cs.scrollIntoView({ inline: 'center', block: 'nearest' });
-  C.loadArtManifest().then(() => { if (!C.ui.isOpen()) C.render(); });
   // offline support; when a new upload takes over, reload once so the new version shows straight away
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     const had = !!navigator.serviceWorker.controller; let reloaded = false;

@@ -10,7 +10,7 @@
   C.lo = lo;
 
   // ---------- rewards: Coins are account-wide; everything else goes to the career you're playing ----------
-  const NAMES = { gold: ['<i class="coin"></i>', 'Coins'], cash: ['💵', 'Booster $'], cp: ['<i class="cpi"></i>', 'Coaching Points'], manual: ['📗', 'Coaching manuals'], credits: ['🎫', 'Clinic Credits'], books: ['📕', 'Trait Books'], tokens: ['🎟', 'Number Changes'], rare: ['🎁', 'Rare recruit'], coach: ['🧑‍🏫', 'Rare coach'] };
+  const NAMES = { gold: ['<i class="coin"></i>', 'Coins'], cash: ['💵', 'Booster $'], cp: ['<i class="cpi"></i>', 'Coaching Points'], manual: ['📗', 'Coaching manuals'], credits: ['🎫', 'Clinic Credits'], kit: ['🧴', 'Recovery kits'], books: ['📕', 'Trait Books'], tokens: ['🎟', 'Number Changes'], rare: ['🎁', 'Rare recruit'], coach: ['🧑‍🏫', 'Rare coach'] };
   C.rwText = r => Object.keys(r).map(k => `${NAMES[k][0]} ${k === 'cash' ? C.short(r[k]) : r[k] > 1 || !['rare', 'coach'].includes(k) ? r[k] : ''}`.trim()).join(' · ');
   C.giveReward = r => { const car = C.car(), S = car && C.staffState();
     for (const k in r) { const v = r[k];
@@ -18,6 +18,7 @@
       else if (k === 'cash') car.cash += v; else if (k === 'cp') car.cp += v; else if (k === 'tokens') car.tokens = (car.tokens || 0) + v;
       else if (['manual', 'credits', 'books'].includes(k)) S.items[k] += v;
       else if (k === 'rare') { car.items = car.items || {}; car.items.rareRecruit = (car.items.rareRecruit || 0) + v; }
+      else if (k === 'kit') { car.items = car.items || {}; car.items.kit = (car.items.kit || 0) + v; }
       else if (k === 'coach') C.freeCoach(2); }
     C.save(); };
 

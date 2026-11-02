@@ -771,3 +771,32 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .newdot{font-style:normal;font-size:9px;background:#ef4444;color:#fff;border-radius:6px;padding:1px 5px;vertical-align:2px}
 .tab .ti{position:relative}.tabdot{position:absolute;top:-2px;right:-6px;width:9px;height:9px;border-radius:50%;background:#ef4444;border:2px solid var(--card)}
 .ccard.pick .ben{font-size:13px;font-weight:900;color:var(--fit5);margin:3px 0}
+
+/* ---------- phase-9d: title screen and Home ---------- */
+.title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;color:#fff;text-align:center;padding:calc(15vh + env(safe-area-inset-top)) 24px calc(40px + env(safe-area-inset-bottom));overflow:hidden;background:#0b1026}
+.title>*:not(.splashart){position:relative;z-index:1}
+.title h1{font-family:Graduate,serif;font-size:50px;letter-spacing:1px;text-shadow:0 3px 0 #c2410c,0 8px 24px rgba(0,0,0,.6)}
+.title .tag{font-weight:800;opacity:.9;margin-top:6px;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+.title .loadbar{margin-top:auto;width:70%;max-width:280px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden}
+.title .loadbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#fde047,#f97316);border-radius:4px;animation:load 2.6s ease-out forwards}
+@keyframes load{to{width:100%}}
+.title .ver{margin-top:10px;font-size:11px;font-weight:800;opacity:.6}
+.home .hres{margin-top:10px}.home .hres span{background:rgba(0,0,0,.25)}
+.gift{display:flex;gap:10px;align-items:center;width:calc(100% - 32px);margin:12px 16px 0;border:0;border-radius:18px;padding:10px 12px;text-align:left;color:#fff;background:linear-gradient(135deg,#f59e0b,#ea580c);box-shadow:var(--shadow)}
+.gift>span{font-size:30px}.gift div{flex:1}.gift b{font-size:16px}.gift small{display:block;font-size:12px;font-weight:800;opacity:.9}.gift em{font-style:normal;font-weight:900;background:#fff;color:#c2410c;border-radius:10px;padding:6px 12px}
+.deal{display:flex;gap:10px;align-items:center;margin:10px 16px 0;border-radius:18px;padding:12px;background:linear-gradient(135deg,#111827,#7c3aed);color:#fff;box-shadow:var(--shadow)}
+.deal .dl{flex:1}.deal small{font-size:11px;font-weight:900;color:#fde68a;text-transform:uppercase;letter-spacing:.5px}.deal b{display:block;font-size:17px;margin-top:2px}.deal p{font-size:12.5px;font-weight:800;opacity:.9;margin-top:2px}
+.dbuy{border:0;border-radius:12px;padding:8px 12px;background:#16a34a;color:#fff;font:900 15px Nunito;display:flex;flex-direction:column;align-items:center;line-height:1.1}.dbuy s{font-size:11px;opacity:.7}
+.dbought{font-size:12px;font-weight:900;color:#bbf7d0}.deal.done{opacity:.8}
+.evbn{display:flex;gap:10px;align-items:center;width:calc(100% - 32px);margin:10px 16px 0;border:0;border-radius:18px;padding:10px 12px;text-align:left;background:var(--card);box-shadow:var(--shadow);color:var(--ink);position:relative}
+.evbn>span{font-size:28px}.evbn div{flex:1}.evbn b{font-size:15px}.evbn small{display:block;font-size:12px;font-weight:700;color:var(--mute)}
+.evbn em{font-style:normal;background:#ef4444;color:#fff;font:900 12px/22px Nunito;min-width:22px;height:22px;border-radius:11px;text-align:center}
+.htiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px}
+.htile{position:relative;border:0;border-radius:18px;background:var(--card);box-shadow:var(--shadow);padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--ink)}
+.htile .hi{font-size:28px}.htile b{font-size:13px;font-weight:900}
+.htile em{position:absolute;top:6px;right:8px;font-style:normal;background:#ef4444;color:#fff;font:900 10px/18px Nunito;min-width:18px;height:18px;border-radius:9px;padding:0 4px}
+.gameday .gotac{border:0;background:rgba(255,255,255,.14);border-radius:12px;width:44px;height:44px;margin-left:auto;margin-right:6px;font-size:20px;display:flex;align-items:center;justify-content:center}
+.gameday .gotac+.go{margin-left:0}
+.tacdef{background:var(--bg);border-radius:12px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:8px}.tacdef b{color:var(--ink)}
+.xoi.big{width:30px;height:30px;border-radius:8px}
+.forms{flex-wrap:wrap;overflow:visible}.forms button{padding:7px 10px;font-size:13px}

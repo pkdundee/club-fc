@@ -190,7 +190,7 @@
   };
   C.WEATHER = [['☀️', 'Clear', 'a clear evening'], ['🌤', 'Mild', 'a mild night'], ['🌧', 'Rain', 'steady rain'], ['🌬', 'Windy', 'a swirling wind'], ['🌙', 'Floodlights', 'under the lights']];
 
-  // ================= Home tab (was Season): next match, calendar strip, form, then fixtures / table / stats =================
+  // ================= Matchday tab (was Season): next match, calendar strip, form, then fixtures / table / stats =================
   function calStrip() {
     const S = C.sea(), mine = S.fx.filter(f => f.h === 0 || f.a === 0);
     const cell = f => { const opp = S.teams[f.h === 0 ? f.a : f.h], done = f.hs != null, gf = f.h === 0 ? f.hs : f.as, ga = f.h === 0 ? f.as : f.hs;
@@ -232,7 +232,7 @@
     const endCard = S.end ? `<div class="card seasonend">${S.end.champ ? `<div class="scenebn" style="margin:-14px -14px 10px">${C.artSlot('trophy', C.sceneTrophy(col.c1, col.c2))}</div>` : ''}<b>${S.end.champ ? '🏆 Conference champions!' : `Season ${S.n} over · finished ${C.ord(S.end.pos)}`}</b><p>${S.end.met ? '✔ Director\'s goal met' : '✖ Director\'s goal missed'}: ${GOALS[car.job.stars][0]}.${S.end.prize ? ` 💵 Prize money: <b>${C.short(S.end.prize)}</b>.` : ''}${S.end.champName && !S.end.champ ? ' Champions: ' + C.esc(S.end.champName) + '.' : ''}</p>
       <p class="note" style="margin:6px 0">${C.portalOpen() ? '🚪 The transfer window is open. Seniors graduate when the new season starts.' : 'Seniors graduate when the new season starts.'}</p>
       ${car.offers && car.offers.length ? `<button class="btn full offbn" data-act="offers">📨 ${car.offers.length} job offer${car.offers.length > 1 ? 's' : ''}</button>` : ''}${C.careerCardHTML()}<button class="btn full pri" data-act="nextseason">Start Season ${S.n + 1}${C.portalOpen() ? ' (closes the window)' : ''}</button></div>` : '';
-    return `<div class="view scrolly"><div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Home</b><small>Season ${S.n} · ${C.esc(S.conf)}${C.isTransition(car) ? ' · 🔁 Transition' : ''} · ${S.end ? 'Finished' : C.table()[0].p ? 'Pos ' + C.ord(C.myPos()) : 'Preseason'} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div></div>
+    return `<div class="view scrolly"><div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Matchday</b><small>Season ${S.n} · ${C.esc(S.conf)}${C.isTransition(car) ? ' · 🔁 Transition' : ''} · ${S.end ? 'Finished' : C.table()[0].p ? 'Pos ' + C.ord(C.myPos()) : 'Preseason'} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div></div>
       <div class="homebn">${C.gamedayHTML()}</div>${calStrip()}${formCard()}
       ${endCard}<div class="filters">${[['fix', '📅 Fixtures'], ['table', '📊 Table'], ['stats', '⭐ Stats']].map(([k, n]) => `<button class="f ${view === k ? 'on' : ''}" data-act="seav" data-v="${k}">${n}</button>`).join('')}</div>
       <div style="padding:0 16px 16px">${body}</div></div>`;

@@ -22,8 +22,8 @@
       ${step < INTRO.length - 1 ? '<button class="btn full sec2" data-act="introskip" style="margin-top:8px">Skip</button>' : ''}`;
   }
   C.introNext = () => { if (step < INTRO.length - 1) { step++; C.ui.refresh(); } else C.introDone(); };
-  C.introDone = () => { try { localStorage.setItem('clubfc2_p9c_intro', '1'); } catch (e) { } if (after) { const f = after; after = null; f(); } else C.ui.back(); };
-  C.introSeen = () => { try { return !!localStorage.getItem('clubfc2_p9c_intro'); } catch (e) { return true; } };
+  C.introDone = () => { try { localStorage.setItem('clubfc2_p9d_intro', '1'); } catch (e) { } if (after) { const f = after; after = null; f(); } else C.ui.back(); };
+  C.introSeen = () => { try { return !!localStorage.getItem('clubfc2_p9d_intro'); } catch (e) { return true; } };
 
   // ---------- Coach's Handbook ----------
   C.HANDBOOK = [
@@ -82,11 +82,11 @@
     ['Where are daily rewards?', 'Tap 🎁 Events on the campus: calendar, tasks, weekly chest, the Season Pass and this week\'s event.', 'events'],
     ['How do I get better coaches?', 'Staff tab: the Coaching market (new every 2 days) or Coaching Search (<i class="coin"></i> Coins, odds shown).', 'staff'],
     ['What are Coaching Points for?', 'Playbook research. The Performance Lab makes them, and matches earn them (more for a win). Buildings cost Booster $ only.', 'playbook'],
-    ['How do I play a match?', 'Open 🏠 Home and tap ▶ Play on the next-match banner. Watch, skip, or take a Quick result.', 'matchday'],
+    ['How do I play a match?', 'Open 🏟 Matchday (or 🏠 Home) and tap ▶ Play on the next-match banner. Watch, skip, or take a Quick result.', 'matchday'],
     ['Why are my players tired?', 'Matches use Freshness. Rest a player for a match (bench or out of the squad) to bring it back. The Gym, Conditioning research and recovery kits help.', 'season'],
     ['What is the Medical Room?', 'On the Sports Medicine building (and the Squad tab): treat injuries with physio, specialist treatment or rushing a player back, and use recovery kits.', 'season'],
     ['What happens with a yellow card?', 'The player goes off for 5 minutes (a college sin bin), then comes back. Two yellows make a red.', 'matchday'],
-    ['How do I change my line-up?', 'Squad tab → <i class="xoi"></i> Tactics. Tap a player on the board to swap them.', 'matchday']
+    ['How do I change my line-up?', 'Tap the <i class="xoi"></i> Tactics button on the next-match banner (Home or Matchday), the Tactics tile on Home, or Squad → Tactics. It is your default setup for every match. 11 formations to choose from.', 'matchday']
   ];
   let q = '';
   C.openAsk = () => { q = ''; if (C.car()) { C.car().seen.ask = 1; C.save(); } C.ui.open('Help', askHTML); };
