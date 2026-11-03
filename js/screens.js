@@ -5,6 +5,14 @@
   let zoom = 1, view = null;
 
   C.power = () => { const b = C.car().b; let p = 0; for (const k in b) p += b[k] * (k === 'hq' ? 300 : k === 'stadium' ? 200 : 120); return p; };
+  // Program Power (playtest round 4): campus + staff + the squad's best XI, one number that only grows as the program does
+  C.squadPower = () => { const r = C.squad().map(p => p.rating).sort((a, b) => b - a).slice(0, 11); return Math.round(r.reduce((s, v) => s + v * v, 0) / 4); };
+  C.programPower = () => C.power() + (C.staffPower ? C.staffPower() : 0) + C.squadPower();
+  C.powerBadge = (cls = '') => `<span class="ppow ${cls}" data-act="proginfo" title="Program Power: campus, staff and squad"><i class="ppi"></i>${C.programPower().toLocaleString()}</span>`;
+  // the one build-queue icon (item 38) and the buildings list (items 31, 44)
+  C.idleBuilders = () => Math.max(0, C.openSlots() - C.car().queue.length);
+  C.newBuildable = () => Object.keys(C.BUILDINGS).filter(k => C.level(k) === 0 && !C.inQueue(k) && !(C.BUILDINGS[k].needHQ && C.level('hq') < C.BUILDINGS[k].needHQ));
+  C.readyCount = () => Object.keys(C.BUILDINGS).filter(k => C.readyArrow(k) || (C.newBuildable().includes(k) && C.requirements(k).every(r => r[2]))).length;
 
   // ================= main render =================
   C.render = () => {
@@ -30,29 +38,26 @@
   // ================= campus =================
   function campusHTML() {
     const car = C.car(), col = C.college(), a = C.acct(), tier = C.TIERS[car.tier];
-    const slots = C.SLOTS.map((s, i) => {
-      const q = car.queue[i];
-      if (q) { const tot = (q.end - q.start) / 1000, f = 1 - C.remaining(q) / tot;
-        return `<button class="qb" data-act="bld" data-v="${q.key}"><div class="c">${C.ringSVG(f, '#f97316', 54)}${C.BUILDINGS[q.key].icon}</div><span data-timer="${q.key}">${C.dur(C.remaining(q))}</span></button>`; }
-      if (C.slotOpen(s.id)) return `<button class="qb free" data-act="toast" data-v="Tap a building or an empty plot to build"><div class="c">🔨</div>Free</button>`;
-      return `<button class="qb lock" data-act="slotinfo" data-v="${s.id}"><div class="c">🔒</div>${s.id === 'vip' ? 'VIP' : s.id === 'iap' ? '$' : 'Lv 10'}</button>`;
-    }).join('');
+    const busy = car.queue.length, open = C.openSlots(), idle = C.idleBuilders(), nb = C.newBuildable().length, rc = C.readyCount();
+    const slots = `<button class="ev" data-act="queue"><div class="c" style="background:linear-gradient(150deg,#f59e0b,#b45309)">👷</div>${busy}/${open}${idle && rc ? '<span class="dot">!</span>' : ''}</button>
+      <button class="ev" data-act="blist"><div class="c" style="background:linear-gradient(150deg,#22c55e,#15803d)">🏗</div>Buildings${nb ? `<span class="dot">${nb}</span>` : rc ? `<span class="dot">${rc}</span>` : ''}</button>`;
     return `<div class="view">
       <div class="map" id="map"><div id="mapin"></div></div>
       <div class="hud top">
         <div class="idrow">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>${C.esc(col.short)}</b><small>${C.tierLabel()} · ${car.gender === 'w' ? "Women's" : "Men's"} · ⭐ ${C.rep()}</small></div>
-          <span class="power" title="Campus rating: goes up as buildings level up">🏗 ${C.power().toLocaleString()}</span></div>
-        <div class="res"><span><i>💵</i><b id="r-cash">$${C.short(car.cash)}</b></span><span><i class="cpi"></i><b id="r-cp">${C.short(car.cp)}</b></span><span data-act="store"><i class="coin"></i><b id="r-gold">${C.short(a.gold)}</b><em class="plus">+</em></span></div>
+          ${C.powerBadge()}</div>
+        <div class="res">${C.resBar()}</div>
       </div>
       <div class="side sl">${slots}</div>
       <div class="side sr">
         ${C.fwActive() ? `<button class="ev" data-act="firstweek"><div class="c" style="background:linear-gradient(150deg,#f97316,#ea580c)">📅</div>Week 1${C.fwClaimable() ? `<span class="dot">${C.fwClaimable()}</span>` : ''}</button>` : ''}
         ${C.portalOpen() ? `<button class="ev" data-act="portalgo"><div class="c" style="background:linear-gradient(150deg,#a855f7,#6d28d9)">🚪</div>Portal<span class="dot">!</span></button>` : ''}
         <button class="ev" data-act="events"><div class="c" style="background:linear-gradient(150deg,#f59e0b,#d97706)">🎁</div>Events${C.loClaimable() ? `<span class="dot">${C.loClaimable()}</span>` : ''}</button>
-        <button class="ev" data-act="ad"><div class="c" style="background:linear-gradient(150deg,#0ea5e9,#0369a1)">🏛</div>Director${C.adUnread() ? `<span class="dot">${C.adUnread()}</span>` : ''}</button>
+        <button class="ev" data-act="inbox"><div class="c" style="background:linear-gradient(150deg,#0ea5e9,#0369a1)">✉️</div>Inbox${C.inboxUnread() ? `<span class="dot">${C.inboxUnread()}</span>` : ''}</button>
+        <button class="ev" data-act="inventory"><div class="c" style="background:linear-gradient(150deg,#a78bfa,#6d28d9)">🎒</div>Items</button>
         <button class="ev" data-act="ask"><div class="c" style="background:linear-gradient(150deg,#16a34a,#15803d)">❓</div>Help</button>
         <button class="ev" data-act="store"><div class="c" style="background:linear-gradient(150deg,#ef4444,#b91c1c)">🛒</div>Store</button>
-        <button class="ev" data-act="settings"><div class="c" style="background:linear-gradient(150deg,#64748b,#334155)">⚙️</div>Settings</button>
+
       </div>
       <div class="zbtns"><button data-act="zoom" data-v="1" aria-label="Zoom in">+</button><button data-act="zoom" data-v="-1" aria-label="Zoom out">−</button></div>
     </div>`;
@@ -146,12 +151,40 @@
       : ready ? { icon: 'up', label: 'Upgrade', act: 'bldopen', v: k, main: true, hot: true } : { icon: 'ℹ️', label: 'Details', act: 'bldopen', v: k, main: true, col: '#64748b' });
     return out;
   };
+  // ---------- Building Queue (item 38): every builder, what they're doing, and how to get more ----------
+  C.openQueue = () => C.ui.open('Building Queue', () => {
+    const car = C.car();
+    const rows = C.SLOTS.map((sl, i) => {
+      const open = C.slotOpen(sl.id), q = open ? car.queue[C.SLOTS.filter(x => C.slotOpen(x.id)).indexOf(sl)] : null;
+      const face = `<div class="bq-f">${open ? (q ? '👷' : '😴') : '🔒'}<i>${i + 1}</i></div>`;
+      if (!open) return `<div class="bqrow lock">${face}<div class="bq-t"><b>${C.esc(sl.name)}</b><small>${sl.id === 'prog' ? "Earned at Coaches' Office Lv 10" : C.esc(sl.why)}</small></div>${sl.id === 'prog' ? '' : '<button class="btn sm2" data-act="store">Get</button>'}</div>`;
+      if (q) { const d = C.BUILDINGS[q.key], f = 1 - C.remaining(q) / ((q.end - q.start) / 1000);
+        return `<div class="bqrow">${face}<div class="bq-t"><b>${d.icon} ${C.esc(d.name)} → Lv ${q.to}</b><div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><small data-timer="${q.key}">${C.dur(C.remaining(q))}</small></div><button class="btn sm2" data-act="bldopen" data-v="${q.key}">⏩ Speed up</button></div>`; }
+      return `<div class="bqrow">${face}<div class="bq-t"><b>Idle</b><small>Ready to build</small></div><button class="btn sm2 pri" data-act="blist">Construct</button></div>`;
+    }).join('');
+    return `<p class="note" style="margin-top:0">Each builder works on one building at a time. More builders come from the Coach's Club, a one-off purchase and your Coaches' Office.</p>${rows}`;
+  });
+  // ---------- List of buildings (items 31, 44): everything on campus, what's ready, new builds first ----------
+  C.blistTab = 'program';
+  C.openBuildList = () => C.ui.open('Buildings', () => {
+    const car = C.car(), tab = C.blistTab, keys = Object.keys(C.BUILDINGS);
+    const nb = C.newBuildable(), shown = tab === 'new' ? nb : keys.filter(k => C.BUILDINGS[k].owner === (tab === 'program' ? 'program' : 'school') && !nb.includes(k))
+      .sort((a, b) => C.level(a) - C.level(b));
+    const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), locked = d.needHQ && C.level('hq') < d.needHQ && !lv;
+      const ready = C.readyArrow(k) || (nb.includes(k) && C.requirements(k).every(r => r[2]));
+      return `<button class="bcard ${locked ? 'off' : ''}" data-act="bldopen" data-v="${k}">${ready ? '<i class="bup"></i>' : ''}<div class="bpic">${C.buildingThumb(k, Math.max(1, lv), car, 96, 70)}</div>
+        <b class="blv">${q ? '🔨 ' + C.dur(C.remaining(q)) : locked ? 'HQ Lv ' + d.needHQ : lv ? 'Lv.' + lv : 'NEW'}</b><span>${C.esc(d.name)}</span></button>`; };
+    const tb = (k, n, c) => `<button class="${tab === k ? 'on' : ''}" data-act="blisttab" data-v="${k}">${n}${c ? ` <em>${c}</em>` : ''}</button>`;
+    return `<div class="bigtabs">${tb('program', 'Program')}${tb('school', 'Support')}${nb.length ? tb('new', 'New', nb.length) : ''}</div>
+      <div class="bgrid">${shown.map(card).join('') || '<p class="note">Nothing new to build right now.</p>'}</div>
+      <div class="bfoot">👷 Builders ${car.queue.length}/${C.openSlots()}</div>`;
+  });
   C.openProgramInfo = () => C.ui.open('Program', () => {
     const car = C.car(), col = C.college(), t = C.table().find(x => x.i === 0);
     const rows = [['🪜', 'Tier', C.tierLabel()], ['⭐', 'Reputation', C.rep() + ' / 100'], ['🧳', 'Program level', C.programLevel()], ['🧱', 'Building cap', 'Lv ' + C.maxLevel('training')],
-      ['🏗', 'Campus rating', C.power().toLocaleString()], ['🧑‍🏫', 'Staff Power', C.staffPower().toLocaleString()], ['📋', 'Playbook levels', C.pbTotal()],
+      ['⚡', 'Program Power', C.programPower().toLocaleString()], ['🏗', ' · Campus', C.power().toLocaleString()], ['🧑‍🏫', ' · Staff', C.staffPower().toLocaleString()], ['👕', ' · Squad', C.squadPower().toLocaleString()], ['📋', 'Playbook levels', C.pbTotal()],
       ['🏆', 'Season ' + C.sea().n, C.sea().end ? 'Finished ' + C.ord(C.sea().end.pos) : t && t.p ? C.ord(C.myPos()) + ' · ' + t.w + 'W ' + t.d + 'D ' + t.l + 'L' : 'Not started'],
-      ['🏛', 'Director confidence', ['😟', '🙁', '😐', '🙂', '😀'][Math.min(4, Math.floor((car.adConf ?? 50) / 20))]], ['👕', 'Roster', car.squad.length + ' / ' + C.rosterCap()], ['🎓', 'Scholarships left', C.short(C.poolLeft())]];
+      ['🏛', 'Director confidence', ['😟', '🙁', '😐', '🙂', '😀'][Math.min(4, Math.floor((car.adConf ?? 50) / 20))]], ['👕', 'Roster', car.squad.length + ' / ' + C.rosterCap()], ['🎓', 'Scholarships left', '$' + C.short(C.poolLeft())]];
     return `<div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 56)}<div><b style="font-family:Graduate,serif;font-size:18px">${C.esc(col.full)}</b><br><small class="mutey">Coach ${C.esc(car.coach)} · ${car.gender === 'w' ? "Women's" : "Men's"} program</small></div></div>
       <div class="card srows" style="margin-top:12px">${rows.map(r => `<div class="srow"><span>${r[0]} ${r[1]}</span><b>${r[2]}</b></div>`).join('')}</div>`;
   });
@@ -170,6 +203,17 @@
     return rows.join('');
   }
 
+  // one cost / condition row: have/need in red when short, with Obtain (money) or Go (a building) beside it (round 4, items 23 and 26)
+  function costRow(r) {
+    const [icon, txt, ok, kind] = r, m = /^(.*?) \/ (.*)$/.exec(txt);
+    const label = kind === 'cash' && m ? `<span class="${ok ? '' : 'short'}">${m[1]}</span>/${m[2]}` : C.esc(txt);
+    const end = ok ? '<b class="ok">✔</b>' : kind === 'cash' ? '<button class="obtain" data-act="store">Obtain</button>'
+      : kind && C.BUILDINGS[kind] ? `<button class="obtain" data-act="bldopen" data-v="${kind}">Go</button>` : '<b class="no">✖</b>';
+    return `<div class="cr ${ok ? '' : 'bad'}"><span class="ic">${icon}</span><span class="ct">${label}</span>${end}</div>`;
+  }
+  // speed-up items from the Inventory, usable right here
+  function speedItems(k) { if (!C.meta) return ''; const inv = C.meta().inv, ks = ['sp5', 'sp15', 'sp60', 'sp180'].filter(x => inv[x] > 0); if (!ks.length) return '';
+    return `<div class="spitems">${ks.map(x => `<button data-act="usespeed" data-v="${k}|${x}">⏩ ${{ sp5: '5m', sp15: '15m', sp60: '1h', sp180: '3h' }[x]}<em>×${inv[x]}</em></button>`).join('')}</div>`; }
   function upgradeCard(k) {
     const car = C.car(), def = C.BUILDINGS[k], lv = car.b[k], q = C.inQueue(k);
     const head = (lvTxt) => `<div class="uc"><div class="top"><div class="pic">${C.buildingThumb(k, q ? q.to : Math.min(30, lv + (lv < 30 ? 1 : 0)), car, 170, 112)}</div>
@@ -181,7 +225,7 @@
       return head(`Lv.${lv} <span class="ar">▶</span> ${q.to}`) + `<div class="tbl">${statRows(k, lv)}</div>
         <div class="orig"><span>Under construction · <b data-timer="${k}">${C.dur(rem)}</b> left</span><span>${C.GEM} ${C.short(gems)}</span></div>
         <div class="bt"><button class="fin" data-act="speed" data-v="${k}">${free ? 'Finish<br><em style="color:#15803d">Free</em>' : `Finish Now<br><em class="${gems < g ? 'short' : ''}">${C.GEM} ${g}</em>`}</button>
-        <button class="upg" data-act="adspeed" data-v="${k}" ${C.adsLeft() <= 0 ? 'disabled' : ''}>▶ Watch ad<br>−15 min (${C.adsLeft()} left)</button></div></div>`;
+        <button class="upg" data-act="adspeed" data-v="${k}" ${C.adsLeft() <= 0 ? 'disabled' : ''}>▶ Watch ad<br>−15 min (${C.adsLeft()} left)</button></div>${speedItems(k)}</div>`;
     }
     if (lv >= 30) return head(`Lv.30 <span class="ar">★</span>`) + `<div class="tbl">${statRows(k, lv)}</div><div class="maxed">✨ Fully upgraded</div></div>`;
 
@@ -189,9 +233,9 @@
     const prod = C.PRODUCERS[k] && lv ? `<div class="adrow"><button data-act="collect" data-v="${k}">Collect ${C.PRODUCERS[k] === 'cp' ? '<i class="cpi"></i>' : '💵'} ${C.short(C.stored(k))}</button></div>` : '';
     const slotMsg = ok && !C.freeSlot() ? `<span style="color:#fde68a">All build slots are busy</span>` : '<span></span>';
     return head(lv ? `Lv.${lv} <span class="ar">▶</span> ${lv + 1}` : `Build <span class="ar">▶</span> Lv 1`) +
-      `<div class="tbl">${statRows(k, lv)}<div class="costh">Cost</div>
-        <div class="crs">${reqs.map(r => `<span class="crc ${r[2] ? '' : 'bad'}">${r[0]} ${C.esc(r[1])} ${r[2] ? '<b class="ok">✔</b>' : '<b class="no">✖</b>'}</span>`).join('')}</div></div>
-      <div class="orig">${slotMsg}<span>${C.GEM} ${C.short(gems)}</span></div>
+      `<div class="tbl"><div class="tscroll">${statRows(k, lv)}</div><div class="costh">Cost</div>
+        <div class="tscroll">${reqs.map(r => costRow(r)).join('')}</div></div>
+      <div class="orig">${slotMsg}<span>Original Time: ${C.dur(t)}</span></div>
       <div class="bt"><button class="fin" data-act="instant" data-v="${k}" ${ok ? '' : 'disabled'}>Finish Now<br><em class="${gems < gi ? 'short' : ''}">${C.GEM} ${gi}</em></button>
       <button class="upg" data-act="upgrade" data-v="${k}" ${C.canUpgrade(k) ? '' : 'disabled'}>${lv ? 'Upgrade' : 'Build'}<br>⏱ ${C.dur(t)}</button></div>${prod}</div>`;
   }

@@ -21,7 +21,7 @@
   const isJC = () => C.car().job.type === 'juco', isAcad = () => C.car().job.type === 'acad';
   C.R = id => rec().list.find(r => r.id === id);
   const round5 = v => Math.round(v / 5) * 5, floor5 = v => Math.floor(v / 5) * 5;
-  const rivals = () => C.COLLEGES.filter(c => c.id !== C.car().college).map(c => c.short);
+  const rivals = () => C.COLLEGES.filter(c => c.id !== C.car().college && Math.abs(c.tier - C.car().tier) <= 1).map(c => c.short);
 
   // ---------- generation ----------
   function genRecruit(r, src, sub) {
@@ -119,7 +119,7 @@
   function poolBar(thisAmt) {
     const j = C.car().job, used = C.committed(), w = v => Math.max(0, Math.min(100, v / j.pool * 100)).toFixed(1) + '%';
     return `<div class="poolbar"><i class="u" style="width:${w(used)}"></i><i class="t" style="width:${w(thisAmt)}"></i></div>
-      <div class="poolkey"><span><i class="u"></i>Used ${C.short(used)}</span><span><i class="t"></i>This offer <b id="oThis">${C.short(thisAmt)}</b></span><span>Left <b id="oLeft">${C.short(Math.max(0, j.pool - used - thisAmt))}</b></span></div>`;
+      <div class="poolkey"><span><i class="u"></i>Used $${C.short(used)}</span><span><i class="t"></i>This offer <b id="oThis">$${C.short(thisAmt)}</b></span><span>Left <b id="oLeft">$${C.short(Math.max(0, j.pool - used - thisAmt))}</b></span></div>`;
   }
 
   function offerHTML() {
@@ -153,7 +153,7 @@
     if (e.target.id !== 'oPct' || !O) return; const x = C.R(O.id); if (!x) return;
     O.pct = +e.target.value; x.offer = Object.assign({}, O);
     const c = calc(x, O), m = mood(c.happy), j = C.car().job, set = (id, v) => { const n = C.$('#' + id); if (n) n.textContent = v; };
-    set('oPctTxt', O.pct + '%'); set('oVal', C.money(c.val)); set('oThis', C.short(c.schol)); set('oLeft', C.short(Math.max(0, j.pool - C.committed() - c.schol))); set('oMoodE', m[0]);
+    set('oPctTxt', O.pct + '%'); set('oVal', C.money(c.val)); set('oThis', '$' + C.short(c.schol)); set('oLeft', '$' + C.short(Math.max(0, j.pool - C.committed() - c.schol))); set('oMoodE', m[0]);
     const b = C.$('#oMood'); if (b) { b.style.width = Math.min(100, c.happy * 100).toFixed(0) + '%'; b.style.background = m[1]; }
     const t = C.$('.poolbar .t'); if (t) t.style.width = Math.min(100, c.schol / j.pool * 100).toFixed(1) + '%';
   });
@@ -262,15 +262,19 @@
     if (route === 'jc') body = `<p class="note" style="padding:0 16px">Juniors from two-year colleges: ready now, with 2 seasons left.</p>`;
     if (route === 'portal') body = portalHTML(P, R);
     const list = R.list.filter(x => x.src === route).sort((a, b) => (b.rival ? 1 : 0) - (a.rival ? 1 : 0) || b.rating - a.rating);
+    // same row style as Squad (round 5): plain avatar, plain year, top-3 position chips; recruit details where Squad shows condition
+    const chips = x => `<div class="pmatch">${C.topPositions(x).map(([q, v]) => `<i style="background:${C.FITPILL[C.fit(x, q)]}">${q}${x.scouted ? v : ''}</i>`).join('')}
+        <span class="rinfo">${x.rival ? `<span class="rv">⚔ <span data-until="${x.rival.end}">${C.dur((x.rival.end - t) / 1000)}</span></span>` : ''}${isAcad() ? '' : `<span class="ask">🎓 ${Math.round(x.ask * 100)}%</span>`}</span></div>`;
     const cards = list.map(x => `<button class="prow rc" style="--mk:${C.RARITY[x.rar][1]}" data-act="recruit" data-v="${x.id}">
-        <div class="av"><div class="face" style="inset:2px">${rface(x)}</div></div>
+        <div class="av plain"><div class="face">${rface(x)}</div></div>
         <div class="pinfo"><b>${C.esc(x.fn)} ${C.esc(x.ln)} <small class="flag">${x.flag}</small></b>
-          <div class="tags"><span class="pos ${C.POSGROUP(x.pos)}">${x.pos}</span><span class="yr">${C.yrIcon(x.year)}${yrN[x.year]}</span><span class="sch">${C.ROLES[x.want][0]} ${isAcad() ? '' : '🎓 ' + Math.round(x.ask * 100) + '%'}</span>
-          ${x.rival ? `<span class="rv">⚔ <span data-until="${x.rival.end}">${C.dur((x.rival.end - t) / 1000)}</span></span>` : ''}${x.deal.round ? `<span class="rdeal">R${x.deal.round}</span>` : ''}</div></div>
+          <div class="tags"><span class="pos ${C.POSGROUP(x.pos)}">${x.pos}</span><span class="yr plain">${yrN[x.year]}</span><span class="sch" title="${C.esc(C.ROLES[x.want][1] || '')}">${C.ROLES[x.want][0]}</span>${x.deal.round ? `<span class="rdeal">R${x.deal.round}</span>` : ''}</div>
+          ${chips(x)}</div>
         <div class="rate"><b class="${x.scouted ? '' : 'fz'}">${ratingTxt(x)}</b><small>${x.scouted ? 'Rating' : '🔍 Range'}</small></div></button>`).join('');
     const empty = route !== 'portal' || P ? `<p class="note" style="padding:0 16px;text-align:center">${{ inbox: 'No applications right now. New ones arrive through the day.', camp: 'Run a camp to see new players.', jc: 'No transfers listed.', agency: 'Hire a scout to find an international player.', portal: 'Nobody left in the portal.' }[route]}</p>` : '';
     return `<div class="view scrolly">
-      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Recruiting</b><small>👕 ${car.squad.length}/${C.rosterCap()} · 🎓 ${C.short(C.poolLeft())} left · 💼 ${C.jobsLeft()} jobs</small></div><button class="hlink" style="margin-left:auto" data-act="help" data-v="offers">?</button></div></div>
+      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Recruiting</b><small>👕 ${car.squad.length}/${C.rosterCap()} roster · 💼 ${C.jobsLeft()} campus jobs</small></div><button class="hlink" style="margin-left:auto" data-act="help" data-v="offers">?</button></div>
+        <div class="res hres">${C.resBar()}</div><div class="chips">${C.schChip()}</div></div>
       <div style="padding:0 16px">${C.advice('rec')}</div><div class="rtiles">${tiles}</div>${body}${cards || empty}</div>`;
   };
 
@@ -307,7 +311,7 @@
     const x = C.R(id); if (!x) return '<p class="note">This recruit is no longer available.</p>';
     const A = C.attrsOf(x), rar = C.RARITY[x.rar], src = SRC[x.src];
     return `<div class="rhero" style="background:linear-gradient(160deg,${x.kit[0]},${C.shade(x.kit[0], -.45)})"><div class="rport">${rface(x, '10 0 100 100')}</div>
-        <div class="nameplate"><b>${C.esc(x.fn)} ${C.esc(x.ln)}</b><div class="tags"><span class="pos ${C.POSGROUP(x.pos)}">${x.pos}</span><span class="yr" style="border-color:rgba(255,255,255,.4);color:#fff">${C.yrIcon(x.year)}${yrN[x.year]}</span><span class="rarp" style="background:${rar[1]}">${rar[0]}</span></div>
+        <div class="nameplate"><b>${C.esc(x.fn)} ${C.esc(x.ln)}</b><div class="tags"><span class="pos ${C.POSGROUP(x.pos)}">${x.pos}</span><span class="yr plain" style="border-color:rgba(255,255,255,.5);color:#fff">${yrN[x.year]}</span><span class="rarp" style="background:${rar[1]}">${rar[0]}</span></div>
         <small class="hometown">${x.flag} ${C.esc(x.town)} · GPA ${x.gpa}</small><small class="hometown">${src[0]} ${src[1]}${x.from ? ' · from ' + C.esc(x.from) : ''}</small></div></div>
       <div class="kpis" style="margin-top:12px"><div class="kpi"><b class="${x.scouted ? '' : 'fz'}" style="${x.scouted ? '' : 'font-size:18px'}">${ratingTxt(x)}</b><small>Rating</small></div><div class="kpi"><b style="color:var(--fit5)">${x.scouted ? x.pot : '?'}</b><small>Potential</small></div>
         <div class="kpi"><b style="font-size:22px">${C.ROLES[x.want][0]}</b><small>Wants</small></div><div class="kpi"><b>${Math.round(x.ask * 100)}%</b><small>Hopes</small></div></div>

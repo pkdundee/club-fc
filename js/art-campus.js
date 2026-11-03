@@ -123,13 +123,11 @@ function skills(I,x,y,S,lvl){let out='';const X0=x+8,X1=x+S-8,Y0=y+8,Y1=y+S-8;
  const [bx,by]=I.P(X0+14,Y1-8,1);out+=`<circle cx="${bx}" cy="${by}" r="${1.4*I.K}" fill="#fff" stroke="#111" stroke-width=".4"/>`+I.person(X0+10,Y1-6,C1);
  return out}
 function emptyPlot(I,x,y,S,name){const [sx,sy]=I.P(x+S/2,y+S/2,0);let out=I.poly([[x+4,y+4,0],[x+S-4,y+4,0],[x+S-4,y+S-4,0],[x+4,y+S-4,0]],'url(#dirt4)',`stroke="#fff" stroke-width="${.8*I.K}" stroke-dasharray="${3*I.K} ${2*I.K}"`);
- out+=I.box(x+S/2-1,y+S/2+4,0,1,1,10,{base:'#92400e'});const [px,py]=I.P(x+S/2,y+S/2+4,10);const k=I.K;
- out+=`<g transform="translate(${px.toFixed(1)},${py.toFixed(1)}) scale(${k})"><rect x="-13" y="-8" width="26" height="9" rx="1.5" fill="#fef3c7" stroke="#92400e" stroke-width=".6"/><text y="-1.5" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="5.4" fill="#92400e">FOR ${name.toUpperCase()}</text></g>`;
+ const k=I.K;
  out+=`<g transform="translate(${sx.toFixed(1)},${(sy-22*k).toFixed(1)}) scale(${k})"><g class="hammer"><circle r="7.5" fill="#16a34a" stroke="#fff" stroke-width="1.4"/><text y="3.2" text-anchor="middle" font-size="8.5">🔨</text></g></g>`;
  return out}
-function lockedPlot(I,x,y,S,req){const [sx,sy]=I.P(x+S/2,y+S/2,0);let out=I.poly([[x+4,y+4,0],[x+S-4,y+4,0],[x+S-4,y+S-4,0],[x+4,y+S-4,0]],'url(#lockP4)',`stroke="#64748b" stroke-width="${.6*I.K}"`);
- out+=`<g transform="translate(${sx.toFixed(1)},${(sy-4).toFixed(1)}) scale(${I.K})"><rect x="-20" y="-8" width="40" height="16" rx="8" fill="rgba(15,23,42,.8)"/><text x="-14" y="3.2" font-size="7.5">🔒</text><text x="-4" y="2.8" font-family="Nunito" font-weight="900" font-size="5.8" fill="#fff">${req}</text></g>`;
- return out}
+function lockedPlot(I,x,y,S,req){// locked land and plots: plain, no padlock text (how to unlock is explained where you unlock it)
+ return I.poly([[x+4,y+4,0],[x+S-4,y+4,0],[x+S-4,y+S-4,0],[x+4,y+S-4,0]],'url(#lockP4)',`stroke="#64748b" stroke-width="${.6*I.K}" opacity=".7"`)}
 function construction(I,x,y,S,h){let s='';const x0=x+S*.2,x1=x+S*.8,Y=y+S*.72;for(let i=0;i<=6;i++)s+=I.line([x0+i*(x1-x0)/6,Y,0],[x0+i*(x1-x0)/6,Y,h+4],'#f59e0b',.7);for(let j=0;j<=3;j++)s+=I.line([x0,Y,j*(h+4)/3],[x1,Y,j*(h+4)/3],'#d97706',.7);
  s+=I.box(x+S-6,y+6,0,2,2,h+30,{base:'#f59e0b'});const [ax,ay]=I.P(x+S-5,y+7,h+31);const k=I.K;s+=`<g class="jib" style="transform-origin:${ax}px ${ay}px"><line x1="${ax-36*k}" y1="${ay+9*k}" x2="${ax+12*k}" y2="${ay-3*k}" stroke="#f59e0b" stroke-width="${1.6*k}"/><rect x="${ax+7*k}" y="${ay-5*k}" width="${6*k}" height="${4*k}" fill="#475569"/><line x1="${ax-26*k}" y1="${ay+6.5*k}" x2="${ax-26*k}" y2="${ay+24*k}" stroke="#334155" stroke-width=".5"/></g>`;
  return s}
@@ -194,7 +192,9 @@ function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=co
  // badges, timers and collect bubbles
  const sc=1.35;
  for(const o of overlays){const {k,bx,by,lvl,q,def,fx,fy}=o;
-  if(q&&C.selB!==k){add(`<g data-act="bld" data-v="${k}" transform="translate(${bx.toFixed(1)},${(by-8).toFixed(1)}) scale(${sc})"><rect x="-32" y="-9" width="64" height="18" rx="9" fill="${C2}" stroke="#fff" stroke-width="1"/><text x="-27" y="3.4" font-size="8">🔨</text><text x="-17" y="-1" font-family="Nunito" font-weight="900" font-size="6.2" fill="#fff">${C.esc(def.name.split(' ')[0])} → ${q.to}</text><text x="28" y="6" text-anchor="end" font-family="Nunito" font-weight="900" font-size="5.6" fill="#fff" data-timer="${k}">${C.dur(C.remaining(q))}</text><rect x="-17" y="2.4" width="28" height="2.8" rx="1.4" fill="rgba(255,255,255,.35)"/><rect x="-17" y="2.4" width="${(28*C.clamp(1-C.remaining(q)/((q.end-q.start)/1000),0,1)).toFixed(1)}" height="2.8" rx="1.4" fill="#fff" data-bar="${k}"/></g>`);continue}
+  if(q&&C.selB!==k){const [tx,ty]=o.corners[0];add(`<g data-act="bld" data-v="${k}" transform="translate(${tx.toFixed(1)},${(ty-6).toFixed(1)}) scale(${sc})"><path d="M-18 -11 h36 a4 4 0 0 1 4 4 v9 a4 4 0 0 1 -4 4 h-15 l-3 4 l-3 -4 h-15 a4 4 0 0 1 -4 -4 v-9 a4 4 0 0 1 4 -4z" fill="#fff" stroke="#f59e0b" stroke-width="1.4"/>
+    <g transform="translate(-13,-2.5)"><circle r="5" fill="#f59e0b"/><path d="M0 -3 V0 L2.2 1.4" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>
+    <text x="18" y="0.8" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9.5" fill="#78350f" data-timer="${k}">${C.dur(C.remaining(q))}</text></g>`);continue}
   const sel=!opts.preview&&C.selB===k, ready=!opts.preview&&C.readyArrow(k);
   if(!lvl&&!sel)continue;
   const amt=!opts.preview&&lvl&&C.PRODUCERS[k]?C.bubble(k):0;

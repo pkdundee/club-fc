@@ -53,7 +53,7 @@
     while (p.sec.length < 2 && near.length) p.sec.push(near.shift()); };
 
   // ---------- numbers (Q29) ----------
-  const LIKES = { GK: [1, 0], CB: [4, 5, 3], LB: [3], RB: [2], DM: [6], CM: [8, 14, 16], LM: [11, 7], RM: [7], AM: [10], LW: [11, 7], RW: [7, 11], ST: [9, 10] };
+  const LIKES = { GK: [1, 12, 23], CB: [4, 5, 3], LB: [3], RB: [2], DM: [6], CM: [8, 14, 16], LM: [11, 7], RM: [7], AM: [10], LW: [11, 7], RW: [7, 11], ST: [9, 10] };
 
   // ---------- generation ----------
   C.genPlayer = (r, { gender, pos, rating, rar = 0, year = 1, pool }) => {
@@ -93,9 +93,14 @@
     const used = new Set(sq.filter(p => p.num).map(p => p.num));
     const order = [...sq].sort((a, b) => b.rating - a.rating);
     for (const p of order) if (!p.num && p.want && !used.has(p.want)) { p.num = p.want; used.add(p.want); }
-    for (const p of order) if (!p.num) { const pref = (LIKES[p.pos] || []).find(n => !used.has(n)); let n = pref != null ? pref : 2; while (used.has(n) || n === 0 && p.pos !== 'GK') n++; p.num = n; used.add(n); }
+    // classic numbers first; anyone left over gets 12 upwards, so a defender's number never lands on a striker (round 5)
+    for (const p of order) if (!p.num) { const pref = (LIKES[p.pos] || []).find(n => !used.has(n)); let n = pref != null ? pref : 12; while (used.has(n)) n++; p.num = n; used.add(n); }
     for (const p of sq) if (p.want && p.num !== p.want) p.morale = Math.min(p.morale, 64);
   };
+
+  // one-off tidy (9g): clear numbers that don't suit the position (a no. 3 up front, a no. 0), unless the player asked for it
+  const CLASSIC = { 1: ['GK'], 2: ['RB', 'CB'], 3: ['LB', 'CB'], 4: ['CB', 'DM'], 5: ['CB', 'DM'], 6: ['DM', 'CM', 'CB'], 7: ['RW', 'RM', 'LW', 'LM'], 8: ['CM', 'DM', 'AM'], 9: ['ST'], 10: ['AM', 'ST', 'CM'], 11: ['LW', 'LM', 'RW', 'RM'] };
+  C.tidyNumbers = sq => { let n = 0; for (const p of sq) if (p.num != null && (p.num === 0 || (CLASSIC[p.num] && !CLASSIC[p.num].includes(p.pos))) && p.want !== p.num) { p.num = 0; n++; } if (n) C.assignNumbers(sq); return n; };
 
   // ---------- squad helpers ----------
   C.rosterCap = (car = C.car()) => Math.min(28, 24 + Math.ceil(car.b.dorms / 3));

@@ -25,26 +25,51 @@
   C.dealBought = () => daily().deal;
   C.giftClaimed = () => daily().gift;
 
+  // ---------- Next step (round 4, item 13): one suggested action from the assistant coach ----------
+  C.nextStep = () => {
+    const car = C.car(), d = daily(), inj = car.squad.filter(p => p.inj && p.injury && !p.injury.physio && p.injury.sev === 0 && !p.injury.conc && p.injury.k !== 'flu').length;
+    const ready = Object.keys(C.BUILDINGS).filter(k => C.readyArrow(k) || (C.newBuildable().includes(k) && C.requirements(k).every(r => r[2])));
+    if (!d.gift) return ['🎁', 'Claim your daily gift.', 'dailygift', ''];
+    if (C.mainNext) { const t = C.mainNext(); if (t && (car.pre || C.meta().main.length < 10)) return t[3](car) ? ['🎯', `Claim your Mission reward: ${t[2]}.`, 'events', ''] : [t[1], t[2] + '.', t[5], t[6]]; }
+    if (C.loClaimable()) return ['🎉', `You have ${C.loClaimable()} reward${C.loClaimable() > 1 ? 's' : ''} waiting in Events.`, 'events', ''];
+    if (C.idleBuilders() && ready.length) return ['🔨', `A builder is free: upgrade the ${C.BUILDINGS[ready[0]].name}.`, 'bldopen', ready[0]];
+    const coll = Object.keys(C.PRODUCERS).filter(k => C.bubble(k));
+    if (coll.length) return ['💵', 'Income is waiting on campus: collect it.', 'tab', 'campus'];
+    if (C.pbRunning && !C.pbRunning() && car.cp >= 20) return ['📋', 'Start some Playbook research.', 'playbook', ''];
+    if (inj && C.medState().physio > 0) return ['🩺', `Use a physio session on an injured player.`, 'medical', ''];
+    if (C.adUnread()) return ['🏛', 'The Director has a message for you.', 'ad', ''];
+    if (C.inboxUnread && C.meta().inbox.some(x => x.r && !x.claimed)) return ['✉️', 'You have rewards waiting in your Inbox.', 'inbox', ''];
+    if (C.portalOpen()) return ['🚪', 'The transfer window is open.', 'portalgo', ''];
+    return C.myFixture() ? ['⚽', 'Pick your line-up and play the next match.', 'prematch', ''] : ['🏆', 'Review the season.', 'tab', 'season'];
+  };
+  C.nextStepHTML = () => { const [icon, text, act, v] = C.nextStep(), c = C.onStaff().find(x => x.spec === 'gen') || C.onStaff()[0];
+    return `<button class="nstep" data-act="${act}" data-v="${v}"><span class="nsf">${c ? C.coachFace(c) : icon}</span><span class="nst"><small>Next step</small>${icon} ${C.esc(text)}</span><em>›</em></button>`; };
+
   // ---------- Home ----------
   C.homeHTML = () => {
     const car = C.car(), col = C.college(), a = C.acct(), deal = C.todayDeal(), ev = C.event(), d = daily(), inj = car.squad.filter(p => p.inj).length;
-    const tile = (icon, name, act, v, badge, cls = '') => `<button class="htile ${cls}" data-act="${act}" data-v="${v}"><span class="hi">${icon}</span><b>${name}</b>${badge ? `<em>${badge}</em>` : ''}</button>`;
+    // Footium-style grid (round 5): white, icons floating, 3 × 4 with no widow. Settings lives in the header.
+    const tile = (icon, name, act, v, badge) => `<button class="htile" data-act="${act}" data-v="${v}"><span class="hi">${icon}</span><b>${name}</b>${badge ? `<em>${badge}</em>` : ''}</button>`;
     const S = car.staff || {};
     return `<div class="view scrolly home">
-      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<div><b>Coach ${C.esc(car.coach)}</b><small>${C.esc(col.short)} · ${C.tierLabel()} · ⭐ ${C.rep()}</small></div></div>
-        <div class="res hres"><span><i>💵</i><b>$${C.short(car.cash)}</b></span><span><i class="cpi"></i><b>${C.short(car.cp)}</b></span><span data-act="store"><i class="coin"></i><b>${C.short(a.gold)}</b><em class="plus">+</em></span></div></div>
+      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<div style="flex:1"><b>Coach ${C.esc(car.coach)}</b><small>${C.esc(col.short)} · ${C.tierLabel()} · ⭐ ${C.rep()}</small></div><button class="hgear" data-act="collegemap" data-v="" aria-label="College Map">🗺</button><button class="hgear" data-act="ask" aria-label="Help">❓</button><button class="hgear" data-act="settings" aria-label="Settings">⚙️</button></div>
+        <div class="res hres">${C.resBar()}</div><div class="hpow">${C.powerBadge('lt')}</div></div>
+      ${C.nextStepHTML()}
       ${d.gift ? '' : `<button class="gift" data-act="dailygift"><span>🎁</span><div><b>Daily gift</b><small>${C.rwText(C.GIFT)} · free, once a day</small></div><em>Claim</em></button>`}
+      <div class="homebn">${C.gamedayHTML()}</div>
+      <div class="htiles">
+        ${tile('🏟', 'Matchday', 'tab', 'season')}${tile('<i class="xoi big"></i>', 'Tactics', 'tactics', '')}${tile('🏫', 'Campus', 'tab', 'campus', C.idleBuilders() && C.readyCount() ? '!' : '')}
+        ${tile('👕', 'Squad', 'tab', 'squad')}${tile('📝', 'Recruit', 'tab', 'recruit', C.portalOpen() ? '🚪' : '')}${tile('🧢', 'Staff', 'tab', 'staff', S.mNew ? 'NEW' : '')}
+        ${tile('📋', 'Playbook', 'playbook', '', C.pbRunning() ? C.pbRunning() : '')}${tile('🩺', 'Medical', 'medical', '', inj || '')}${tile('🎁', 'Events', 'events', '', C.loClaimable() || '')}
+        ${tile('✉️', 'Inbox', 'inbox', '', C.inboxUnread() || '')}${tile('🎒', 'Inventory', 'inventory', '')}${tile('🛒', 'Store', 'store', '')}
+      </div>
       <div class="deal ${d.deal ? 'done' : ''}"><div class="dl"><small>Today's deal</small><b>${deal.icon} ${C.esc(deal.name)}</b><p>${C.rwText(deal.r)}</p></div>
         ${d.deal ? '<span class="dbought">✔ Bought today</span>' : `<button class="dbuy" data-act="buydeal" data-v="${deal.id}"><s>${deal.was}</s>${deal.price}</button>`}</div>
-      <div class="homebn">${C.gamedayHTML()}</div>
       <button class="evbn" data-act="events"><span>${ev.icon}</span><div><b>${ev.name}</b><small>${ev.desc}</small></div>${C.loClaimable() ? `<em>${C.loClaimable()}</em>` : ''}</button>
-      <div class="htiles">
-        ${tile('🏟', 'Matchday', 'tab', 'season')}${tile('<i class="xoi big"></i>', 'Tactics', 'tactics', '')}${tile('🏫', 'Campus', 'tab', 'campus')}
-        ${tile('👕', 'Squad', 'tab', 'squad')}${tile('✉️', 'Recruit', 'tab', 'recruit', C.portalOpen() ? '🚪' : '')}${tile('🧢', 'Staff', 'tab', 'staff', S.mNew ? 'NEW' : '')}
-        ${tile('📋', 'Playbook', 'playbook', '', C.pbRunning() ? C.pbRunning() : '')}${tile('🩺', 'Medical', 'medical', '', inj || '')}${tile('🎁', 'Events', 'events', '', C.loClaimable() || '')}
-        ${tile('🏛', 'Director', 'ad', '', C.adUnread() || '')}${tile('🛒', 'Store', 'store', '')}${tile('❓', 'Help', 'ask', '')}
-        ${tile('⚙️', 'Settings', 'settings', '')}
-      </div>
-      <p class="note" style="text-align:center;padding:0 16px 8px">🧪 Test build: purchases are simulated.</p></div>`;
+      <p class="note" style="text-align:center;padding:8px 16px">🧪 Test build: purchases are simulated.</p></div>`;
   };
+  // the one resource bar used on every tab (round 4, item 13): Booster $, Coaching Points, Coins (+ opens the Store)
+  C.schChip = () => `<span class="schip" title="Scholarship money left this year"><i class="schi"></i>$${C.short(C.poolLeft())} scholarships left</span>`;
+  C.resBar = () => { const car = C.car(), a = C.acct();
+    return `<span><i>💵</i><b id="r-cash">$${C.short(car.cash)}</b></span><span><i class="cpi"></i><b id="r-cp">${C.short(car.cp)}</b></span><span data-act="store"><i class="coin"></i><b id="r-gold">${C.short(a.gold)}</b><em class="plus">+</em></span>`; };
 })(window.CFC);

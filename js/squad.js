@@ -20,7 +20,8 @@
       return C.devSlotOpen(s.id) ? `<button class="dq free" data-act="toast" data-v="Open a player card and tap Train"><span class="c">🏋️</span><b>Free</b></button>` : `<button class="dq lock" data-act="devslot" data-v="${s.id}"><span class="c">🔒</span><b>${s.id === 'vip' ? 'VIP' : s.id === 'iap' ? '$' : 'TG 10'}</b></button>`; }).join('');
     const rare = car.items && car.items.rareRecruit ? `<button class="rarebn" data-act="rare">🎁 You have a Rare recruit from your First Week. <b>Sign them</b>${car.squad.length >= C.rosterCap() ? ' (roster full: upgrade the Dorms or release a player)' : ''}</button>` : '';
     return `<div class="view scrolly">
-      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎓 ${C.short(C.poolLeft())} scholarships left · 🎟 ${car.tokens}</small></div></div>
+      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎟 ${car.tokens} number changes</small></div></div>
+        <div class="res hres">${C.resBar()}</div><div class="chips">${C.schChip()}</div>
         <div class="dqrow"><span>Training plans</span>${dev}</div><div class="sqbtns"><button class="tacbn" data-act="tactics"><i class="xoi"></i> Tactics · ${C.tac().form}</button><button class="tacbn" data-act="medical">🩺 Medical${car.squad.filter(p => p.inj).length ? ' · ' + car.squad.filter(p => p.inj).length : ''}</button></div></div>
       ${rare}<div style="padding:0 16px">${C.advice(sq.some(p => p.energy < 60) ? 'snc' : 'mot')}</div>
       <div class="filters">${[['all', 'All ' + sq.length], ['xi', 'XI ' + count('xi')], ['bench', 'Bench ' + count('bench')], ['res', 'Reserves ' + count('res')]].map(([k, n]) => `<button class="f ${filter === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${k !== 'all' ? `<i style="background:${ROLE[k][1]}"></i>` : ''}${n}</button>`).join('')}</div>
@@ -49,14 +50,14 @@
     const heroBg = gk ? 'radial-gradient(120% 90% at 50% 20%,#facc15 0%,#ca8a04 55%,#713f12 100%)' : `radial-gradient(120% 90% at 50% 20%,${C.shade(col.c1, .25)} 0%,${col.c1} 55%,${C.shade(col.c1, -.5)} 100%)`;
     const devHTML = q ? `<div class="card devnow"><span>🏋️</span><div><b>${q.focus.startsWith('pos:') ? 'Retraining: ' + q.focus.slice(4) : 'Training: ' + A[q.focus][1]}</b><small><span data-dtimer="${id}">${C.dur(C.remaining(q))}</span> left</small></div>
         <button class="btn sm2" data-act="devspeed" data-v="${id}">${C.isFreeFinish(q) ? 'Free' : '<i class="coin"></i> ' + C.goldToFinish(q)}</button></div>`
-      : `<button class="btn full pri" data-act="train" data-v="${id}">🏋️ Train</button>`;
+      : `${C.capNote ? C.capNote(p) : ''}<button class="btn full pri" data-act="train" data-v="${id}">🏋️ Train</button>`;
     const P = C.portalOpen(), risk = P && P.risk[id], roleNow = C.roles()[id];
     const kept = C.promiseKept(p, roleNow);
     const extras = [p.acad && p.schol ? '📚 Academic aid' : '', p.cjob ? '💼 Campus job' : '', p.house ? '🏠 Housing help' : '', p.raise ? `📈 +${Math.round(p.raise * 100)}% next year` : ''].filter(Boolean);
     return `${risk ? `<button class="riskbn" data-act="keep" data-v="${id}">🚪 Thinking about the portal: ${C.REASONS[risk.why][0]} ${C.REASONS[risk.why][2]}. <b>Try to keep</b></button>` : ''}<div class="hero" style="background:${heroBg};margin:0 -16px">
         <div class="bignum">${p.num}</div><svg class="port" viewBox="0 0 120 120">${window.faceV4(Object.assign({}, p.look, kitOf(p), { num: p.num }))}</svg>
         <div class="nameplate"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(id) ? ' <span class="cap big">C</span>' : ''}</b>
-          <div class="tags"><span class="pos ${C.POSGROUP(p.pos)}">${p.pos}</span><span class="yr" style="border-color:rgba(255,255,255,.4);color:#fff">${C.yrIcon(p.year)}${yrN[p.year]}</span><span class="stars">${'★'.repeat(p.stars)}${'☆'.repeat(5 - p.stars)}</span><span class="rarp" style="background:${rar[1]}">${rar[0]}</span></div>
+          <div class="tags"><span class="pos ${C.POSGROUP(p.pos)}">${p.pos}</span><span class="yr plain" style="border-color:rgba(255,255,255,.5);color:#fff">${yrN[p.year]}</span><span class="stars">${'★'.repeat(p.stars)}${'☆'.repeat(5 - p.stars)}</span><span class="rarp" style="background:${rar[1]}">${rar[0]}</span></div>
           <small class="hometown">${p.flag} ${C.esc(p.town)} · GPA ${p.gpa}</small></div></div>
       <div class="kpis" style="margin-top:12px">
         <div class="kpi"><b>${p.rating}</b><small>Rating</small></div><div class="kpi"><b style="color:var(--fit5)">${p.pot}</b><small>Potential</small></div>

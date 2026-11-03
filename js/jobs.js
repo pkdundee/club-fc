@@ -35,7 +35,7 @@
 
   C.makeJobs = seed => {
     const r = C.rng(seed), pick = a => a[Math.floor(r() * a.length)], shuffle = a => a.map(v => [r(), v]).sort((x, y) => x[0] - y[0]).map(v => v[1]);
-    const cols = shuffle(C.COLLEGES.map(c => c.id));
+    const cols = shuffle(C.COLLEGES.filter(c => c.tier === 5).map(c => c.id));   // first jobs are always at small colleges
     const jobs = [];
     // 3 pages x (2 women's + 2 men's), each gender gets one strong and one weak story per page
     for (let p = 0; p < 3; p++) {

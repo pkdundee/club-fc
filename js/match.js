@@ -7,14 +7,22 @@
   // ================= campus radio: Duane (play-by-play) and Bev (stats) =================
   const L = {
     ko: ['🎙 Duane: Welcome to {station}, campus radio! It\'s {weather} and {crowd} are in. Let\'s go!', '📊 Bev: For the record, I have prepared eleven pages of notes. We will use none of them.'],
-    goal: ['🎙 Duane: GOOOAL! {p} for {t}!', '🎙 Duane: IT\'S IN! {p}! Oh my goodness!', '🎙 Duane: {p} buries it! {t} take it {score}!', '🎙 Duane: What a finish from {p}!'],
+    goal: ['🎙 Duane: GOOOAL! {p} for {t}!', '🎙 Duane: IT\'S IN! {p}! Oh my goodness!', '🎙 Duane: {p} buries it! {t} take it {score}!', '🎙 Duane: What a finish from {p}!', '🎙 Duane: {p} finds the corner! {score}!', '🎙 Duane: Back of the net! {p} for {t}!', '🎙 Duane: Cool as you like from {p}. {score}.', '🎙 Duane: {p} SCORES! The {mascot} bench empties!'],
     goal2: ['📊 Bev: That\'s {g} for {p} today. I\'m told that\'s good.', '📊 Bev: {a} with the assist. I\'m writing it in pen.', '📊 Bev: Historically, goals are the main way of scoring.', '📊 Bev: Shot number {s} for {t}. Persistence.'],
     pen: ['🎙 Duane: PENALTY! The ref points to the spot!', '📊 Bev: Penalty. From eleven metres. Or twelve yards, for the boosters.'],
     save: ['🎙 Duane: Big save from {k}!', '🎙 Duane: {p} goes for it… denied by {k}!', '📊 Bev: {k} has {sv} saves. Their gloves deserve a scholarship.'],
-    miss: ['🎙 Duane: {p} shoots… just wide!', '🎙 Duane: Oh, {p} drags it past the post!', '📊 Bev: That one is landing in the parking lot.', '🎙 Duane: Over the bar from {p}!'],
+    miss: ['🎙 Duane: {p} shoots… just wide!', '🎙 Duane: Oh, {p} drags it past the post!', '📊 Bev: That one is landing in the parking lot.', '🎙 Duane: Over the bar from {p}!', '🎙 Duane: {p} leans back and skies it.', '🎙 Duane: Inches wide from {p}!', '📊 Bev: {p} will want that one back.', '🎙 Duane: {p} snatches at it. Goal kick.'],
+    corner: ['🎙 Duane: Corner kick to {t}.', '🎙 Duane: {t} win a corner. Bodies into the box.', '📊 Bev: Corner number {c} for {t}.', '🎙 Duane: It\'s behind for a corner!', '🎙 Duane: Corner. The big defenders are jogging up.'],
+    throw: ['🎙 Duane: Throw-in to {t}.', '🎙 Duane: Out for a throw.', '📊 Bev: Throw-in. Underrated part of the game, I say.'],
+    goalkick: ['🎙 Duane: Goal kick.', '🎙 Duane: Goal kick, {t} will restart.'],
+    foul: ['🎙 Duane: Free kick! {o} brings down {p}.', '🎙 Duane: Whistle. {o} was late on {p}.', '🎙 Duane: Foul by {o}. Free kick to {t}.', '📊 Bev: That\'s foul number {f} for {ot}.', '🎙 Duane: {p} goes down under the challenge from {o}. Free kick.'],
+    tackle: ['🎙 Duane: Great tackle from {p}!', '🎙 Duane: {p} wins it back!', '🎙 Duane: Strong in the challenge, {p}.'],
+    int: ['🎙 Duane: Read it well, {p} intercepts.', '🎙 Duane: Cut out by {p}!', '🎙 Duane: {p} steps in and steals it.'],
+    shape: ['📊 Bev: {t} change shape: {form} now.', '🎙 Duane: {t} reorganise into a {form}.'],
     block: ['🎙 Duane: Blocked! Great body on the line from {o}!', '📊 Bev: {o} with the block. Selfless. Possibly painful.'],
     yellow: ['🎙 Duane: Yellow card for {p}! That means a spell off the field.', '📊 Bev: College rule: a yellow sends you off for a while. Like a sin bin, but with more paperwork.'],
-    red: ['🎙 Duane: RED CARD! {p} is off!', '📊 Bev: {t} down to ten. Mathematically, that\'s one fewer.'],
+    red: ['🎙 Duane: RED CARD! {p} is OFF! The crowd can\'t believe it!', '🎙 Duane: Straight red! {p} has to go. {t} are down to ten!', '🎙 Duane: That\'s a second yellow, and {p} is off! Big moment!'],
+    red2: ['📊 Bev: {t} down to ten. Mathematically, that\'s one fewer.', '📊 Bev: Ten men for {t}. The coach has a decision to make.', '📊 Bev: Every {t} player now has an extra yard to cover.'],
     back: ['🎙 Duane: {p} is back on after the yellow.'],
     injury: ['🎙 Duane: Oh no, {p} is down and that looks sore.', '📊 Bev: The trainer is jogging on. Respect the jog.'],
     knock: ['🎙 Duane: {p} takes a knock but plays on.'],
@@ -31,6 +39,7 @@
     const st = { station: 'K' + col.abbr, weather: C.WEATHER[M.f.wx][2], weathershort: C.WEATHER[M.f.wx][1].toLowerCase(), crowd: M.att.toLocaleString(), score: `${T[0].short} ${S[0]}–${S[1]} ${T[1].short}`, mascot: col.mascot, crowdword: M.att > 1500 ? 'roaring' : M.att > 600 ? 'lively' : 'small but loud',
       poss: Math.round(m.st.poss[M.my] / (m.st.poss[0] + m.st.poss[1] || 1) * 100), sh1: m.st.shots[M.my], sh2: m.st.shots[1 - M.my], local: M.locals };
     st.poss2 = 100 - st.poss;
+    if (e && e.side >= 0) { st.c = m.st.corners[e.side]; st.ot = T[1 - e.side].short; st.f = m.st.fouls[1 - e.side]; st.form = e.extra && e.extra.form || ''; }
     if (e) { st.p = nm(e.who); st.t = e.side >= 0 ? T[e.side].short : ''; st.o = e.extra ? nm(e.extra.by || e.extra.off) : ''; st.k = e.extra && e.extra.gk ? nm(e.extra.gk) : nm(e.who); st.a = e.extra && e.extra.assist ? nm(e.extra.assist) : '';
       st.g = e.who ? e.who.st.g : 0; st.s = e.side >= 0 ? m.st.shots[e.side] : 0; st.sv = e.extra && e.extra.gk ? e.extra.gk.st.sv : e.who ? e.who.st.sv : 0; }
     else st.t = T[M.my].short;
@@ -97,7 +106,7 @@
   // ================= live match =================
   C.kickOff = () => {
     clearInterval(M.cdT); const [A, B] = teamPair(), S = C.sea();
-    M.m = C.createMatch(A, B, (C.car().created & 0xffff) * 131 + S.n * 977 + M.f.md * 7, { knockout: !!M.f.ko, med: [C.level('med') * (M.my === 0 ? 1 : 0), C.level('med') * (M.my === 1 ? 1 : 0)] });
+    M.m = C.createMatch(A, B, (C.car().created & 0xffff) * 131 + S.n * 977 + M.f.md * 7, matchOpts());
     M.playing = true; M.last = performance.now(); M.acc = 0; M.lineT = 0; M.fillT = 0; M.kits = kitsFor(M.m.teams);
     drawLive(); say(line('ko')); setTimeout(() => M && M.m && say(line('ko').replace(/^.*$/, L.ko[1])), 2500);
     crowdOn(Math.min(1, M.att / 3000)); whistle(1);
@@ -105,11 +114,13 @@
   };
   C.quickMatch = () => { // auto-managed, straight to full time
     clearInterval(M.cdT); const [A, B] = teamPair(); A.auto = B.auto = true; const S = C.sea();
-    M.m = C.createMatch(A, B, (C.car().created & 0xffff) * 131 + S.n * 977 + M.f.md * 7, { knockout: !!M.f.ko });
+    M.m = C.createMatch(A, B, (C.car().created & 0xffff) * 131 + S.n * 977 + M.f.md * 7, matchOpts());
     C.simToEnd(M.m); finishUI();
   };
+  // the same options for watched and quick matches, so both give the same result; the game profile follows the career (men's or women's)
+  function matchOpts() { return { knockout: !!M.f.ko, gender: C.car().gender, trace: !!M.debug, med: [C.level('med') * (M.my === 0 ? 1 : 0), C.level('med') * (M.my === 1 ? 1 : 0)] }; }
   function rate() { const m = M.m, b = m.ball, my = M.my; const near = Math.min(b.y, PL - b.y) < 30 || (b.fl && b.fl.type !== 'pass');
-    return M.speed === 1 ? (near ? 2.3 : 5.5) : M.speed === 5 ? 17 : 34; }
+    return M.speed === .25 ? 1 : M.speed === 1 ? (near ? 2.3 : 5.5) : M.speed === 5 ? 17 : 34; }
   function loop(now) {
     if (!M || !M.m) return;
     const dt = Math.min(.1, (now - M.last) / 1000); M.last = now;
@@ -130,13 +141,32 @@
       if (['goal', 'save', 'miss', 'block', 'yellow', 'red', 'injury', 'sub', 'penalty', 'back', 'claim', 'knock', 'offside'].includes(e.type)) M.lastEvT = m.t;
       if (e.type === 'goal') { say(line('goal', e)); setTimeout(() => M && M.m && say(line('goal2', e)), 2200 / M.speed); swell(3.2, 4); if (e.side === M.my && M.my === 0) sting(); whistle(1); feed(e); }
       else if (e.type === 'save' || e.type === 'miss') { if (Math.random() < (M.speed === 1 ? .8 : .4)) say(line(e.type, e)); ooh(); swell(1.8, 1.5); }
-      else if (e.type === 'offside') { say(line('offside', e)); whistle(1); }
+      else if (e.type === 'offside') { say(line('offside', e)); whistle(1); flag('OFFSIDE', e.side); }
+      else if (e.type === 'corner') { if (M.speed <= 5 || Math.random() < .5) say(line('corner', e)); flag('CORNER', e.side); }
+      else if (e.type === 'throw') { if (Math.random() < (M.speed === 1 ? .3 : .1)) say(line('throw', e)); flag('THROW-IN', e.side); }
+      else if (e.type === 'goalkick') { if (Math.random() < .15) say(line('goalkick', e)); flag('GOAL KICK', e.side); }
+      else if (e.type === 'foul') { if (Math.random() < (M.speed === 1 ? .7 : .35)) say(line('foul', e)); whistle(1); flag('FREE KICK', e.side); }
+      else if ((e.type === 'tackle' || e.type === 'int') && M.speed === 1 && Math.random() < .25 && m.t - (M.lastEvT || 0) > 6) say(line(e.type, e));
+      else if (e.type === 'shape') say(line('shape', e));
       else if (['block', 'yellow', 'red', 'injury', 'knock', 'sub', 'back', 'claim', 'penalty'].includes(e.type)) { const k = e.type === 'penalty' ? 'pen' : e.type; if (e.type !== 'claim' || Math.random() < .3) say(line(k, e)); if (['yellow', 'red', 'penalty'].includes(e.type)) whistle(1); if (['yellow', 'red', 'injury', 'sub', 'penalty'].includes(e.type)) feed(e); }
       else if (e.type === 'ht') { say(line('ht')); whistle(2); }
       else if (e.type === 'ft') { say(line('ft')); whistle(3); }
       if (e.type === 'injury' && e.side === M.my && !m.teams[M.my].auto) { M.playing = false; setTimeout(() => C.openSubs(e.who), 50); }
+      if (e.type === 'red') { swell(2.5, 3); setTimeout(() => M && M.m && say(line('red2', e)), 2600 / M.speed); redMoment(e); }
     }
   }
+  // a set piece or decision shows on the pitch for a moment, so it can be seen even at speed
+  function flag(txt, side) { M.flag = { txt, side, until: performance.now() + 1500 }; }
+  // red card: stop, show it, and (for your team) offer a change of shape
+  function redMoment(e) {
+    M.playing = false; const mine = e.side === M.my, T = M.m.teams[e.side], n = M.m.ents.filter(x => x.side === e.side && x.on).length;
+    const forms = ['4-4-1', '4-3-2', '5-3-1', '4-4-2', '3-5-1'].filter(f => C.FORMATIONS[f]);
+    host().insertAdjacentHTML('beforeend', `<div class="redcard" id="redc"><div class="rcard"></div><b>RED CARD</b><p>${C.esc(e.who.p.fn + ' ' + e.who.p.ln)} is sent off. ${C.esc(T.short)} are down to ${n}.</p>
+      ${mine ? `<small>${T.auto ? 'Auto-manage has reorganised the team.' : 'Change your shape for ten players?'}</small><div class="rcf">${['4-4-2', '4-3-3', '4-2-3-1', '5-3-2', '4-1-4-1'].map(f => `<button class="btn sm2 ${T.form === f ? 'pri' : ''}" data-act="mredform" data-v="${f}">${f}</button>`).join('')}</div>` : ''}
+      <button class="btn full pri" data-act="mredgo">▶ Play on</button></div>`);
+  }
+  C.redForm = f => { C.reshape(M.m, M.my, f); C.$$('.rcf button').forEach(b => b.classList.toggle('pri', b.dataset.v === f)); };
+  C.redGo = () => { const n = C.$('#redc'); if (n) n.remove(); M.playing = true; };
   function say(t) { if (!t) return; const n = C.$('#tick'); if (n) { n.textContent = t; n.classList.remove('pop'); void n.offsetWidth; n.classList.add('pop'); } }
   function feed(e) { const n = C.$('#mfeed'); if (!n) return; const ic = { goal: '⚽', yellow: '🟨', red: '🟥', injury: '🩹', sub: '🔁', penalty: '🎯' }[e.type];
     const who = e.who ? e.who.p.ln : '', mine = e.side === M.my;
@@ -156,15 +186,17 @@
   function drawLive() {
     const m = M.m, T = m.teams;
     const K = M.kits.kit, sw = k => `<i class="kitsw" style="background:${k[0]};border-color:${k[1]}"></i>`;
-    host().innerHTML = `<div class="live"><div class="sbar">${C.crestSVG(T[0].c1, T[0].c2, T[0].abbr.slice(0, 2), 30)}<b class="tn">${sw(K[0])}${C.esc(T[0].abbr)}<small>H</small></b><b class="sc" id="msc">0 – 0</b><b class="tn">${sw(K[1])}${C.esc(T[1].abbr)}<small>A</small></b>${C.crestSVG(T[1].c1, T[1].c2, T[1].abbr.slice(0, 2), 30)}
+    const you = i => i === M.my ? '<em class="you">YOU</em>' : '';
+    host().innerHTML = `<div class="live"><div class="sbar">${C.crestSVG(T[0].c1, T[0].c2, T[0].abbr.slice(0, 2), 30)}<b class="tn ${M.my === 0 ? 'me' : ''}">${sw(K[0])}${C.esc(T[0].abbr)}<small>H</small>${you(0)}</b><b class="sc" id="msc">0 – 0</b><b class="tn ${M.my === 1 ? 'me' : ''}">${sw(K[1])}${C.esc(T[1].abbr)}<small>A</small>${you(1)}</b>${C.crestSVG(T[1].c1, T[1].c2, T[1].abbr.slice(0, 2), 30)}
         <span class="mn" id="mmin">1'</span><button class="mic" data-act="msound">${C.acct().sound ? '🔊' : '🔇'}</button></div>
       <div class="pitchw"><canvas id="pitch"></canvas></div><div class="tick" id="tick"></div>
-      <div class="spd">${[1, 5, 10].map(s => `<button class="${M.speed === s ? 'on' : ''}" data-act="mspeed" data-v="${s}">${s}×</button>`).join('')}<button data-act="mpause" id="mpz">⏸</button><button data-act="mskip" data-v="ht" ${m.half > 1 ? 'disabled' : ''}>⏭ HT</button><button data-act="mskip" data-v="ft">⏭ FT</button></div>
+      <div class="mkey"><span>${sw(K[M.my])} <b>${C.esc(T[M.my].short)}</b> (you) <span id="mdir">attack ▲</span></span><span>${sw(K[1 - M.my])} ${C.esc(T[1 - M.my].short)}</span></div>
+      <div class="spd"><button class="${M.speed === .25 ? 'on' : ''}" data-act="mspeed" data-v=".25" title="Real time, for checking the engine">🐢</button>${[1, 5, 10].map(s => `<button class="${M.speed === s ? 'on' : ''}" data-act="mspeed" data-v="${s}">${s}×</button>`).join('')}<button class="${M.debug ? 'on' : ''}" data-act="mdebug" title="Show passes, shots and lines">🔍</button><button data-act="mpause" id="mpz">⏸</button><button data-act="mskip" data-v="ht" ${m.half > 1 ? 'disabled' : ''}>⏭ HT</button><button data-act="mskip" data-v="ft">⏭ FT</button></div>
       <div class="mrow"><div class="mfeed" id="mfeed"></div><div class="mbtns"><button class="btn sm2" data-act="msubs">🔁 Subs</button><button class="btn sm2" data-act="mment"><i class="xoi"></i> Plan</button></div></div>
       <div class="pend" id="mpend"></div></div>`;
     sizeCanvas();
   }
-  function sizeCanvas() { const cv = C.$('#pitch'); if (!cv) return; const w0 = cv.parentElement.clientWidth, h0 = host().clientHeight - 230;
+  function sizeCanvas() { const cv = C.$('#pitch'); if (!cv) return; const w0 = cv.parentElement.clientWidth, h0 = host().clientHeight - 300;
     let w = w0, h = w * (PL + 6) / (PW + 4); if (h > h0) { h = Math.max(320, h0); w = h * (PW + 4) / (PL + 6); }
     const dpr = window.devicePixelRatio || 1; cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + 'px'; cv.style.height = h + 'px'; M.cw = w; M.ch = h; M.dpr = dpr; }
   function hud() {
@@ -174,35 +206,59 @@
     const pd = C.$('#mpend'); if (pd) { const p = m.pending.filter(s => s.side === M.my); pd.textContent = p.length ? `🔁 ${p.map(s => s.inP.ln + ' for ' + s.outE.p.ln).join(', ')} · at the next stoppage` : ''; }
   }
 
-  // ---------- drawing to scale (Q20i): my team always attacks up the screen ----------
+  // ---------- drawing to scale (Q20i): my team attacks up the screen in the first half and down it after half-time (teams change ends) ----------
   function draw() {
-    const cv = C.$('#pitch'); if (!cv) return; const g = cv.getContext('2d'), m = M.m, k = M.cw / (PW + 4), dpr = M.dpr, flip = M.my === 0;
+    const cv = C.$('#pitch'); if (!cv) return; const g = cv.getContext('2d'), m = M.m, k = M.cw / (PW + 4), dpr = M.dpr, flip = (M.my === 0) !== (m.half === 2);
     const X = x => (2 + (flip ? x : PW - x)) * k, Y = y => (3 + (flip ? PL - y : y)) * k;
+    const dir = C.$('#mdir'); if (dir) dir.textContent = m.half === 2 ? 'attack ▼' : 'attack ▲';
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     for (let i = 0; i < 12; i++) { g.fillStyle = i % 2 ? '#3f9e4a' : '#46a952'; g.fillRect(0, i * M.ch / 12, M.cw, M.ch / 12 + 1); }
     g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = Math.max(1, k * .14);
     const rect = (x1, y1, x2, y2) => g.strokeRect(Math.min(X(x1), X(x2)), Math.min(Y(y1), Y(y2)), Math.abs(X(x2) - X(x1)), Math.abs(Y(y2) - Y(y1)));
     rect(0, 0, PW, PL); g.beginPath(); g.moveTo(X(0), Y(PL / 2)); g.lineTo(X(PW), Y(PL / 2)); g.stroke();
     g.beginPath(); g.arc(X(PW / 2), Y(PL / 2), 9.15 * k, 0, 7); g.stroke();
+    // goals drawn a little larger than true scale so they read next to the player tokens; misses land clear of the frame
+    const GW = 4.6, GD = 2.6;
     for (const end of [0, PL]) { const d = end ? -1 : 1; rect(PW / 2 - 20.16, end, PW / 2 + 20.16, end + d * 16.5); rect(PW / 2 - 9.16, end, PW / 2 + 9.16, end + d * 5.5);
       g.fillStyle = '#fff'; g.beginPath(); g.arc(X(PW / 2), Y(end + d * 11), k * .3, 0, 7); g.fill();
-      g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(Math.min(X(PW / 2 - 3.66), X(PW / 2 + 3.66)), Math.min(Y(end), Y(end - d * 1.6)), 7.32 * k, 1.6 * k);
+      const gx = Math.min(X(PW / 2 - GW), X(PW / 2 + GW)), gy = Math.min(Y(end), Y(end - d * GD)), gw = 2 * GW * k, gh = GD * k;
+      g.fillStyle = 'rgba(255,255,255,.28)'; g.fillRect(gx, gy, gw, gh);
+      g.save(); g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = .7; g.beginPath(); for (let i = 1; i < 8; i++) { g.moveTo(gx + gw * i / 8, gy); g.lineTo(gx + gw * i / 8, gy + gh); } g.moveTo(gx, gy + gh / 2); g.lineTo(gx + gw, gy + gh / 2); g.stroke(); g.restore();
+      g.save(); g.strokeStyle = '#fff'; g.lineWidth = Math.max(2, k * .3); g.strokeRect(gx, gy, gw, gh); g.restore();
       g.beginPath(); g.arc(X(PW / 2), Y(end + d * 11), 9.15 * k, (d > 0) === flip ? Math.PI * 1.2 : Math.PI * .2, (d > 0) === flip ? Math.PI * 1.8 : Math.PI * .8); g.stroke(); }
-    // players: circles ~4.5% of pitch width
-    const r = M.cw * .0235, T = m.teams;
+    // debug view: offside lines, recent passes and shots, positions
+    if (M.debug) {
+      for (const sd of [0, 1]) { if (!m.off) break; const ly = sd === 0 ? m.off[0] : PL - m.off[1]; g.save(); g.setLineDash([4, 4]); g.strokeStyle = sd === M.my ? 'rgba(250,204,21,.9)' : 'rgba(248,113,113,.9)'; g.beginPath(); g.moveTo(X(0), Y(ly)); g.lineTo(X(PW), Y(ly)); g.stroke(); g.restore(); }
+      for (const t of (m.trace || []).filter(t => m.t - t.t < (t.k === 'shot' ? 6 : 3))) { g.save(); g.globalAlpha = 1 - (m.t - t.t) / (t.k === 'shot' ? 6 : 3);
+        g.strokeStyle = t.k === 'shot' ? (t.res === 'goal' ? '#22c55e' : '#f97316') : t.thru ? '#a855f7' : t.side === M.my ? '#fde047' : '#fca5a5'; g.lineWidth = t.k === 'shot' ? 2.5 : 1.5;
+        g.beginPath(); g.moveTo(X(t.fx), Y(t.fy)); g.lineTo(X(t.tx), Y(t.ty)); g.stroke();
+        g.fillStyle = '#fff'; g.font = '700 9px Nunito'; g.textAlign = 'left'; g.fillText(t.k === 'shot' ? `${t.from} ${t.d}m ${t.res}` : `${t.from}→${t.to} ${t.ok}%`, X(t.fx) + 6, Y(t.fy) - 6); g.restore(); }
+    }
+    // players: bigger tokens; your team gets a white halo
+    const r = M.cw * .029, T = m.teams;
     const kit = (M.kits || kitsFor(T)).kit, gkKit = (M.kits || kitsFor(T)).gk;
-    g.font = `900 ${Math.round(r * 1.05)}px Nunito`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    for (const e of m.ents) { if (!e.on || e.bin) continue; const gk = e.slot.pos === 'GK', [f1, f2] = gk ? gkKit[e.side] : kit[e.side];
+    g.font = `900 ${Math.round(r * 1.15)}px Nunito`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (const e of m.ents) { if (!e.on || e.bin) continue; const gk = e.slot.pos === 'GK', [f1, f2] = gk ? gkKit[e.side] : kit[e.side], mine = e.side === M.my;
       g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(X(e.x) + 1.5, Y(e.y) + 2, r, r * .8, 0, 0, 7); g.fill();
-      g.fillStyle = f1; g.strokeStyle = f2; g.lineWidth = 1.8; g.beginPath(); g.arc(X(e.x), Y(e.y), r, 0, 7); g.fill(); g.stroke();
+      if (mine) { g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(X(e.x), Y(e.y), r + 2.2, 0, 7); g.fill(); }
+      g.fillStyle = f1; g.strokeStyle = f2; g.lineWidth = 2; g.beginPath(); g.arc(X(e.x), Y(e.y), r, 0, 7); g.fill(); g.stroke();
       g.fillStyle = gk ? '#111827' : f2; g.fillText(e.p.num, X(e.x), Y(e.y) + .5);
-      if (e.knock && e.side === M.my) { g.fillStyle = '#ef4444'; g.beginPath(); g.arc(X(e.x) + r, Y(e.y) - r, r * .35, 0, 7); g.fill(); } }
-    const b = m.ball; g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.arc(X(b.x) + 1, Y(b.y) + 1.5, k * .5, 0, 7); g.fill();
-    g.fillStyle = '#fff'; g.strokeStyle = '#111'; g.lineWidth = 1; g.beginPath(); g.arc(X(b.x), Y(b.y) - b.h * k * .6, k * (.55 + b.h * .08), 0, 7); g.fill(); g.stroke();
+      if (M.debug) { g.save(); g.font = '800 8px Nunito'; g.fillStyle = '#fff'; g.fillText(e.slot.pos, X(e.x), Y(e.y) + r + 7); g.restore(); g.font = `900 ${Math.round(r * 1.15)}px Nunito`; }
+      if (e.knock && mine) { g.fillStyle = '#ef4444'; g.beginPath(); g.arc(X(e.x) + r, Y(e.y) - r, r * .35, 0, 7); g.fill(); } }
+    if (m.ball.owner && M.debug) { const o = m.ball.owner; g.save(); g.strokeStyle = '#fde047'; g.lineWidth = 2; g.beginPath(); g.arc(X(o.x), Y(o.y), r + 5, 0, 7); g.stroke(); g.restore(); }
+    const b = m.ball; g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.arc(X(b.x) + 1, Y(b.y) + 1.5, k * .55, 0, 7); g.fill();
+    g.fillStyle = '#fff'; g.strokeStyle = '#111'; g.lineWidth = 1; g.beginPath(); g.arc(X(b.x), Y(b.y) - b.h * k * .6, k * (.62 + b.h * .08), 0, 7); g.fill(); g.stroke();
+    // set-piece label near the ball
+    if (M.flag && performance.now() < M.flag.until) { const t = M.flag.txt, bx = clamp(X(b.x), 40, M.cw - 40), by = clamp(Y(b.y) - 22, 14, M.ch - 14);
+      g.save(); g.font = '900 12px Nunito'; const w = g.measureText(t).width + 16; g.fillStyle = M.flag.side === M.my ? 'rgba(22,101,52,.92)' : 'rgba(15,23,42,.88)'; g.beginPath(); g.roundRect ? g.roundRect(bx - w / 2, by - 10, w, 20, 10) : g.rect(bx - w / 2, by - 10, w, 20); g.fill();
+      g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, bx, by + .5); g.restore(); }
   }
+  const clamp = C.clamp;
 
   // ---------- controls ----------
   C.matchSpeed = s => { M.speed = +s; C.$$('.spd [data-act=mspeed]').forEach(b => b.classList.toggle('on', +b.dataset.v === M.speed)); };
+  // debug view (round 5): real-time speed plus pass, shot and offside-line drawing
+  C.matchDebug = () => { M.debug = !M.debug; if (M.debug && !M.m.trace) M.m.trace = []; if (M.debug) C.matchSpeed(.25); const b = C.$('[data-act=mdebug]'); if (b) b.classList.toggle('on', M.debug); };
   C.matchPause = () => { M.playing = !M.playing; if (M.m.ht) return C.secondHalf(); };
   C.matchSkip = v => { const m = M.m; if (v === 'ht' && m.half === 1) { C.simToHT(m); events(); M.playing = false; halfTime(); } else if (v === 'ft') { if (m.ht) m.ht = false; C.simToEnd(m); M.ev = m.events.length; finishUI(); } };
   C.toggleSound = () => { const a = C.acct(); a.sound = !a.sound; C.save(); if (a.sound) { crowdOn(Math.min(1, (M && M.att || 500) / 3000)); } else crowdOff(); const b = C.$('.mic'); if (b) b.textContent = a.sound ? '🔊' : '🔇'; };

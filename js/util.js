@@ -40,3 +40,4 @@ window.CFC = window.CFC || {};
 
   C.seatIcon = (c = '#1e3a8a') => `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v8H5V4a1 1 0 0 1 1-1z" fill="${c}"/><path d="M4 12h16l-1.5 4h-13z" fill="${c}" opacity=".85"/><path d="M6.5 16v5M17.5 16v5M5 21h3M16 21h3" stroke="#475569" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 })(window.CFC);
+window.CFC.ACTS = window.CFC.ACTS || {};

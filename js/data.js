@@ -15,7 +15,31 @@
     ['Pine Hollow College', 'Pine Hollow', 'Bobcats', 'PHC', 'AR', '#14532d', '#f97316', false],
     ['Copper Canyon College', 'Copper Canyon', 'Prospectors', 'CCC', 'AZ', '#78350f', '#38bdf8', true],
     ['Harbor Point College', 'Harbor Point', 'Mariners', 'HPC', 'ME', '#1e293b', '#ef4444', false]
-  ].map(([full, short, mascot, abbr, state, c1, c2, pub], id) => ({ id, full, short, mascot, abbr, state, c1, c2, pub }));
+  ].map(([full, short, mascot, abbr, state, c1, c2, pub], id) => ({ id, full, short, mascot, abbr, state, c1, c2, pub, tier: 5 }));
+  // Higher tiers (phase-9i): invented names, none based on a real school. Appended so existing saves keep their college ids.
+  [[1, [['Ironhorse University', 'Ironhorse', 'Stallions', 'IHU', 'TX', '#7c2d12', '#fbbf24', true], ['Crown Valley University', 'Crown Valley', 'Monarchs', 'CVU', 'CA', '#4c1d95', '#fde047', false],
+      ['Summit Lakes University', 'Summit Lakes', 'Elk', 'SLU', 'CO', '#064e3b', '#e5e7eb', true], ['Bluewater University', 'Bluewater', 'Marlins', 'BWU', 'FL', '#075985', '#f97316', true],
+      ['Northgate State University', 'Northgate State', 'Wolves', 'NSU', 'OH', '#991b1b', '#f8fafc', true], ['Stormhaven University', 'Stormhaven', 'Thunder', 'SHU', 'NC', '#1e3a8a', '#93c5fd', false],
+      ['Kingsbridge University', 'Kingsbridge', 'Lions', 'KBU', 'VA', '#78350f', '#facc15', false], ['Silverpine University', 'Silverpine', 'Timberwolves', 'SPU', 'WA', '#334155', '#4ade80', true],
+      ['Goldleaf University', 'Goldleaf', 'Owls', 'GLU', 'IN', '#3f6212', '#fcd34d', true]]],
+   [2, [['Cobblestone University', 'Cobblestone', 'Foxes', 'CSU', 'PA', '#9f1239', '#fef3c7', false], ['Willowbrook State', 'Willowbrook State', 'Kestrels', 'WBS', 'IL', '#0f766e', '#fde68a', true],
+      ['Thistledown University', 'Thistledown', 'Ravens', 'TDU', 'OR', '#581c87', '#a3e635', false], ['Granitecrest University', 'Granitecrest', 'Mountaineers', 'GCU', 'NH', '#374151', '#f59e0b', true],
+      ['Sunfield State', 'Sunfield State', 'Sunbirds', 'SFS', 'KS', '#ca8a04', '#1e3a8a', true], ['Kettle River University', 'Kettle River', 'Otters', 'KRU', 'WI', '#1d4ed8', '#fbbf24', true],
+      ['Cedar Hollow University', 'Cedar Hollow', 'Hounds', 'CHU', 'TN', '#166534', '#f97316', false], ['Starfield University', 'Starfield', 'Comets', 'SFU', 'GA', '#111827', '#38bdf8', false],
+      ['Bramblewood State', 'Bramblewood State', 'Hedgehogs', 'BWS', 'MO', '#6b21a8', '#fca5a5', true]]],
+   [3, [['Larkspur University', 'Larkspur', 'Larks', 'LKU', 'KY', '#1e40af', '#c4b5fd', false], ['Flintlock State', 'Flintlock State', 'Minutemen', 'FLS', 'VA', '#7f1d1d', '#d6d3d1', true],
+      ['Quarry Ridge University', 'Quarry Ridge', 'Stonecutters', 'QRU', 'VT', '#57534e', '#22c55e', false], ['Windmill State', 'Windmill State', 'Whirlwinds', 'WMS', 'OK', '#b45309', '#e0f2fe', true],
+      ['Juniper Gap University', 'Juniper Gap', 'Coyotes', 'JGU', 'UT', '#365314', '#fdba74', true], ['Tumbleweed State', 'Tumbleweed State', 'Drifters', 'TWS', 'NV', '#a16207', '#0f172a', true],
+      ['Lantern Bay University', 'Lantern Bay', 'Pelicans', 'LBU', 'SC', '#0e7490', '#fef08a', false], ['Maplecroft University', 'Maplecroft', 'Grey Owls', 'MCU', 'CT', '#9a3412', '#cbd5e1', false],
+      ['Bellwether University', 'Bellwether', 'Rams', 'BLU', 'OH', '#312e81', '#fbbf24', true]]],
+   [4, [['Pebble Creek College', 'Pebble Creek', 'Trout', 'PCC', 'ID', '#0369a1', '#bbf7d0', true], ['Sawmill State', 'Sawmill State', 'Lumberjacks', 'SMS', 'MT', '#854d0e', '#e5e7eb', true],
+      ['Bluebonnet College', 'Bluebonnet', 'Armadillos', 'BBC', 'TX', '#4338ca', '#fde047', false], ['Gristmill College', 'Gristmill', 'Millers', 'GMC', 'IA', '#92400e', '#f8fafc', true],
+      ['Shady Grove College', 'Shady Grove', 'Possums', 'SGC', 'MS', '#14532d', '#d9f99d', false], ['Sagebrush State', 'Sagebrush State', 'Wranglers', 'SBS', 'WY', '#713f12', '#93c5fd', true],
+      ['Lighthouse Point College', 'Lighthouse Point', 'Keepers', 'LPC', 'DE', '#b91c1c', '#f8fafc', false], ['Orchard Hill College', 'Orchard Hill', 'Pippins', 'OHC', 'WA', '#15803d', '#fca5a5', true],
+      ['Kiln Creek College', 'Kiln Creek', 'Potters', 'KCC', 'AL', '#7c2d12', '#67e8f9', true]]]
+  ].forEach(([tier, list]) => list.forEach(([full, short, mascot, abbr, state, c1, c2, pub]) => C.COLLEGES.push({ id: C.COLLEGES.length, full, short, mascot, abbr, state, c1, c2, pub, tier })));
+  // colleges at a tier (with neighbours if a tier ever runs short)
+  C.collegesAt = (tier, skip = []) => { let out = C.COLLEGES.filter(c => c.tier === tier && !skip.includes(c.id)); for (let d = 1; out.length < 8 && d < 5; d++) out = out.concat(C.COLLEGES.filter(c => Math.abs(c.tier - tier) === d && !skip.includes(c.id) && !out.includes(c))); return out; };
 
   // ---- tiers (Q27): each caps building levels ----
   C.TIERS = [

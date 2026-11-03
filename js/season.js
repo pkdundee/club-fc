@@ -12,7 +12,7 @@
   C.ensureSeason = (car = C.car()) => {
     if (!car || car.sea) return;
     const r = C.rng((car.created & 0xffffff) ^ 0x2545f491 ^ (car.season * 7919)), col = C.college(car);
-    const others = C.COLLEGES.filter(c => c.id !== car.college).sort(() => r() - .5).slice(0, 7);
+    const others = C.collegesAt(car.tier, [car.college]).sort(() => r() - .5).slice(0, 7);   // conference rivals come from your tier
     const teams = [{ me: 1, col: car.college, name: col.short, abbr: col.abbr, c1: col.c1, c2: col.c2, rating: car.job.rating }]
       .concat(others.map((c, i) => ({ col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: Math.round(car.job.rating + (i - 3) * 1.6 + r() * 3 - 1), form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 1 + Math.floor(r() * 3), seed: Math.floor(r() * 1e9) })));
     // double round robin, circle method
@@ -223,7 +223,7 @@
         return `<div class="fxmd ${md === S.md ? 'fxnow' : ''}"><h4>${label}</h4>${f ? row(f) : ''}${others.length ? `<details><summary>Other results</summary>${others.map(row).join('')}</details>` : ''}</div>`; }).join('');
     }
     if (view === 'table') body = `<div class="card tbl2"><div class="tr2 th"><span>#</span><span></span><span>P</span><span>W</span><span>D</span><span>L</span><span>GD</span><span>Pts</span></div>
-      ${T.map((t, i) => `<div class="tr2 ${t.i === 0 ? 'me' : ''} ${i === 3 ? 'cut' : ''}"><span>${i + 1}</span><span class="tn">${crest(t.i, 20)}${C.esc(nm(t.i))}</span><span>${t.p}</span><span>${t.w}</span><span>${t.d}</span><span>${t.l}</span><span>${t.gf - t.ga > 0 ? '+' : ''}${t.gf - t.ga}</span><b>${t.pts}</b></div>`).join('')}
+      ${T.map((t, i) => `<div class="tr2 ${t.i === 0 ? 'me' : ''} ${i === 3 ? 'cut' : ''} ${i < 4 ? 'top4' : ''}"><span>${i + 1}</span><span class="tn">${crest(t.i, 18)}<em>${C.esc(nm(t.i))}</em></span><span>${t.p}</span><span>${t.w}</span><span>${t.d}</span><span>${t.l}</span><span>${t.gf - t.ga > 0 ? '+' : ''}${t.gf - t.ga}</span><b>${t.pts}</b></div>`).join('')}
       <p class="note">Top 4 reach the conference tournament.</p></div>`;
     if (view === 'stats') { const sq = car.squad.filter(p => p.ss && p.ss.apps);
       const top = (k, f, n = 5) => sq.slice().sort((a, b) => f(b) - f(a)).filter(p => f(p) > 0).slice(0, n);
@@ -232,8 +232,8 @@
     const endCard = S.end ? `<div class="card seasonend">${S.end.champ ? `<div class="scenebn" style="margin:-14px -14px 10px">${C.artSlot('trophy', C.sceneTrophy(col.c1, col.c2))}</div>` : ''}<b>${S.end.champ ? '🏆 Conference champions!' : `Season ${S.n} over · finished ${C.ord(S.end.pos)}`}</b><p>${S.end.met ? '✔ Director\'s goal met' : '✖ Director\'s goal missed'}: ${GOALS[car.job.stars][0]}.${S.end.prize ? ` 💵 Prize money: <b>${C.short(S.end.prize)}</b>.` : ''}${S.end.champName && !S.end.champ ? ' Champions: ' + C.esc(S.end.champName) + '.' : ''}</p>
       <p class="note" style="margin:6px 0">${C.portalOpen() ? '🚪 The transfer window is open. Seniors graduate when the new season starts.' : 'Seniors graduate when the new season starts.'}</p>
       ${car.offers && car.offers.length ? `<button class="btn full offbn" data-act="offers">📨 ${car.offers.length} job offer${car.offers.length > 1 ? 's' : ''}</button>` : ''}${C.careerCardHTML()}<button class="btn full pri" data-act="nextseason">Start Season ${S.n + 1}${C.portalOpen() ? ' (closes the window)' : ''}</button></div>` : '';
-    return `<div class="view scrolly"><div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Matchday</b><small>Season ${S.n} · ${C.esc(S.conf)}${C.isTransition(car) ? ' · 🔁 Transition' : ''} · ${S.end ? 'Finished' : C.table()[0].p ? 'Pos ' + C.ord(C.myPos()) : 'Preseason'} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div></div>
-      <div class="homebn">${C.gamedayHTML()}</div>${calStrip()}${formCard()}
+    return `<div class="view scrolly"><div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Matchday</b><small>Season ${S.n} · ${C.esc(S.conf)}${C.isTransition(car) ? ' · 🔁 Transition' : ''} · ${S.end ? 'Finished' : C.table()[0].p ? 'Pos ' + C.ord(C.myPos()) : 'Preseason'} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div><div class="res hres">${C.resBar()}</div></div>
+      <div class="homebn">${C.gamedayHTML()}</div><button class="mapbn" data-act="collegemap" data-v=""><span>🗺</span><div><b>College Map</b><small>${C.COLLEGES.length} programs across 5 tiers${(car.offers || []).length ? ' · 🔔 job offers waiting' : ''}</small></div><em>›</em></button>${C.streakHTML ? `<div style="margin:10px 16px 0">${C.streakHTML()}</div>` : ''}${calStrip()}${formCard()}
       ${endCard}<div class="filters">${[['fix', '📅 Fixtures'], ['table', '📊 Table'], ['stats', '⭐ Stats']].map(([k, n]) => `<button class="f ${view === k ? 'on' : ''}" data-act="seav" data-v="${k}">${n}</button>`).join('')}</div>
       <div style="padding:0 16px 16px">${body}</div></div>`;
   };

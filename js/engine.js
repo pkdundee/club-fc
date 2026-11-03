@@ -21,6 +21,11 @@
     '5-4-1': [['GK', .5, 0], ['LB', .1, .28], ['CB', .3, .16], ['CB', .5, .14], ['CB', .7, .16], ['RB', .9, .28], ['LM', .14, .48], ['CM', .38, .44], ['CM', .62, .44], ['RM', .86, .48], ['ST', .5, .82]]
   };
   C.MENTALITY = ['Ultra defensive', 'Defensive', 'Balanced', 'Attacking', 'Ultra attacking'];
+  // Men's and women's games differ in pace, range and power only (GENDER-MATCH-GUIDE.md). Injuries, Freshness and rewards are identical.
+  C.PROFILES = {
+    m: { run: 1, passRange: 1, passSpeed: 1, passErr: 1, press: 1, shotRange: 1, shotPower: 1, gkReach: 1, aerial: 1 },
+    w: { run: .91, passRange: .85, passSpeed: .9, passErr: 1.1, press: 1.08, shotRange: .85, shotPower: .9, gkReach: .85, aerial: .9 }
+  };
 
   // ---------- setup ----------
   // team: { name, short, abbr, c1, c2, form, ment, xi:[player x11 in slot order], bench:[players], home, auto, manage }
@@ -28,7 +33,8 @@
     const m = { rng: C.rng(seed || 1), t: 0, half: 1, done: false, ht: false, score: [0, 0], events: [], pause: 0, restart: null, last: [null, null],
       teams: [A, B], ents: [], subs: [[], []], pending: [], knockout: !!opts.knockout, pens: null, stop: false,
       st: { offs: [0, 0], poss: [0, 0], shots: [0, 0], sot: [0, 0], corners: [0, 0], fouls: [0, 0], yc: [0, 0], rc: [0, 0], passes: [0, 0], cmp: [0, 0] },
-      ball: { x: PW / 2, y: PL / 2, h: 0, owner: null, fl: null }, poss: 0, lastTouch: null, used: [0, 0], offAt: {}, med: opts.med || [0, 0] };
+      ball: { x: PW / 2, y: PL / 2, h: 0, owner: null, fl: null }, poss: 0, lastTouch: null, used: [0, 0], offAt: {}, med: opts.med || [0, 0],
+      prof: C.PROFILES[opts.gender === 'w' ? 'w' : 'm'], deep: [PL, PL], trace: opts.trace ? [] : null };
     [A, B].forEach((T, side) => { const F = C.FORMATIONS[T.form]; T.xi.forEach((p, i) => { if (p) m.ents.push(ent(m, p, side, F[i], i)); }); });
     kickoff(m, 0); say(m, -1, 'ko', ''); return m;
   };
@@ -61,17 +67,28 @@
     let depth;
     if (e.slot.pos === 'GK') depth = .02 + Math.max(0, by - .5) * .12;
     else {
-      const line = .26 + (T.ment - 2) * .045;                       // back line height from mentality
-      const spread = att ? .62 : .48;                               // compact out of possession
-      depth = line + e.slot.y * spread + (by - .45) * (att ? .5 : .4) + (e.instr - 2) * .035;
-      if (att && ['LB', 'RB'].includes(e.slot.pos) && by > .5) depth += .12;   // full-backs overlap
-      if (att && ['ST', 'LW', 'RW', 'AM'].includes(e.slot.pos)) depth += .06 + (e.instr - 2) * .02; // runs in behind
-      depth = clamp(depth, .05, .93);
+      const mt = (T.ment - 2) * .03;
+      if (att) {
+        // in possession: the back line steps up with the ball, as far as halfway when camped in their half
+        const line = clamp(.14 + (by - .3) * .6 + mt, .1, .48);
+        depth = line + (e.slot.y - .17) * .7 + (e.instr - 2) * .035;
+        if (['LB', 'RB'].includes(e.slot.pos) && by > .5) depth += .1;            // full-backs overlap
+        if (['ST', 'LW', 'RW', 'AM'].includes(e.slot.pos)) depth += .04 + (e.instr - 2) * .02;   // runs in behind
+      } else {
+        // out of possession: drop off quickly. Edge of the box with the ball in midfield, inside it when they attack deep.
+        const line = clamp(by - .34 + mt, .06, .36);
+        depth = line + (e.slot.y - .17) * .42 + (e.instr - 2) * .02;
+        // defenders stay goal-side of the deepest runner (never left behind by an attacker who is onside)
+        // defenders drop with the deepest runner, holding a line level with them (so a mistimed run is still offside)
+        // they react once a runner is a couple of metres past, so a mistimed run can still be caught offside
+        if (e.slot.y < .3) { const run = m.deep[e.side] / PL + .005; if (depth > run + .02) depth = Math.max(run, line - .1, .04); }
+      }
+      depth = clamp(depth, .04, .93);
       // attackers hold on the offside line (MATCH-ENGINE-GUIDE §4); 'lean' makes a few runs mistimed
       if (att && m.off) { const cap = (m.off[e.side] - .6 + (e.lean || 0)) / PL; if (depth > cap) depth = Math.max(.05, cap); }
     }
     let fx = e.slot.x + (bx - .5) * (e.slot.pos === 'GK' ? .15 : .42);
-    if (!att) fx = .5 + (fx - .5) * .85;
+    if (!att) fx = .5 + (fx - .5) * .8;
     const wob = e.slot.pos === 'GK' ? 0 : Math.sin(m.t * .35 + e.i * 1.9) * 1.4;
     return [clamp((e.side === 0 ? fx : 1 - fx) * PW + wob, 1, PW - 1), e.side === 0 ? depth * PL : (1 - depth) * PL];
   }
@@ -80,7 +97,7 @@
     const wx = d ? dx / d * want : 0, wy = d ? dy / d * want : 0, k = Math.min(1, dt * 3.5);
     e.vx += (wx - e.vx) * k; e.vy += (wy - e.vy) * k; e.x = clamp(e.x + e.vx * dt, .5, PW - .5); e.y = clamp(e.y + e.vy * dt, -1, PL + 1);
   }
-  const speed = (m, e) => 4.6 * (.78 + eff(m, e, e.slot.pos === 'GK' ? 'ref' : 'pac') / 230);
+  const speed = (m, e) => 4.6 * m.prof.run * (.78 + eff(m, e, e.slot.pos === 'GK' ? 'ref' : 'pac') / 230);
 
   // ---------- restarts ----------
   function kickoff(m, side) {
@@ -92,7 +109,7 @@
   }
   function own2(m, e) { m.ball.owner = e; m.poss = e.side; m.lastTouch = e; }
   // stop play; the restart happens after a short pause (subs are made here)
-  function stoppage(m, type, side, x, y, secs = 1.6) { const b = m.ball; b.owner = null; b.fl = null; b.h = 0; b.x = x; b.y = y; m.poss = side; m.restart = { type, side, x, y }; m.pause = secs; if (type === 'corner') m.st.corners[side]++; }
+  function stoppage(m, type, side, x, y, secs = 1.6) { const b = m.ball; if (type === 'corner' || type === 'throw' || type === 'goalkick') say(m, side, type, ''); b.owner = null; b.fl = null; b.h = 0; b.x = x; b.y = y; m.poss = side; m.restart = { type, side, x, y }; m.pause = secs; if (type === 'corner') m.st.corners[side]++; }
   function doRestart(m) {
     const r = m.restart; m.restart = null; applySubs(m); manage(m);
     if (r.type === 'kickoff') return kickoff(m, r.side);
@@ -147,7 +164,8 @@
     if (e.slot.pos === 'GK') return gkDistribute(m, e);
     const press = nearest(m, 1 - side, e.x, e.y)[1], ang = goalAngle(e);
     // shot selection: never from tight angles (under 15° of goal visible) unless point-blank
-    let shootP = d > 32 || (ang < .26 && d > 6) ? 0 : Math.pow((32 - d) / 32, 1.5) * (.12 + .015 * T.ment + .05 * (e.instr - 2));
+    const SR = 32 * m.prof.shotRange;
+    let shootP = d > SR || (ang < .26 && d > 6) ? 0 : Math.pow((SR - d) / SR, 1.5) * (.15 + .015 * T.ment + .05 * (e.instr - 2));
     if (d < 7 && ang >= .26) shootP = Math.max(shootP, .18);
     if (m.rng() < shootP) return shoot(m, e, d);
     if (prog > .7 && wide && m.rng() < (ang < .26 ? .6 : .22)) return cross(m, e);
@@ -165,7 +183,7 @@
   }
   function choosePass(m, e, prog, press = 9) {
     const side = e.side, T = m.teams[side], g = GRP(e.slot.pos), longOK = g === 'gk' || (g === 'cb' && (e.p.a.pas || 0) >= 50);
-    const maxD = longOK ? 55 : 32, riskW = prog < .33 ? 1.4 : prog < .66 ? 1 : .6, offMiss = .05 + Math.max(0, 50 - (e.p.a.pas || 40)) / 500;
+    const maxD = (longOK ? 55 : 32) * m.prof.passRange, riskW = prog < .33 ? 1.4 : prog < .66 ? 1 : .6, offMiss = .05 + Math.max(0, 50 - (e.p.a.pas || 40)) / 500;
     let best = null, bs = -1e9, fallback = null, fb = 1e9;
     for (const t of active(m, side)) {
       if (t === e) continue; const o = option(m, e, t); if (o.dist < 4 || o.dist > maxD) continue;
@@ -207,8 +225,11 @@
     if (!c) { e.dec = .5; e.carry = 1; return; }
     const T = m.teams[e.side]; m.st.passes[e.side]++; e.st.pa++;
     // offside: judged when the ball is played
+    // most offsides come from runs timed a moment too early onto a through ball (MATCH-ENGINE-GUIDE §4)
+    if (!c.offs && m.off && c.fwd > 4 && ['st', 'w', 'am'].includes(GRP(c.t.slot.pos)) && depthOf(e.side, c.t.y) > m.off[e.side] - 6 && m.rng() < (c.thru ? .32 : .22) - (eff(m, c.t, 'pac') - 50) / 1000) c.offs = true;
     if (c.offs) { m.st.offs = m.st.offs || [0, 0]; m.st.offs[e.side]++; say(m, e.side, 'offside', c.t); return stoppage(m, 'freekick', 1 - e.side, c.t.x, c.t.y, 1.8); }
-    const ok = clamp(.92 + (eff(m, e, 'pas') - 42) / 150 - c.dist / 170 + (Math.min(c.lane, 5) - 1.5) * .03 - (T.ment - 2) * .02 - (c.long ? .12 : 0) - (c.thru ? .1 : 0), .4, .97);
+    const ok = 1 - (1 - clamp(.92 + (eff(m, e, 'pas') - 42) / 150 - c.dist / 170 + (Math.min(c.lane, 5) - 1.5) * .03 - (T.ment - 2) * .02 - (c.long ? .12 : 0) - (c.thru ? .1 : 0), .4, .97)) * m.prof.passErr;
+    if (m.trace) m.trace.push({ t: m.t, k: 'pass', fx: e.x, fy: e.y, tx: c.thru ? c.thru.x : c.t.x, ty: c.thru ? c.thru.y : c.t.y, side: e.side, ok: Math.round(ok * 100), from: e.p.ln, to: c.t.p.ln, thru: !!c.thru });
     const b = m.ball; b.owner = null; const lead = c.t.slot.pos === 'GK' ? 0 : 2.5;
     const tx = c.thru ? c.thru.x : c.t.x + (c.t.vx || 0) * .4, ty = c.thru ? c.thru.y : c.t.y + dirOf(e.side) * lead * (m.poss === e.side ? 1 : 0);
     let res = c.thru ? 'thru' : 'ok', tgt = c.t;
@@ -216,7 +237,7 @@
       if (r < .6 && cut) { res = 'int'; tgt = cut; b.fl = { type: 'pass', fx: b.x, fy: b.y, tx: e.x + (tx - e.x) * ct, ty: e.y + (ty - e.y) * ct, t: 0, dur: .15 + c.dist * ct / 24, res, tgt, from: e }; return; }
       if (r < .85) { res = 'out'; const ox = tx + (m.rng() - .5) * 10, oy = ty + dirOf(e.side) * (3 + m.rng() * 6); b.fl = { type: 'pass', fx: b.x, fy: b.y, tx: ox, ty: oy, t: 0, dur: .3 + c.dist / 22, res, from: e }; return; }
       res = 'mis'; tgt = nearest(m, 1 - e.side, tx, ty)[0] || c.t; }
-    b.fl = { type: 'pass', fx: b.x, fy: b.y, tx, ty, t: 0, dur: .18 + c.dist / 23, res, tgt, from: e, h: c.dist > 25 ? 1 : 0 };
+    b.fl = { type: 'pass', fx: b.x, fy: b.y, tx, ty, t: 0, dur: (.18 + c.dist / 23) / m.prof.passSpeed, res, tgt, from: e, h: c.dist > 25 ? 1 : 0 };
   }
   function cross(m, e) {
     const side = e.side, gy = goalY(side), box = active(m, side).filter(t => t !== e && Math.abs(t.y - gy) < 18 && t.slot.pos !== 'GK');
@@ -233,7 +254,7 @@
       const [blocker, bd] = laneThreat(m, side, e.x, e.y, PW / 2, goalY(side));
       if (blocker && bd < 1.4 && blocker.slot.pos !== 'GK' && m.rng() < .45) { blocker.st.blk++; res = 'block'; m.ball.blocker = blocker; }
       else { const onP = clamp(.5 + (s - 40) / 180 - d / 85 + (e.header ? -.06 : 0), .12, .8);
-        const goalP = clamp(.5 + (s - g) / 110 - d / 70 + (e.header ? -.05 : 0) - (2 - m.teams[1 - side].ment) * .03, .05, .6);
+        const goalP = clamp((.5 + (s - g) / 110 - d / 70 + (e.header ? -.05 : 0) - (2 - m.teams[1 - side].ment) * .03) * (m.prof.shotPower / m.prof.gkReach) ** 1.5, .05, .6);
         res = m.rng() < onP ? (m.rng() < goalP ? 'goal' : 'save') : 'miss'; }
     }
     e.header = false;
@@ -241,10 +262,11 @@
     const gy = goalY(side), dir = dirOf(side), b = m.ball; b.owner = null;
     let tx = PW / 2 + (m.rng() * 2 - 1) * 3.2, ty = gy + dir * (res === 'goal' ? 1 : 0);
     let high = 0;
-    if (res === 'miss') { if (m.rng() < .55) { tx = PW / 2 + (m.rng() < .5 ? -1 : 1) * (3.66 + .3 + m.rng() * 2.7); } else { tx = PW / 2 + (m.rng() * 2 - 1) * 3.4; high = 1; } ty = gy + dir * 2; }
+    if (res === 'miss') { if (m.rng() < .55) { tx = PW / 2 + (m.rng() < .5 ? -1 : 1) * (4.9 + m.rng() * 2.6); } else { tx = PW / 2 + (m.rng() * 2 - 1) * 3.4; high = 1; } ty = gy + dir * 2; }
     if (res === 'save') ty = gy - dir * 1;
     if (res === 'block') { tx = e.x + (m.rng() - .5) * 6; ty = e.y + dir * 2.5; }
-    b.fl = { type: 'shot', fx: b.x, fy: b.y, tx, ty, t: 0, dur: res === 'block' ? .2 : Math.max(.3, d / 28), res, from: e, gk, h: high, pen };
+    b.fl = { type: 'shot', fx: b.x, fy: b.y, tx, ty, t: 0, dur: res === 'block' ? .2 : Math.max(.3, d / (28 * m.prof.shotPower)), res, from: e, gk, h: high, pen };
+    if (m.trace) m.trace.push({ t: m.t, k: 'shot', fx: e.x, fy: e.y, tx, ty, side, res, from: e.p.ln, d: Math.round(d) });
     T.shotAt = m.t;
   }
 
@@ -268,7 +290,7 @@
       const side = f.from.side, gk = gkOf(m, 1 - side);
       if (gk && Math.abs(f.ty - gk.y) < 9 && m.rng() < .25 + eff(m, gk, 'crs') / 250) { gk.st.sv++; own2(m, gk); b.x = gk.x; b.y = gk.y; gk.dec = 1.2; say(m, gk.side, 'claim', gk); return; }
       const att = f.tgt && f.tgt.on ? f.tgt : nearest(m, side, f.tx, f.ty)[0], [def] = nearest(m, 1 - side, f.tx, f.ty);
-      const aw = att ? eff(m, att, 'phy') * .5 + eff(m, att, 'sho') * .3 : 10, dw = def ? eff(m, def, 'def') * .6 + eff(m, def, 'phy') * .4 : 10;
+      const aw = att ? (eff(m, att, 'phy') * .5 + eff(m, att, 'sho') * .3) * m.prof.aerial : 10, dw = def ? eff(m, def, 'def') * .6 + eff(m, def, 'phy') * .4 : 10;
       if (att && m.rng() < aw * (1 + ((m.teams[side].bonus || {}).set || 0)) / (aw + dw * 2)) { f.from.st.pc++; m.st.cmp[side]++; m.last[side] = { e: f.from, t: m.t }; att.x = f.tx; att.y = f.ty; b.x = att.x; b.y = att.y; att.header = true; return shoot(m, att, Math.hypot(att.x - PW / 2, goalY(side) - att.y)); }
       if (def) { def.st.clr++; const r = m.rng(); if (r < .3) return stoppage(m, 'corner', side, f.tx < PW / 2 ? 0 : PW, goalY(side), 2.2); if (r < .55) return outOfPlay(m, f.tx < PW / 2 ? -1 : PW + 1, f.ty, 1 - side);
         own2(m, def); b.x = def.x; b.y = def.y; def.dec = .3; return; }
@@ -301,7 +323,22 @@
     say(m, att.side, 'foul', att, { by: def });
     stoppage(m, 'freekick', att.side, att.x, att.y, 1.8);
   }
-  function send(m, e, why) { e.on = false; e.st.rc = 1; m.st.rc[e.side]++; e.red = true; say(m, e.side, 'red', e, { why }); if (m.ball.owner === e) m.ball.owner = null; }
+  function send(m, e, why) { e.on = false; e.st.rc = 1; m.st.rc[e.side]++; e.red = true; say(m, e.side, 'red', e, { why }); if (m.ball.owner === e) m.ball.owner = null;
+    m.pause = Math.max(m.pause, 4); m.redAlert = { side: e.side, e };
+    if (m.teams[e.side].auto) C.reshape(m, e.side, null); }
+  // change shape during a match (also after a red card): put the players still on the pitch into the new formation's slots
+  C.reshape = (m, side, form) => {
+    const T = m.teams[side]; form = form || T.form; const F = C.FORMATIONS[form]; T.form = form;
+    const on = m.ents.filter(e => e.side === side && e.on), out = on.filter(e => e.slot.pos !== 'GK'), gk = on.find(e => e.slot.pos === 'GK');
+    // with fewer than 10 outfield players, leave the most advanced slots empty
+    let slots = F.map((s, i) => ({ s, i })).filter(o => o.s[0] !== 'GK').sort((a, b) => a.s[2] - b.s[2]).slice(0, out.length);
+    const used = new Set();
+    out.slice().sort((a, b) => FIT_MULT[5] - a.fit - (FIT_MULT[5] - b.fit)).forEach(e => { let best = null, bs = -1e9;
+      for (const o of slots) { if (used.has(o.i)) continue; const sc = FIT_MULT[C.fit(e.p, o.s[0])] * 3 - Math.hypot(o.s[1] - e.slot.x, o.s[2] - e.slot.y); if (sc > bs) { bs = sc; best = o; } }
+      if (best) { used.add(best.i); e.slot = { pos: best.s[0], x: best.s[1], y: best.s[2] }; e.i = best.i; e.fit = C.fit(e.p, best.s[0]); } });
+    if (gk) gk.slot = { pos: 'GK', x: .5, y: 0 };
+    say(m, side, 'shape', '', { form });
+  };
   function hurt(m, e) { if (!e.on || e.injured) return; if (m.rng() < .7) { e.knock = 1; say(m, e.side, 'knock', e); } else { e.injured = true; e.knock = 1; say(m, e.side, 'injury', e); m.teams[e.side].needSub = e; } }
 
   // ---------- substitutions (Q20f): made at the next stoppage ----------
@@ -346,7 +383,8 @@
       e.energy = Math.max(5, e.energy - dt * (26 / (2 * HALF)) * (1.25 - eff(m, e, e.slot.pos === 'GK' ? 'str' : 'phy') / 220) * (1 + (e.instr - 2) * .12) * (e.fit < 3 ? 1.15 : 1) * (DRAIN[e.slot.pos] || 1) * (1 - ((m.teams[e.side].bonus || {}).drain || 0)));
       if (m.rng() < dt * 2.3e-5 * (e.slot.pos === 'GK' ? .4 : 1) * (YEAR_RISK[e.p.year] || 1) * C.freshRisk(e.energy) * (e.p.reinj > 0 ? 2 : 1) * (e.p.rushed ? 3 : 1) * (1 - m.med[e.side] * .01) * (1 - ((m.teams[e.side].bonus || {}).inj || 0))) hurt(m, e); }
     m.off = [offLine(m, 0), offLine(m, 1)];
-    if (Math.floor(m.t / 2) !== Math.floor((m.t - dt) / 2)) for (const e of m.ents) if (e.on && ['ST', 'LW', 'RW', 'AM'].includes(e.slot.pos)) e.lean = clamp((e.lean || 0) + (m.rng() - .5) * .9, -1.5, .95);
+    for (const sd of [0, 1]) { let mn = PL; for (const o of m.ents) if (o.on && !o.bin && o.side !== sd && o.slot.pos !== 'GK') { const d = depthOf(sd, o.y); if (d < mn) mn = d; } m.deep[sd] = mn; }
+    if (Math.floor(m.t / 2) !== Math.floor((m.t - dt) / 2)) for (const e of m.ents) if (e.on && ['ST', 'LW', 'RW', 'AM'].includes(e.slot.pos)) e.lean = clamp((e.lean || 0) + (m.rng() - .5) * 1.1, -1.5, 2.1);
     const b = m.ball;
     if (m.pause > 0) {
       m.pause -= dt;
@@ -372,8 +410,8 @@
             const deep = Math.abs(goalY(e.side) - e.y) < 32 ? 1.4 : .8;
             if (m.rng() < dt * 2.6 * deep * (1 + (2 - ment) * .1)) {
               const r = m.rng(), win = de / (de + dr * 1.1);
-              if (r < .17 + (o.energy < 45 ? .04 : 0)) foul(m, o, e);
-              else if (r < .17 + win * .55) { o.st.tk++; say(m, o.side, 'tackle', o, { on: e }); if (m.rng() < .25) outOfPlay(m, e.x < PW / 2 ? -1 : PW + 1, e.y, o.side); else { own2(m, o); o.dec = .3 + m.rng() * .4; o.carry = 0; } }
+              if (r < .15 + (o.energy < 45 ? .04 : 0)) foul(m, o, e);
+              else if (r < .15 + win * .55) { o.st.tk++; say(m, o.side, 'tackle', o, { on: e }); if (m.rng() < .25) outOfPlay(m, e.x < PW / 2 ? -1 : PW + 1, e.y, o.side); else { own2(m, o); o.dec = .3 + m.rng() * .4; o.carry = 0; } }
               else { e.st.drb++; e.x += (e.x < o.x ? -1 : 1) * 1.2; e.dec = Math.min(e.dec, .5); }
             }
           }
@@ -387,7 +425,7 @@
       for (const e of active(m)) {
         if (e === b.owner || (b.fl && b.fl.tgt === e && b.fl.res !== 'out')) { if (b.fl && b.fl.tgt === e) moveTo(e, b.fl.tx, b.fl.ty, speed(m, e), dt); continue; }
         const sp = speed(m, e);
-        if (e === p1 && !b.fl) moveTo(e, b.x, b.y, sp * 1.05, dt);
+        if (e === p1 && !b.fl) moveTo(e, b.x, b.y, sp * 1.05 * m.prof.press, dt);
         else if (e === p2) { const gy = goalY(m.poss); moveTo(e, (b.x + PW / 2) / 2, b.y + (gy - b.y) * .25, sp * .9, dt); }
         else if (e.slot.pos === 'GK') { const gl = e.side === 0 ? 0 : PL, h = homePos(m, e); moveTo(e, clamp(PW / 2 + (b.x - PW / 2) * .18, PW / 2 - 3.5, PW / 2 + 3.5), h[1], sp, dt); }
         else { const h = homePos(m, e); moveTo(e, h[0], h[1], sp * .85, dt); }

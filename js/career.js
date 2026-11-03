@@ -35,8 +35,8 @@
     if (rep >= 25 && C.band(car) < 2) options.push({ tier: car.tier, band: C.band(car) + 1 });
     if (car.tier > 1 && rep >= 45 && pl >= Math.min(6, C.TIERS[car.tier].cap * .6)) options.push({ tier: car.tier - 1, band: 0 });
     if (car.tier > 1 && rep >= 70 && pl >= C.TIERS[car.tier].cap * .8) options.push({ tier: car.tier - 1, band: 1 });
-    const cols = C.COLLEGES.filter(c => c.id !== car.college && c.id !== car.homecoming).sort(() => r() - .5);
-    options.forEach((o, i) => out.push(offer(car, o.tier, o.band, cols[i], r)));
+    const used = [car.college, car.homecoming];
+    options.forEach(o => { const c = C.collegesAt(o.tier, used).sort(() => r() - .5)[0]; if (!c) return; used.push(c.id); out.push(offer(car, o.tier, o.band, c, r)); });   // offers come from schools at that tier
     return out;
   }
   function offer(car, tier, band, col, r) {
@@ -90,6 +90,7 @@
         <div class="kgrid"><div class="k"><small>Squad</small><b>avg ${o.rating}</b></div><div class="k"><small>Scholarships</small><b>${C.short(o.pool)}/yr</b></div><div class="k"><small>Booster budget</small><b>${C.short(o.cash)}</b></div><div class="k"><small>Story</small><b>${C.esc(C.STORIES[o.story].title)}</b></div></div>
         <h3 class="jh">School buildings (yours → theirs)</h3>${cmp(o)}
         <button class="btn full pri" data-act="takeoffer" data-v="${i}" style="margin-top:10px">Take this job…</button></div>`; }).join('')}
+      <button class="btn full sec2" data-act="collegemap" data-v="" style="margin-bottom:8px">🗺 See them on the College Map</button>
       <button class="btn full sec2" data-act="declineoffers">Stay loyal to ${C.esc(col.short)} (<i class="coin"></i> 50, 💵 5K, Director 🙂)</button>`;
   });
   C.openMove = idx => { invite = []; C.ui.open('Who comes with you?', () => {
