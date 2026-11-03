@@ -7,7 +7,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'phase-9j · 3 Nov 2026';
+  C.BUILD = 'phase-9k · 3 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {

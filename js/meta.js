@@ -29,10 +29,11 @@
   let invTab = 'speed';
   C.openInventory = () => C.ui.open('Inventory', () => {
     const car = C.car(), inv = meta().inv, S = C.staffState(), it = car.items || {};
-    const tabs = [['speed', 'Speed-ups'], ['res', 'Resources'], ['special', 'Special']];
+    const tabs = [['speed', 'Speed-ups'], ['gear', 'Gear'], ['res', 'Resources'], ['special', 'Special']];
     const cell = (icon, n, label, act, v, cls = 't1') => `<button class="invc ${cls} ${n ? '' : 'none'}" ${n && act ? `data-act="${act}" data-v="${v}"` : 'disabled'}><span>${icon}</span><b>${n}</b><small>${label}</small></button>`;
     let body = '';
     if (invTab === 'speed') body = ['sp5', 'sp15', 'sp60', 'sp180'].map(k => cell('⏩', inv[k] || 0, XN[k][1].replace(' speed-up', ''), 'invspeed', k, 't' + TIER[k])).join('');
+    if (invTab === 'gear') return `<div class="res hres inv">${C.resBar()}</div><div class="bigtabs">${tabs.map(([k, n]) => `<button class="${invTab === k ? 'on' : ''}" data-act="invtab" data-v="${k}">${n}</button>`).join('')}</div>${C.kitRoomHTML ? C.kitRoomHTML() : ''}<p class="note">Equip gear from a player's card. It returns here when a player leaves. Gear comes from Missions, chests and the free Pass track.</p>`;
     if (invTab === 'res') body = cell('📦', inv.crate || 0, '$5K crate', 'invcrate', '', 't2') + cell('🏅', inv.badge || 0, 'Coaching Badges', 'tab', 'staff', 't3') + cell('📗', S.items.manual, 'Manuals', 'tab', 'staff') + cell('📕', S.items.books, 'Trait Books', 'tab', 'staff', 't3') + cell('🎫', S.items.credits, 'Clinic Credits', 'tab', 'staff');
     if (invTab === 'special') body = cell('🧴', it.kit || 0, 'Recovery kits', 'medical', '') + cell('🎁', it.rareRecruit || 0, 'Rare recruit', 'rare', '', 't4') + cell('🎟', car.tokens || 0, 'Number Changes', 'tab', 'squad', 't2');
     return `<div class="res hres inv">${C.resBar()}</div><div class="bigtabs">${tabs.map(([k, n]) => `<button class="${invTab === k ? 'on' : ''}" data-act="invtab" data-v="${k}">${n}</button>`).join('')}</div>
@@ -57,11 +58,11 @@
     ['roster', '👕', 'Fill the roster to 22 players', c => c.squad.length >= 22, { gold: 30 }, 'tab', 'recruit'],
     ['start', '🏁', 'Start the season', c => !c.pre, { gold: 50, sp60: 1 }, 'preseason', ''],
     ['play', '⚽', 'Play your first match', c => (meta().ms.match || 0) >= 1, { sp60: 1 }, 'prematch', ''],
-    ['train', '🏋️', 'Start a training plan', c => (meta().ms.train || 0) >= 1, { manual: 2 }, 'tab', 'squad'],
+    ['train', '🏋️', 'Start a training plan', c => (meta().ms.train || 0) >= 1, { manual: 2, gear: 1 }, 'tab', 'squad'],
     ['win', '🏆', 'Win a match', c => (meta().ms.win || 0) >= 1, { gold: 30, crate: 1 }, 'prematch', ''],
     ['hq3', '🏛', "Upgrade the Coaches' Office to Lv 3", c => c.b.hq >= 3, { sp60: 2, badge: 5 }, 'bldopen', 'hq'],
     ['video', '🎞', 'Build the Video Room', c => c.b.video >= 1, { gold: 40 }, 'bldopen', 'video'],
-    ['wins3', '🏆', 'Win 3 matches', c => (meta().ms.win || 0) >= 3, { gold: 60, books: 1 }, 'prematch', ''],
+    ['wins3', '🏆', 'Win 3 matches', c => (meta().ms.win || 0) >= 3, { gold: 60, books: 1, gear: 2 }, 'prematch', ''],
     ['hq5', '🏛', "Reach Coaches' Office Lv 5", c => c.b.hq >= 5, { gold: 80, sp180: 1 }, 'bldopen', 'hq'],
     ['top4', '📊', 'Finish a season in the top 4', c => (meta().ms.top4 || 0) >= 1, { gold: 150, rare: 1 }, 'tab', 'season']
   ];
@@ -76,7 +77,7 @@
     ['train', '🏋️', 'Start a training plan', 1, 'tab', 'squad'], ['research', '📋', 'Start Playbook research', 1, 'playbook', ''], ['offer', '✉️', 'Make a recruiting offer', 1, 'tab', 'recruit'], ['ad', '▶', 'Watch a rewarded ad', 1, 'adreward', ''],
     ['speed', '⏩', 'Use a speed-up', 1, 'inventory', ''], ['gift', '🎁', 'Claim the daily gift', 1, 'dailygift', ''], ['medical', '🩺', 'Use a physio or recovery item', 1, 'medical', '']];
   const DREW = { match: { cash: 1500 }, win: { gold: 10 }, collect: { cp: 15 }, upgrade: { sp5: 2 }, train: { manual: 1 }, research: { cp: 20 }, offer: { cash: 1000 }, ad: { gold: 5 }, speed: { sp5: 1 }, gift: { cp: 10 }, medical: { kit: 1 } };
-  const CHESTS = [[20, { sp5: 2, cash: 1500 }], [40, { cp: 30, crate: 1 }], [60, { gold: 15, sp15: 1, badge: 1 }], [90, { manual: 2, sp15: 2 }], [120, { gold: 40, sp60: 1, badge: 3 }]];
+  const CHESTS = [[20, { sp5: 2, cash: 1500 }], [40, { cp: 30, crate: 1 }], [60, { gold: 15, sp15: 1, badge: 1 }], [90, { manual: 2, sp15: 2, gear: 1 }], [120, { gold: 40, sp60: 1, badge: 3 }]];
   C.CHESTS = CHESTS;
   function rollDaily() { const M = meta(); if (M.day === dayKey()) return;
     // anything finished but not claimed yesterday goes to the Inbox, so it isn't lost
@@ -93,7 +94,7 @@
 
   // ================= the Pass: 30 tiers, one free tier a day you log in (replaces the 28-day calendar) =================
   const PASS_TIERS = 30;
-  const PFREE = i => (i + 1) % 10 === 0 ? { gold: 60, sp60: 1 } : (i + 1) % 5 === 0 ? { gold: 30, crate: 1, badge: 2 } : [{ cash: 3000 }, { sp15: 1 }, { cp: 40 }, { manual: 1 }, { sp5: 3 }, { credits: 8 }, { gold: 15 }][i % 7];
+  const PFREE = i => i % 10 === 2 ? { gear: 1, cash: 2000 } : (i + 1) % 10 === 0 ? { gold: 60, sp60: 1 } : (i + 1) % 5 === 0 ? { gold: 30, crate: 1, badge: 2 } : [{ cash: 3000 }, { sp15: 1 }, { cp: 40 }, { manual: 1 }, { sp5: 3 }, { credits: 8 }, { gold: 15 }][i % 7];
   const PPREM = i => (i + 1) === 30 ? { coach: 1, gold: 200 } : (i + 1) % 10 === 0 ? { rare: 1, gold: 100 } : (i + 1) % 5 === 0 ? { books: 2, sp180: 1, badge: 8 } : [{ gold: 40 }, { sp60: 1 }, { manual: 2 }, { crate: 2 }, { credits: 15 }, { sp15: 3 }][i % 6];
   C.passX = () => { const M = meta(); if (!M.pass || C.now() - M.pass.start > 30 * D) M.pass = { start: C.now(), days: 0, last: '', prem: M.pass && M.pass.keepPrem ? true : false, f: [], p: [], pts: 0 }; return M.pass; };
   C.passPts = n => { const P = C.passX(); P.pts = (P.pts || 0) + n; };

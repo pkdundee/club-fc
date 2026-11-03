@@ -66,7 +66,7 @@
       <h3 class="jh">${gk ? 'Goalkeeping' : 'Skills'} <button class="hlink" data-act="help" data-v="attrs">?</button></h3>
       <div class="card"><div class="attrs">${Object.keys(A).map(k => `<div class="attr ${C.KEY[p.pos].includes(k) ? 'key' : ''}"><span class="ai">${A[k][0]}</span><div class="ab"><div><span>${A[k][1]}</span><em>${p.a[k]}</em></div><div class="bar"><i style="width:${p.a[k]}%;background:${acol(p.a[k])}"></i></div></div></div>`).join('')}</div>
         ${gk ? `<div class="kstyle">Style: ${C.KEEPER_STYLE(p).map(s => `<span>${s}</span>`).join('')}</div>` : `<div class="kstyle">Also plays: ${p.sec.length ? p.sec.map(s => `<span>${s}</span>`).join('') : '<span>Only ' + p.pos + '</span>'}</div>`}</div>
-      <h3 class="jh">Development <small class="devp">${p.dev}/${p.stars + 2} to next ★</small></h3>${devHTML}
+      <h3 class="jh">Development <small class="devp">${p.dev}/${p.stars + 2} to next ★</small></h3>${devHTML}${C.gearRowHTML ? C.gearRowHTML(p) : ''}
       <h3 class="jh">Squad number <span class="tok">🎟 ${car.tokens}</span></h3>
       <div class="card numcard"><svg class="jersey" viewBox="0 0 60 60"><path d="M18 6 L24 4 Q30 9 36 4 L42 6 L56 14 L50 26 L44 23 V56 H16 V23 L10 26 L4 14Z" fill="${kitOf(p).k1}" stroke="${kitOf(p).k2}" stroke-width="1.5"/><text x="30" y="44" text-anchor="middle" font-family="Graduate,serif" font-size="20" fill="${kitOf(p).k2}">${p.num}</text></svg>
         <div style="flex:1"><b style="font-size:15px">Wears No. ${p.num}</b><br><small class="mutey">${p.want ? (p.want === p.num ? 'Their favourite number · 😀' : `Wants No. ${p.want} · morale lower until they get it`) : 'No preference'}</small></div>
