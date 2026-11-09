@@ -10,10 +10,15 @@
 
   // ================= items and rewards =================
   // new reward keys: speed-ups (minutes) and Booster crates; everything else still goes through liveops
-  const XN = { sp5: ['⏩', '5m speed-up', 5], sp15: ['⏩', '15m speed-up', 15], sp60: ['⏩', '1h speed-up', 60], sp180: ['⏩', '3h speed-up', 180], crate: ['📦', 'Booster crate ($5K)'], badge: ['🏅', 'Coaching Badge'] };
+  // speed-ups have types: general work on anything, the others only on their own queue (round 6). [icon, name, minutes, type]
+  const XN = { sp5: ['⏩', '5m speed-up', 5, 'g'], sp15: ['⏩', '15m speed-up', 15, 'g'], sp60: ['⏩', '1h speed-up', 60, 'g'], sp180: ['⏩', '3h speed-up', 180, 'g'],
+    spb15: ['🔨', '15m building speed-up', 15, 'b'], spb60: ['🔨', '1h building speed-up', 60, 'b'], spt15: ['🏋️', '15m training speed-up', 15, 't'], spt60: ['🏋️', '1h training speed-up', 60, 't'], spr15: ['📋', '15m research speed-up', 15, 'r'], spr60: ['📋', '1h research speed-up', 60, 'r'],
+    crate: ['📦', 'Booster crate ($5K)'], badge: ['🏅', 'Coaching Badge'] };
+  C.XN = XN;
+  C.speedKeys = type => Object.keys(XN).filter(k => XN[k][3] && (XN[k][3] === 'g' || XN[k][3] === type));
   const ICON = { gold: '<i class="coin"></i>', cash: '💵', cp: '<i class="cpi"></i>', manual: '📗', credits: '🎫', kit: '🧴', books: '📕', tokens: '🎟', rare: '🎁', coach: '🧑‍🏫' };
   const NAME = { gold: 'Coins', cash: 'Booster $', cp: 'Coaching Points', manual: 'Coaching manual', credits: 'Clinic Credits', kit: 'Recovery kit', books: 'Trait Book', tokens: 'Number Change', rare: 'Rare recruit', coach: 'Rare coach' };
-  const TIER = { badge: 3, gold: 3, coach: 4, rare: 4, books: 3, sp60: 3, sp180: 4, crate: 2, sp15: 2, cash: 1, cp: 1, manual: 1, credits: 1, kit: 1, tokens: 2, sp5: 1 };
+  const TIER = { spb15: 2, spb60: 3, spt15: 2, spt60: 3, spr15: 2, spr60: 3, badge: 3, gold: 3, coach: 4, rare: 4, books: 3, sp60: 3, sp180: 4, crate: 2, sp15: 2, cash: 1, cp: 1, manual: 1, credits: 1, kit: 1, tokens: 2, sp5: 1 };
   const oText = C.rwText, oGive = C.giveReward;
   C.rwText = r => { const a = {}, b = []; for (const k in r) { if (XN[k]) b.push(`${XN[k][0]} ${r[k] > 1 ? r[k] + '× ' : ''}${XN[k][1]}`); else a[k] = r[k]; } return [Object.keys(a).length ? oText(a) : '', ...b].filter(Boolean).join(' · '); };
   C.giveReward = r => { const a = {}, inv = C.car() ? meta().inv : null; for (const k in r) { if (XN[k]) { if (inv) inv[k] = (inv[k] || 0) + r[k]; } else a[k] = r[k]; } oGive(a); C.save(); };
@@ -21,8 +26,10 @@
   C.itemTiles = r => `<span class="itiles">${Object.keys(r).map(k => { const v = r[k], ic = XN[k] ? XN[k][0] : ICON[k] || '🎁', lab = k === 'cash' ? C.short(v) : XN[k] && XN[k][2] ? (XN[k][2] >= 60 ? XN[k][2] / 60 + 'h' : XN[k][2] + 'm') + (v > 1 ? ' ×' + v : '') : k === 'crate' ? '$5K' + (v > 1 ? ' ×' + v : '') : v;
     return `<span class="itile t${TIER[k] || 1}" title="${C.esc(XN[k] ? XN[k][1] : NAME[k] || k)}">${ic}<b>${lab}</b></span>`; }).join('')}</span>`;
 
-  // use a speed-up on a building in the queue
-  C.useSpeed = (k, key) => { const inv = meta().inv, q = C.inQueue(k); if (!q || !(inv[key] > 0)) return false; inv[key]--; q.end -= XN[key][2] * 60000; C.tick(); C.save(); return true; };
+  // use a speed-up on something running: b = building, t = training, r = research
+  const target = (kind, id) => kind === 'b' ? C.inQueue(id) : kind === 't' ? C.inDev(id) : C.car().pbq.find(q => q.key === id);
+  C.useSpeed = (kind, id, key) => { const inv = meta().inv, q = target(kind, id), x = XN[key]; if (!q || !(inv[key] > 0) || !(x[3] === 'g' || x[3] === kind)) return false; inv[key]--; q.end -= x[2] * 60000; C.save(); if (kind === 'b') C.tick(); return true; };
+  C.speedRow = (kind, id) => { const inv = meta().inv, ks = C.speedKeys(kind).filter(k => inv[k] > 0); return ks.length ? `<div class="spitems">${ks.map(k => `<button data-act="usespeed" data-v="${kind}|${id}|${k}">${XN[k][0]} ${XN[k][2] >= 60 ? XN[k][2] / 60 + 'h' : XN[k][2] + 'm'}<em>×${inv[k]}</em></button>`).join('')}</div>` : ''; };
   C.openCrate = () => { const inv = meta().inv; if (!(inv.crate > 0)) return false; inv.crate--; C.car().cash += 5000; C.save(); return true; };
 
   // ================= Inventory =================
@@ -32,7 +39,7 @@
     const tabs = [['speed', 'Speed-ups'], ['gear', 'Gear'], ['res', 'Resources'], ['special', 'Special']];
     const cell = (icon, n, label, act, v, cls = 't1') => `<button class="invc ${cls} ${n ? '' : 'none'}" ${n && act ? `data-act="${act}" data-v="${v}"` : 'disabled'}><span>${icon}</span><b>${n}</b><small>${label}</small></button>`;
     let body = '';
-    if (invTab === 'speed') body = ['sp5', 'sp15', 'sp60', 'sp180'].map(k => cell('⏩', inv[k] || 0, XN[k][1].replace(' speed-up', ''), 'invspeed', k, 't' + TIER[k])).join('');
+    if (invTab === 'speed') body = Object.keys(XN).filter(k => XN[k][3]).map(k => cell(XN[k][0], inv[k] || 0, XN[k][1].replace(' speed-up', ''), 'invspeed', k, 't' + TIER[k])).join('');
     if (invTab === 'gear') return `<div class="res hres inv">${C.resBar()}</div><div class="bigtabs">${tabs.map(([k, n]) => `<button class="${invTab === k ? 'on' : ''}" data-act="invtab" data-v="${k}">${n}</button>`).join('')}</div>${C.kitRoomHTML ? C.kitRoomHTML() : ''}<p class="note">Equip gear from a player's card. It returns here when a player leaves. Gear comes from Missions, chests and the free Pass track.</p>`;
     if (invTab === 'res') body = cell('📦', inv.crate || 0, '$5K crate', 'invcrate', '', 't2') + cell('🏅', inv.badge || 0, 'Coaching Badges', 'tab', 'staff', 't3') + cell('📗', S.items.manual, 'Manuals', 'tab', 'staff') + cell('📕', S.items.books, 'Trait Books', 'tab', 'staff', 't3') + cell('🎫', S.items.credits, 'Clinic Credits', 'tab', 'staff');
     if (invTab === 'special') body = cell('🧴', it.kit || 0, 'Recovery kits', 'medical', '') + cell('🎁', it.rareRecruit || 0, 'Rare recruit', 'rare', '', 't4') + cell('🎟', car.tokens || 0, 'Number Changes', 'tab', 'squad', 't2');
@@ -41,9 +48,13 @@
   });
   A.invtab = v => { invTab = v; C.ui.refresh(); };
   A.invcrate = () => { if (C.openCrate()) { C.toast('📦 +$5K Booster $'); C.ui.refresh(); C.render(); } };
-  A.invspeed = v => { const q = C.car().queue; if (!q.length) return C.toast('Nothing is being built right now');
-    C.ui.open('Use a speed-up', () => `<p class="note" style="margin-top:0">${XN[v][1]}: pick a building.</p>${C.car().queue.map(x => `<button class="lrow" data-act="usespeed" data-v="${x.key}|${v}"><span class="li">${C.BUILDINGS[x.key].icon}</span><span class="lt"><b>${C.esc(C.BUILDINGS[x.key].name)} → Lv ${x.to}</b><small data-timer="${x.key}">${C.dur(C.remaining(x))} left</small></span><span class="lr">⏩</span></button>`).join('')}`); };
-  A.usespeed = v => { const [k, key] = v.split('|'); if (C.useSpeed(k, key)) { C.toast(`⏩ ${XN[key][1]} used`); C.ui.back(); C.ui.refresh(); C.render(); } };
+  A.invspeed = v => { const car = C.car(), ty = XN[v][3], rows = [];
+    if (ty === 'g' || ty === 'b') car.queue.forEach(x => rows.push(['b', x.key, C.BUILDINGS[x.key].icon, `${C.BUILDINGS[x.key].name} → Lv ${x.to}`, C.remaining(x)]));
+    if (ty === 'g' || ty === 't') car.devq.forEach(x => { const p = C.P(x.pid); if (p) rows.push(['t', x.pid, '🏋️', `Training: ${C.sn(p)}`, C.remaining(x)]); });
+    if (ty === 'g' || ty === 'r') car.pbq.forEach(x => rows.push(['r', x.key, '📋', 'Playbook research', C.remaining(x)]));
+    if (!rows.length) return C.toast('Nothing is running that this speed-up can use');
+    C.ui.open('Use a speed-up', () => `<p class="note" style="margin-top:0">${XN[v][1]}: pick what to speed up.</p>${rows.map(x => `<button class="lrow" data-act="usespeed" data-v="${x[0]}|${x[1]}|${v}"><span class="li">${x[2]}</span><span class="lt"><b>${C.esc(x[3])}</b><small>${C.dur(x[4])} left</small></span><span class="lr">⏩</span></button>`).join('')}`); };
+  A.usespeed = v => { const [kind, id, key] = v.split('|'); if (C.useSpeed(kind, id, key)) { C.toast(`${XN[key][0]} ${XN[key][1]} used`); C.dailyEvent('speed'); C.ui.back(); C.ui.refresh(); C.render(); } };
 
   // ================= Missions: main tasks (a guided path) and daily tasks with a points track =================
   // main tasks double as the tutorial: pre-season first (coach, campus, recruiting), then the season
@@ -70,55 +81,81 @@
   C.mainDone = id => meta().main.includes(id);
   C.mainNext = () => { const car = C.car(); return MAIN.find(t => !meta().main.includes(t[0])) || null; };
   C.mainReady = () => { const car = C.car(); return MAIN.filter(t => !meta().main.includes(t[0]) && t[3](car)).length; };
-  C.mainClaim = id => { const t = MAIN.find(x => x[0] === id), M = meta(); if (!t || M.main.includes(id) || !t[3](C.car())) return null; M.main.push(id); C.giveReward(t[4]); C.passPts(20); C.save(); return t[4]; };
+  C.mainClaim = id => { const t = MAIN.find(x => x[0] === id), M = meta(); if (!t || M.main.includes(id) || !t[3](C.car())) return null; M.main.push(id); C.giveReward(t[4]); C.save(); return t[4]; };
 
   // daily tasks: 6 a day, 20 points each, chests at 20/40/60/90/120
   const DAILY = [['match', '⚽', 'Play a match', 1, 'prematch', ''], ['win', '🏆', 'Win a match', 1, 'prematch', ''], ['collect', '💵', 'Collect income 3 times', 3, 'tab', 'campus'], ['upgrade', '🔨', 'Start an upgrade', 1, 'blist', ''],
-    ['train', '🏋️', 'Start a training plan', 1, 'tab', 'squad'], ['research', '📋', 'Start Playbook research', 1, 'playbook', ''], ['offer', '✉️', 'Make a recruiting offer', 1, 'tab', 'recruit'], ['ad', '▶', 'Watch a rewarded ad', 1, 'adreward', ''],
-    ['speed', '⏩', 'Use a speed-up', 1, 'inventory', ''], ['gift', '🎁', 'Claim the daily gift', 1, 'dailygift', ''], ['medical', '🩺', 'Use a physio or recovery item', 1, 'medical', '']];
-  const DREW = { match: { cash: 1500 }, win: { gold: 10 }, collect: { cp: 15 }, upgrade: { sp5: 2 }, train: { manual: 1 }, research: { cp: 20 }, offer: { cash: 1000 }, ad: { gold: 5 }, speed: { sp5: 1 }, gift: { cp: 10 }, medical: { kit: 1 } };
-  const CHESTS = [[20, { sp5: 2, cash: 1500 }], [40, { cp: 30, crate: 1 }], [60, { gold: 15, sp15: 1, badge: 1 }], [90, { manual: 2, sp15: 2, gear: 1 }], [120, { gold: 40, sp60: 1, badge: 3 }]];
+    ['train', '🏋️', 'Start a training plan', 1, 'tab', 'squad'], ['research', '📋', 'Start Playbook research', 1, 'playbook', ''], ['offer', '✉️', 'Make a recruiting offer', 1, 'tab', 'recruit'],
+    ['speed', '⏩', 'Use a speed-up', 1, 'inventory', ''], ['medical', '🩺', 'Use a physio or recovery item', 1, 'medical', '']];
+  const LOGIN = ['login', '🎁', 'Claim login reward', 1, 'dailytasks', ''];
+  const DREW = { login: C.GIFT, match: { cash: 1500 }, win: { gold: 10 }, collect: { cp: 15 }, upgrade: { spb15: 1 }, train: { spt15: 1 }, research: { spr15: 1 }, offer: { cash: 1000 }, speed: { sp5: 1 }, medical: { kit: 1 } };
+  const CHESTS = [[20, { sp5: 2, cash: 1500 }], [40, { cp: 30, crate: 1 }], [60, { gold: 15, kit: 1, badge: 1 }], [90, { spt15: 1, spb15: 1, gear: 1 }], [120, { gold: 40, sp60: 1, badge: 3 }]];
   C.CHESTS = CHESTS;
-  function rollDaily() { const M = meta(); if (M.day === dayKey()) return;
+  function rollDaily() { const M = meta(); if (M.day === dayKey()) {
+      // a list made by an earlier build: drop tasks that no longer exist, put the login reward first
+      if (!M.daily.some(t => t.id === 'login')) { M.daily = [{ id: 'login', n: 1, goal: 1, claimed: false }].concat(M.daily.filter(t => DAILY.some(x => x[0] === t.id))); } return; }
     // anything finished but not claimed yesterday goes to the Inbox, so it isn't lost
     const left = {}; (M.daily || []).forEach(t => { if (t.n >= t.goal && !t.claimed) Object.entries(DREW[t.id] || {}).forEach(([k, v]) => left[k] = (left[k] || 0) + v); });
     CHESTS.forEach(([p, r], i) => { if (M.pts >= p && !M.chests.includes(i)) Object.entries(r).forEach(([k, v]) => left[k] = (left[k] || 0) + v); });
     if (Object.keys(left).length && M.day) C.mail('rewards', '🎁', 'Unclaimed daily rewards', "You finished these yesterday but didn't claim them. Here they are.", left);
+    // (a day you don't sign in never gets a task list, so nothing is mailed for it: sign in, or miss out)
     M.day = dayKey(); M.pts = 0; M.chests = [];
     const r = C.rng(new Date().getDate() * 131 + new Date().getMonth() * 17), pool = DAILY.slice();
-    M.daily = [0, 1, 2, 3, 4, 5].map(() => { const t = pool.splice(Math.floor(r() * pool.length), 1)[0]; return { id: t[0], n: 0, goal: t[3], claimed: false }; }); }
-  C.daily = () => { rollDaily(); return meta().daily.map(t => Object.assign({}, t, { def: DAILY.find(x => x[0] === t.id) })); };
+    M.daily = [{ id: 'login', n: 1, goal: 1, claimed: false }].concat([0, 1, 2, 3, 4].map(() => { const t = pool.splice(Math.floor(r() * pool.length), 1)[0]; return { id: t[0], n: 0, goal: t[3], claimed: false }; })); }
+  C.daily = () => { rollDaily(); return meta().daily.map(t => Object.assign({}, t, { def: t.id === 'login' ? LOGIN : DAILY.find(x => x[0] === t.id) })); };
+  C.loginClaimed = () => { rollDaily(); const t = meta().daily.find(x => x.id === 'login'); return !t || t.claimed; };
+  C.giftClaimed = () => !C.car() || C.loginClaimed();
   C.dailyEvent = (id, n = 1) => { if (!C.car()) return; rollDaily(); meta().daily.forEach(t => { if (t.id === id) t.n = Math.min(t.goal, t.n + n); }); };
-  C.dailyClaim = i => { const M = meta(), t = M.daily[i]; if (!t || t.claimed || t.n < t.goal) return null; t.claimed = true; M.pts += 20; const r = DREW[t.id]; C.giveReward(r); C.passPts(10); return r; };
+  C.dailyClaim = i => { const M = meta(), t = M.daily[i]; if (!t || t.claimed || t.n < t.goal) return null; t.claimed = true; M.pts += 20; const r = DREW[t.id]; C.giveReward(r); return r; };
   C.chestOpen = i => { const M = meta(); if (M.chests.includes(i) || M.pts < CHESTS[i][0]) return null; M.chests.push(i); C.giveReward(CHESTS[i][1]); return CHESTS[i][1]; };
 
-  // ================= the Pass: 30 tiers, one free tier a day you log in (replaces the 28-day calendar) =================
-  const PASS_TIERS = 30;
-  const PFREE = i => i % 10 === 2 ? { gear: 1, cash: 2000 } : (i + 1) % 10 === 0 ? { gold: 60, sp60: 1 } : (i + 1) % 5 === 0 ? { gold: 30, crate: 1, badge: 2 } : [{ cash: 3000 }, { sp15: 1 }, { cp: 40 }, { manual: 1 }, { sp5: 3 }, { credits: 8 }, { gold: 15 }][i % 7];
-  const PPREM = i => (i + 1) === 30 ? { coach: 1, gold: 200 } : (i + 1) % 10 === 0 ? { rare: 1, gold: 100 } : (i + 1) % 5 === 0 ? { books: 2, sp180: 1, badge: 8 } : [{ gold: 40 }, { sp60: 1 }, { manual: 2 }, { crate: 2 }, { credits: 15 }, { sp15: 3 }][i % 6];
-  C.passX = () => { const M = meta(); if (!M.pass || C.now() - M.pass.start > 30 * D) M.pass = { start: C.now(), days: 0, last: '', prem: M.pass && M.pass.keepPrem ? true : false, f: [], p: [], pts: 0 }; return M.pass; };
-  C.passPts = n => { const P = C.passX(); P.pts = (P.pts || 0) + n; };
-  // a tier unlocks for each day you check in (plus extra tiers from Mission points: 200 points = 1 tier)
-  C.passTierX = () => { const P = C.passX(); return Math.min(PASS_TIERS, P.days + Math.floor((P.pts || 0) / 200)); };
-  C.passCanCheckIn = () => C.passX().last !== dayKey();
-  C.passCheckIn = () => { const P = C.passX(); if (!C.passCanCheckIn()) return false; P.last = dayKey(); P.days++; C.save(); return true; };
-  C.passClaimX = (track, i) => { const P = C.passX(); if (i >= C.passTierX()) return null; if (track === 'p' && !P.prem) return 'prem'; const L = P[track]; if (L.includes(i)) return null; L.push(i); const r = track === 'f' ? PFREE(i) : PPREM(i); C.giveReward(r); return r; };
-  C.passClaimAll = () => { const P = C.passX(), T = C.passTierX(), got = {}; for (let i = 0; i < T; i++) for (const tr of ['f', 'p']) { if (tr === 'p' && !P.prem) continue; if (P[tr].includes(i)) continue; P[tr].push(i); const r = tr === 'f' ? PFREE(i) : PPREM(i); C.giveReward(r); for (const k in r) got[k] = (got[k] || 0) + r[k]; } return Object.keys(got).length ? got : null; };
-  C.passUnclaimed = () => { const P = C.passX(), T = C.passTierX(); let n = 0; for (let i = 0; i < T; i++) { if (!P.f.includes(i)) n++; if (P.prem && !P.p.includes(i)) n++; } return n + (C.passCanCheckIn() ? 1 : 0); };
+  // ================= themed events: 14 days each, back to back, on a fixed diary (round 6) =================
+  // Free track: one drop a day; claim it on the day or it's gone. Premium packs ($4.99, then $9.99) open their tracks:
+  // everything up to today can be redeemed at once, and anything uncollected when the event ends is mailed.
+  const dayNo = () => Math.floor((new Date().setHours(12, 0, 0, 0)) / 864e5);
+  const big = i => (i + 1) % 7 === 0;
+  const THEMES = [
+    { id: 'coaching', icon: '🧢', name: 'Coaching Event', desc: 'Build your staff and your Playbook faster.', free: i => big(i) ? { cp: 70, badge: 2 } : { cp: 25 },
+      p1: i => [{ manual: 2 }, { credits: 10 }, { badge: 2 }, { manual: 3 }, { spr15: 2 }, { credits: 15 }, { badge: 4 }][i % 7], p2: i => i === 13 ? { coach: 1, gold: 100 } : [{ badge: 4 }, { books: 1 }, { manual: 5 }, { gold: 40 }, { spr60: 1 }, { credits: 25 }, { badge: 8 }][i % 7] },
+    { id: 'building', icon: '🔨', name: 'Building Event', desc: 'Raise your campus faster.', free: i => big(i) ? { cash: 5000, spb15: 2 } : { cash: 1200 },
+      p1: i => [{ spb15: 2 }, { cash: 4000 }, { crate: 1 }, { spb15: 3 }, { cash: 6000 }, { crate: 2 }, { spb60: 1 }][i % 7], p2: i => i === 13 ? { gold: 150, cash: 30000 } : [{ spb60: 1 }, { cash: 10000 }, { gold: 40 }, { spb60: 2 }, { cash: 15000 }, { crate: 3 }, { spb60: 3 }][i % 7] },
+    { id: 'training', icon: '🏋️', name: 'Training Event', desc: 'Develop your players faster.', free: i => big(i) ? { spt15: 2, gear: 1 } : { cash: 800 },
+      p1: i => [{ spt15: 2 }, { cash: 3000 }, { spt15: 2 }, { tokens: 1 }, { spt15: 3 }, { cash: 5000 }, { spt60: 1 }][i % 7], p2: i => i === 13 ? { gold: 150, spt60: 3 } : [{ spt60: 1 }, { gold: 30 }, { spt60: 1 }, { cash: 10000 }, { spt60: 2 }, { gold: 40 }, { spt60: 2 }][i % 7] },
+    { id: 'recovery', icon: '🧴', name: 'Recovery Event', desc: 'Keep your squad fresh and fit.', free: i => big(i) ? { kit: 3 } : i % 2 ? { credits: 4 } : { kit: 1 },
+      p1: i => [{ kit: 2 }, { credits: 10 }, { kit: 3 }, { gold: 15 }, { kit: 3 }, { credits: 15 }, { kit: 5 }][i % 7], p2: i => i === 13 ? { gold: 150, kit: 10 } : [{ kit: 4 }, { gold: 30 }, { kit: 5 }, { credits: 25 }, { kit: 5 }, { gold: 40 }, { kit: 8 }][i % 7] },
+    { id: 'recruiting', icon: '✉️', name: 'Recruiting Event', desc: 'Find and sign better players.', free: i => big(i) ? { cp: 40, tokens: 1 } : { cash: 1000 },
+      p1: i => [{ cp: 40 }, { tokens: 1 }, { cash: 4000 }, { gold: 15 }, { cp: 50 }, { cash: 6000 }, { tokens: 2 }][i % 7], p2: i => i === 13 ? { rare: 1, gold: 100 } : [{ gold: 30 }, { cp: 80 }, { cash: 10000 }, { gold: 30 }, { tokens: 2 }, { cash: 15000 }, { gold: 60 }][i % 7] }
+  ];
+  const EV_DAYS = 14, evAt = n => { const idx = Math.floor(n / EV_DAYS); return { idx, th: THEMES[idx % THEMES.length], start: idx * EV_DAYS, today: n - idx * EV_DAYS }; };
+  const fmtDay = n => new Date(n * 864e5).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  C.curEvent = () => evAt(dayNo());
+  C.evx = () => { const M = meta(), E = C.curEvent(); if (!M.evx || M.evx.idx !== E.idx) { const o = M.evx;
+      // the event ended: purchased rewards never get lost, they're mailed. Free drops are gone.
+      if (o && (o.has1 || o.has2)) { const T = THEMES[o.idx % THEMES.length], got = {}; const add = r => { for (const k in r) got[k] = (got[k] || 0) + r[k]; }; for (let i = 0; i < EV_DAYS; i++) { if (o.has1 && !o.p1.includes(i)) add(T.p1(i)); if (o.has2 && !o.p2.includes(i)) add(T.p2(i)); } if (Object.keys(got).length) C.mail('rewards', T.icon, `${T.name}: your uncollected rewards`, 'Your premium rewards from the event that just ended.', got); }
+      M.evx = { idx: E.idx, from: E.today, f: [], p1: [], p2: [], has1: false, has2: false }; } return M.evx; };
+  const trackOf = (th, tr, i) => tr === 'f' ? th.free(i) : tr === 'p1' ? th.p1(i) : th.p2(i);
+  C.evCanClaim = (tr, i) => { const X = C.evx(), E = C.curEvent(); if (X[tr].includes(i)) return false; if (tr === 'f') return i === E.today; if (i > E.today) return false; return tr === 'p1' ? X.has1 : X.has2; };
+  C.evClaim = (tr, i) => { if (!C.evCanClaim(tr, i)) return null; const X = C.evx(), r = trackOf(C.curEvent().th, tr, i); X[tr].push(i); C.giveReward(r); return r; };
+  C.evClaimAll = () => { const E = C.curEvent(), got = {}; for (let i = 0; i <= E.today; i++) for (const tr of ['f', 'p1', 'p2']) { const r = C.evClaim(tr, i); if (r) for (const k in r) got[k] = (got[k] || 0) + r[k]; } return Object.keys(got).length ? got : null; };
+  C.evClaimable = () => { const E = C.curEvent(); let n = 0; for (let i = 0; i <= E.today; i++) for (const tr of ['f', 'p1', 'p2']) if (C.evCanClaim(tr, i)) n++; return n; };
+  C.passPts = () => {};   // kept for older callers
+  C.evBuy = n => { const X = C.evx(), E = C.curEvent(); if (n === 1) { if (X.has1) return 'owned'; X.has1 = true; } else { if (!X.has1) return 'need1'; if (X.has2) return 'owned'; X.has2 = true; } C.mail('purchases', '🧾', `Purchase: ${E.th.name} ${n === 1 ? '$4.99' : '$9.99'} pack`, 'Rewards up to today can be redeemed in the event. Anything uncollected is mailed when it ends.<br><small>Test store: nothing was charged.</small>', null); C.save(); return true; };
 
   // ================= Events hub: big tabs (Pass · Missions · Event) =================
-  let evTab = 'missions', msTab = 'main';
+  let evTab = 'missions', msTab = 'daily';
   C.openEvents = t => { if (t) evTab = t; C.ui.open('Events', eventsHTML); };
   A.evtab = v => { evTab = v; C.ui.refresh(); };
   A.mstab = v => { msTab = v; C.ui.refresh(); };
-  function bigTabs() { const ev = C.event(), dots = { pass: C.passUnclaimed(), missions: C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => meta().pts >= p && !meta().chests.includes(i)).length, event: 0 };
-    return `<div class="bigtabs">${[['missions', '🎯 Missions'], ['pass', '🎟 Pass'], ['event', ev.icon + ' Event']].map(([k, n]) => `<button class="${evTab === k ? 'on' : ''}" data-act="evtab" data-v="${k}">${n}${dots[k] ? ` <em>${dots[k]}</em>` : ''}</button>`).join('')}</div>`; }
+  A.dailytasks = () => { evTab = 'missions'; msTab = 'daily'; C.ui.closeAll(); C.openEvents(); };
+  A.dailygift = A.dailytasks;
+  // tabs: icon over label, full width, red-dot counts (round 6)
+  function bigTabs() { const E = C.curEvent(), dots = { missions: C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => meta().pts >= p && !meta().chests.includes(i)).length, event: C.evClaimable(), cal: 0 };
+    return `<div class="evtabs">${[['missions', '🎯', 'Missions'], ['event', E.th.icon, E.th.name.replace(' Event', '')], ['cal', '📅', 'Calendar']].map(([k, ic, n]) => `<button class="${evTab === k ? 'on' : ''}" data-act="evtab" data-v="${k}"><span>${ic}</span>${n}${dots[k] ? `<em>${dots[k]}</em>` : ''}</button>`).join('')}</div>`; }
   function eventsHTML() {
-    if (evTab === 'pass') return bigTabs() + passHTML();
-    if (evTab === 'event') { const ev = C.event(); return bigTabs() + `${C.streakHTML ? C.streakHTML() + C.piggyHTML() : ''}<div class="card evcard"><span>${ev.icon}</span><div><b>${ev.name}</b><p>${ev.desc}</p><small>Ends in ${C.dur((C.eventEnds() - C.now()) / 1000)}</small></div></div>
-      ${C.isVip() ? `<button class="btn full ${C.lo().vipDay !== dayKey() ? 'pri' : 'sec2'}" data-act="vipdaily" style="margin-top:8px" ${C.lo().vipDay !== dayKey() ? '' : 'disabled'}>👑 Coach's Club daily: <i class="coin"></i> 25</button>` : ''}
-      <h3 class="jh">Rewarded ads <small class="devp">${C.adsLeft()} left today</small></h3><button class="btn full sec2" data-act="adreward" ${C.adsLeft() > 0 ? '' : 'disabled'}>▶ ${C.isVip() ? "Claim (Coach's Club skips the ad)" : 'Watch an ad (test)'} for a random reward</button>`; }
-    const sub = `<div class="subtabs">${[['main', 'Main tasks', C.mainReady()], ['daily', 'Daily tasks', C.daily().filter(t => t.n >= t.goal && !t.claimed).length]].map(([k, n, d]) => `<button class="${msTab === k ? 'on' : ''}" data-act="mstab" data-v="${k}">${n}${d ? ` <em>${d}</em>` : ''}</button>`).join('')}</div>`;
+    if (evTab === 'event') return bigTabs() + eventHTML();
+    if (evTab === 'cal') return bigTabs() + calHTML();
+    const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length;
+    const sub = `<div class="subtabs">${[['daily', 'Daily tasks', dd], ['main', 'Main tasks', C.mainReady()]].map(([k, n, d]) => `<button class="${msTab === k ? 'on' : ''}" data-act="mstab" data-v="${k}">${n}${d ? ` <em>${d}</em>` : ''}</button>`).join('')}</div>`;
     if (msTab === 'main') {
       const car = C.car(), M = meta(), open = MAIN.filter(t => !M.main.includes(t[0])).slice(0, 5);
       const rows = open.map(t => { const ok = t[3](car); return `<div class="mrow2"><div class="mh"><span>${t[1]}</span><b>${C.esc(t[2])}</b></div><div class="mb">${C.itemTiles(t[4])}${ok ? `<button class="btn sm2 claim" data-act="mainclaim" data-v="${t[0]}">Claim</button>` : `<button class="btn sm2 go" data-act="${t[5]}" data-v="${t[6]}">Go</button>`}</div></div>`; }).join('');
@@ -126,43 +163,59 @@
     }
     const M = meta(), list = C.daily(), max = CHESTS[CHESTS.length - 1][0];
     const track = `<div class="ptrack"><div class="pstar"><i>★</i><b>${M.pts}</b></div><div class="pline"><div class="pfill" style="width:${Math.min(100, M.pts / max * 100)}%"></div>${CHESTS.map(([p], i) => `<button class="pchest ${M.chests.includes(i) ? 'got' : M.pts >= p ? 'ready' : ''}" style="left:${p / max * 100}%" data-act="chestopen" data-v="${i}" title="${C.esc(C.rwText(CHESTS[i][1]))}">🧰<small>${p}</small></button>`).join('')}</div></div>`;
-    const rows = list.map((t, i) => `<div class="mrow2 ${t.claimed ? 'done' : ''}"><div class="mh"><span>${t.def[1]}</span><b>${C.esc(t.def[2])} <small>(${t.n}/${t.goal})</small></b></div><div class="mb">${C.itemTiles(Object.assign({ pts: 20 }, DREW[t.id]))}
+    const rows = list.map((t, i) => `<div class="mrow2 ${t.claimed ? 'done' : ''} ${t.id === 'login' && !t.claimed ? 'alert' : ''}"><div class="mh"><span>${t.def[1]}</span><b>${C.esc(t.def[2])}${t.id === 'login' ? '' : ` <small>(${t.n}/${t.goal})</small>`}</b>${t.id === 'login' && !t.claimed ? '<i class="ldot"></i>' : ''}</div><div class="mb">${C.itemTiles(Object.assign({ pts: 20 }, DREW[t.id]))}
       ${t.claimed ? '<span class="donechk">✔</span>' : t.n >= t.goal ? `<button class="btn sm2 claim" data-act="dailyclaim" data-v="${i}">Claim</button>` : `<button class="btn sm2 go" data-act="${t.def[4]}" data-v="${t.def[5]}">Go</button>`}</div></div>`).join('');
     return bigTabs() + sub + `<div class="nextref">⏱ New tasks in ${C.dur((new Date().setHours(24, 0, 0, 0) - Date.now()) / 1000)}</div>${track}${rows}`;
   }
   ICON.pts = '<i class="ptsi">★</i>'; TIER.pts = 2; NAME.pts = 'Mission points';
-  function passHTML() {
-    const P = C.passX(), T = C.passTierX(), left = 30 * D - (C.now() - P.start), can = C.passCanCheckIn();
-    const rows = Array.from({ length: PASS_TIERS }, (_, i) => { const un = i < T;
-      const cell = (tr, r) => { const got = P[tr].includes(i), lock = tr === 'p' && !P.prem; return `<button class="pcell ${tr} ${got ? 'got' : ''} ${un && !got && !lock ? 'ready' : ''}" data-act="passx" data-v="${tr}|${i}" ${un && !got ? '' : 'disabled'}>${lock ? '<i class="plock">🔒</i>' : ''}${C.itemTiles(r)}${got ? '<i class="pgot">✔</i>' : ''}</button>`; };
-      return `<div class="prow2 ${un ? 'un' : ''}"><b class="pday">${i + 1}</b>${cell('f', PFREE(i))}${cell('p', PPREM(i))}</div>`; }).join('');
-    return `<div class="card passhd2"><b>Season Pass</b><small>${C.dur(left / 1000)} left · tier ${T} / ${PASS_TIERS}</small>
-        <p>One free tier unlocks each day you check in. Mission points unlock extra tiers (200 points = 1 tier).</p>
-        <button class="btn full ${can ? 'pri' : 'sec2'}" data-act="passcheck" ${can ? '' : 'disabled'}>${can ? `✔ Check in for day ${P.days + 1}` : '✔ Checked in today'}</button>
-        ${P.prem ? '<p class="note" style="margin:6px 0 0">✔ Premium track unlocked</p>' : `<button class="btn full gold" data-act="buypack" data-v="pass" style="margin-top:8px">Unlock the premium track · $9.99 (test)</button>`}</div>
-      <div class="prow2 head"><b class="pday">Day</b><span>Free</span><span>Premium</span></div>${rows}
-      <button class="btn full pri" data-act="passall" style="margin-top:10px">Claim all</button>`;
+  // the current themed event
+  function eventHTML() {
+    const X = C.evx(), E = C.curEvent(), th = E.th, left = (E.start + EV_DAYS) * 864e5 - Date.now();
+    const cell = (tr, i) => { const got = X[tr].includes(i), can = C.evCanClaim(tr, i), lock = (tr === 'p1' && !X.has1) || (tr === 'p2' && !X.has2), missed = tr === 'f' && i < E.today && i >= (X.from || 0) && !got;
+      return `<button class="pcell ${tr} ${got ? 'got' : ''} ${can ? 'ready' : ''} ${missed ? 'miss' : ''}" ${can ? `data-act="evclaim" data-v="${tr}|${i}"` : 'disabled'}>${lock ? '<i class="plock">🔒</i>' : ''}${C.itemTiles(trackOf(th, tr, i))}${got ? '<i class="pgot">✔</i>' : ''}${missed ? '<i class="pgot mis">Missed</i>' : ''}</button>`; };
+    const rows = Array.from({ length: EV_DAYS }, (_, i) => `<div class="prow3 ${i <= E.today ? 'un' : ''} ${i === E.today ? 'now' : ''}"><b class="pday">${i + 1}</b>${cell('f', i)}${cell('p1', i)}${cell('p2', i)}</div>`).join('');
+    return `<div class="card passhd2"><b>${th.icon} ${th.name}</b><small>Day ${E.today + 1} of ${EV_DAYS} · ${C.dur(left / 1000)} left · ${fmtDay(E.start)} – ${fmtDay(E.start + EV_DAYS - 1)}</small><p>${th.desc} Claim today's free drop on the day or it's gone. Premium packs open everything up to today, and uncollected premium rewards are mailed when the event ends.</p>
+        <div class="evpacks"><button class="btn ${X.has1 ? 'sec2' : 'gold'}" data-act="evbuy" data-v="1" ${X.has1 ? 'disabled' : ''}>${X.has1 ? '✔ Pack 1' : 'Pack 1 · $4.99'}</button><button class="btn ${X.has2 ? 'sec2' : X.has1 ? 'gold' : 'sec2'}" data-act="evbuy" data-v="2" ${X.has2 ? 'disabled' : ''}>${X.has2 ? '✔ Pack 2' : X.has1 ? 'Pack 2 · $9.99' : '🔒 Pack 2 · $9.99'}</button></div></div>
+      <div class="prow3 head"><b class="pday">Day</b><span>Free</span><span>$4.99</span><span>$9.99</span></div>${rows}
+      <button class="btn full pri" data-act="evall" style="margin-top:10px">Claim all</button>`;
+  }
+  // the calendar shows now and next, never the whole schedule
+  function calHTML() {
+    const E = C.curEvent(), N = evAt(E.start + EV_DAYS), ev = C.event();
+    const card = (e, tag) => `<div class="calcard ${tag === 'Now' ? 'now' : ''}"><span class="ci">${e.th.icon}</span><div><em>${tag}</em><b>${e.th.name}</b><small>${fmtDay(e.start)} – ${fmtDay(e.start + EV_DAYS - 1)}</small><p>${e.th.desc}</p></div></div>`;
+    return `<h3 class="jh" style="margin-top:2px">Event calendar</h3>${card(E, 'Now')}${card(N, 'Next')}
+      <h3 class="jh">This week, free for everyone</h3><div class="card evcard"><span>${ev.icon}</span><div><b>${ev.name}</b><p>${ev.desc}</p><small>Applies automatically · ends in ${C.dur((C.eventEnds() - C.now()) / 1000)}</small></div></div>
+      <h3 class="jh">Rewards</h3>${C.streakHTML ? C.streakHTML() + C.piggyHTML() : ''}
+      ${C.isVip() ? `<button class="btn full ${C.lo().vipDay !== dayKey() ? 'pri' : 'sec2'}" data-act="vipdaily" style="margin-top:8px" ${C.lo().vipDay !== dayKey() ? '' : 'disabled'}>👑 Coach's Club daily: <i class="coin"></i> 25</button>` : ''}`;
   }
   A.mainclaim = v => { const r = C.mainClaim(v); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
   A.dailyclaim = v => { const r = C.dailyClaim(+v); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
   A.chestopen = v => { const r = C.chestOpen(+v); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); } else C.toast('🧰 ' + C.rwText(CHESTS[+v][1])); };
-  A.passcheck = () => { if (C.passCheckIn()) { C.toast('🎟 Checked in: a new tier is open'); C.ui.refresh(); C.render(); } };
-  A.passx = v => { const [t, i] = v.split('|'), r = C.passClaimX(t, +i); if (r === 'prem') C.toast('Unlock the premium track first'); else if (r) { C.toast('🎟 ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
-  A.passall = () => { const r = C.passClaimAll(); C.toast(r ? '🎟 ' + C.rwText(r) : 'Nothing to claim yet'); C.ui.refresh(); C.render(); };
+  A.evclaim = v => { const [t, i] = v.split('|'), r = C.evClaim(t, +i); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
+  A.evall = () => { const r = C.evClaimAll(); C.toast(r ? '✔ ' + C.rwText(r) : 'Nothing to claim yet'); C.ui.refresh(); C.render(); };
+  A.evbuy = (v, el) => { const n = +v, X = C.evx(); if (n === 2 && !X.has1) return C.toast('Buy the $4.99 pack first');
+    if (!(el && el.dataset.ok)) return C.confirm('Confirm purchase', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><p class="note">${C.curEvent().th.name} · Pack ${n} · ${n === 1 ? '$4.99' : '$9.99'}: opens this track, with everything up to today ready to redeem.</p>`, 'Buy ' + (n === 1 ? '$4.99' : '$9.99'), 'evbuy', v);
+    if (C.evBuy(n) === true) { C.toast('✅ Test purchase complete'); C.ui.refresh(); C.render(); } };
   A.inventory = () => C.openInventory();
+  // the comms button: "this is what to do next", straight to Main Tasks
+  A.nexttask = () => { evTab = 'missions'; msTab = 'main'; C.ui.closeAll(); C.openEvents(); };
+  // building action buttons open popups over the map
+  A.bpop = v => { C.ui.asPopup = true; if (v === 'proginfo') C.openProgramInfo(); else if (v === 'playbook') C.openPlaybook(); else if (v === 'medical') C.openMedical(); else if (v === 'hqstaff') C.openStaffPop(); else if (v === 'kitroom') C.openKitRoom(); else if (v === 'academic') C.openAcademic(); };
+  C.openStaffPop = () => C.ui.open('Staff on duty', () => { const S = C.staffState();
+    return `<div class="hgrid" style="padding:0">${S.list.map(c => `<button class="hcard" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><span class="hlv">Lv.${c.level}</span>${S.on.includes(c.id) ? '<em class="hon">ON</em>' : ''}<div class="hpic">${C.coachFace(c)}</div><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]}</small></button>`).join('')}</div>
+      <div class="jbtns" style="grid-template-columns:1fr 1fr;margin-top:10px"><button class="btn sec2" data-act="market">🧑‍🏫 Market</button><button class="btn sec2" data-act="search">🎲 Search</button></div>`; });
   A.preseason = () => C.openPreseason();
-  // premium pass bought through the old store action still unlocks this pass
-  const oBuyPack = C.buyPack; C.buyPack = id => { const r = oBuyPack(id); if (r !== 'owned' && C.car()) { if (id === 'pass') C.passX().prem = true; receipt(C.PACKS[id] ? C.PACKS[id].name || id : id, C.PACKS[id] && C.PACKS[id].r); } return r; };
+  const oBuyPack = C.buyPack; C.buyPack = id => { const r = oBuyPack(id); if (r !== 'owned' && C.car()) { receipt(C.PACKS[id] ? C.PACKS[id].name || id : id, C.PACKS[id] && C.PACKS[id].r); } return r; };
 
   // claimable count for red dots (replaces the calendar-based count)
-  C.loClaimable = () => { if (!C.car()) return 0; const M = meta(); return C.passUnclaimed() + C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => M.pts >= p && !M.chests.includes(i)).length + (C.isVip() && C.lo().vipDay !== dayKey() ? 1 : 0); };
+  C.loClaimable = () => { if (!C.car()) return 0; const M = meta(); return C.evClaimable() + C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => M.pts >= p && !M.chests.includes(i)).length + (C.isVip() && C.lo().vipDay !== dayKey() ? 1 : 0); };
 
   // ================= Inbox: one place for messages, by topic =================
   C.mail = (f, icon, title, body, r) => { const M = meta(); M.inbox.unshift({ id: 'm' + C.now() + Math.floor(Math.random() * 1e4), f, icon, title, body, r: r || null, claimed: false, read: false, t: C.now() }); M.inbox = M.inbox.filter(x => C.now() - x.t < 30 * D || x.fav).slice(0, 120); C.save(); };
   function receipt(name, r) { C.mail('purchases', '🧾', 'Purchase: ' + name, `Thanks for your purchase. ${r ? 'Received: ' + C.rwText(r) + '.' : ''}<br><small>Test store: nothing was charged.</small>`, null); }
   const FOLDERS = [['match', '📋', 'Match reports'], ['director', '🏛', 'Director'], ['rewards', '🎁', 'Rewards'], ['purchases', '🧾', 'Purchases'], ['system', '⚙️', 'News & updates'], ['fav', '⭐', 'Favourites']];
   C.inboxUnread = () => { const car = C.car(); if (!car) return 0; sysMail(); return meta().inbox.filter(x => !x.read || (x.r && !x.claimed)).length + C.adUnread(); };
-  function sysMail() { const M = meta(); if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `Ray here. A few changes around the office:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• The <b>Pass</b> replaces the old calendar: check in each day for a free tier.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
+  function sysMail() { const M = meta(); if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `Ray here. A few changes around the office:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
   let folder = null;
   C.openInbox = () => { folder = null; C.ui.open('Inbox', inboxHTML); };
   function inboxHTML() {
@@ -191,7 +244,10 @@
   const wkEnd = () => new Date(weekKey()).getTime() + 7 * D;
   C.buyWeekly = id => { const M = meta(), w = WEEKLY.find(x => x.id === id); if (M.wk !== weekKey()) { M.wk = weekKey(); M.wbuy = {}; } const n = M.wbuy[id] || 0; if (!w || n >= w.lim) return 'limit'; M.wbuy[id] = n + 1; C.giveReward(w.r); receipt(w.name, w.r); return true; };
   A.buyweekly = v => { const r = C.buyWeekly(v); C.toast(r === true ? '✅ Test purchase complete' : 'Purchase limit reached this week'); C.ui.refresh(); C.render(); };
+  Object.assign(C.PACKS, { packTrain: { name: 'Training Pack', icon: '🏋️', price: '$1.99', r: { spt15: 4, spt60: 2 } }, packCoach: { name: 'Coaching Pack', icon: '🧢', price: '$2.99', r: { manual: 5, badge: 6, spr60: 1 } }, packBuild: { name: 'Building Pack', icon: '🔨', price: '$2.99', r: { spb15: 4, spb60: 2, crate: 2 } }, packRec: { name: 'Recovery Pack', icon: '🧴', price: '$1.99', r: { kit: 6, credits: 10 } } });
+  A.evopen = () => { evTab = 'event'; C.ui.closeAll(); C.openEvents(); };
   A.sttab = v => { stTab = v; C.ui.refresh(); };
+  C.openStoreAt = t => { stTab = t; C.openStore(); };
   const oStore = C.openStore;
   C.openStore = () => C.ui.open('Store', () => {
     const a = C.acct(), vip = C.isVip(), L = C.lo(), M = meta(); if (M.wk !== weekKey()) { M.wk = weekKey(); M.wbuy = {}; }
@@ -200,15 +256,16 @@
     const test = `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px;margin-bottom:8px">🧪 Test store. Purchases are simulated and no money is charged.</div>`;
     let body = '';
     if (stTab === 'deals') { const dl = C.todayDeal(), dd = C.dealBought(), fmt = t => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-      body = `<div class="pack"><div class="pkh"><b>${dl.icon} Today's deal: ${C.esc(dl.name)}</b><span class="ptag">Daily</span></div>${C.itemTiles(dl.r)}<div class="pkf"><small>1 purchase a day</small><button class="btn sm2 ${dd ? 'sec2' : 'pri'}" data-act="buydeal" ${dd ? 'disabled' : ''}>${dd ? '✔ Bought' : `<s>${dl.was}</s> ${dl.price}`}</button></div></div>
+      body = `<div class="pack"><div class="pkh"><b>${dl.icon} Today's deal: ${C.esc(dl.name)}</b><span class="ptag">Daily</span></div>${C.itemTiles(dl.r)}<div class="packft"><small>1 purchase a day</small><button class="btn sm2 ${dd ? 'sec2' : 'pri'}" data-act="buydeal" ${dd ? 'disabled' : ''}>${dd ? '✔ Bought' : `<s>${dl.was}</s> ${dl.price}`}</button></div></div>
         ${C.piggyHTML ? C.piggyHTML() : ''}<h3 class="jh">Weekly deals <small class="devp">${fmt(new Date(weekKey()))} – ${fmt(wkEnd() - 1)}</small></h3>
-        ${WEEKLY.map(w => { const n = M.wbuy[w.id] || 0, left = w.lim - n; return `<div class="pack"><div class="pkh"><b>${w.icon} ${w.name}</b><span class="ptag t-${w.tag.toLowerCase()}">${w.tag}</span></div>${C.itemTiles(w.r)}<div class="pkf"><small>${left} of ${w.lim} purchase${w.lim > 1 ? 's' : ''} left</small><button class="btn sm2 ${left ? 'pri' : 'sec2'}" data-act="buyweekly" data-v="${w.id}" ${left ? '' : 'disabled'}>${left ? w.price : 'Sold out'}</button></div></div>`; }).join('')}
+        ${WEEKLY.map(w => { const n = M.wbuy[w.id] || 0, left = w.lim - n; return `<div class="pack"><div class="pkh"><b>${w.icon} ${w.name}</b><span class="ptag t-${w.tag.toLowerCase()}">${w.tag}</span></div>${C.itemTiles(w.r)}<div class="packft"><small>${left} of ${w.lim} purchase${w.lim > 1 ? 's' : ''} left</small><button class="btn sm2 ${left ? 'pri' : 'sec2'}" data-act="buyweekly" data-v="${w.id}" ${left ? '' : 'disabled'}>${left ? w.price : 'Sold out'}</button></div></div>`; }).join('')}
         ${row('buypack', 'starter', '🎒', 'Starter Pack', C.rwText(C.PACKS.starter.r) + ' · once only', '$1.99', L.cos.includes('starter'))}`; }
     if (stTab === 'passes') body = `<div class="vipcard"><b>👑 Coach's Club</b><p>+1 slot in every queue (build, training, research, staff) · +1 career slot · <i class="coin"></i> 25 every day · rewarded ads without the ad</p>
         <button class="btn full ${vip ? 'sec2' : 'pri'}" data-act="buy" data-v="vip">${vip ? 'Active · ' + Math.ceil((a.vipUntil - C.now()) / 864e5) + ' days left (extend +30)' : 'Join · $4.99 / month'}</button></div>
-      ${row('buypack', 'pass', '🎟', 'Season Pass premium', 'Premium rewards on all 30 tiers of this pass', '$9.99', C.passX().prem)}`;
+      <h3 class="jh">${C.curEvent().th.icon} ${C.curEvent().th.name}</h3><button class="lrow" data-act="evopen"><span class="li">${C.curEvent().th.icon}</span><span class="lt"><b>Event packs</b><small>$4.99, then $9.99: open the premium tracks</small></span><span class="lr">›</span></button>`;
     if (stTab === 'coins') body = ['g100', 'g550', 'g1200'].map(k => row('buypack', k, '<i class="coin"></i>', C.PACKS[k].name, 'Speed-ups, coaching searches, agency scouts', C.PACKS[k].price)).join('');
-    if (stTab === 'items') body = `${row('buypack', 'xp', '📗', 'Coach XP bundle', C.rwText(C.PACKS.xp.r), '$2.99')}${row('buypack', 'clinic', '🎫', 'Clinic Credit pack', C.rwText(C.PACKS.clinic.r), '$2.99')}
+    if (stTab === 'items') body = `<h3 class="jh" style="margin-top:2px">Themed packs</h3>${['packTrain', 'packCoach', 'packBuild', 'packRec'].map(k => `<div class="pack"><div class="pkh"><b>${C.PACKS[k].icon} ${C.PACKS[k].name}</b></div>${C.itemTiles(C.PACKS[k].r)}<div class="packft"><small></small><button class="btn sm2 pri" data-act="buypack" data-v="${k}">${C.PACKS[k].price}</button></div></div>`).join('')}
+      ${row('buypack', 'xp', '📗', 'Coach XP bundle', C.rwText(C.PACKS.xp.r), '$2.99')}${row('buypack', 'clinic', '🎫', 'Clinic Credit pack', C.rwText(C.PACKS.clinic.r), '$2.99')}
       <h3 class="jh">Permanent slots</h3>${row('buy', 'slot3', '🔨', 'Extra build slot', 'A permanent 3rd build slot', '$2.99', a.slot3)}${row('buy', 'tslot3', '🏋️', 'Extra training slot', 'A permanent 3rd training-plan slot', '$2.99', a.tslot3)}
       ${row('buy', 'pslot3', '📋', 'Extra research slot', 'A permanent 3rd Playbook slot', '$2.99', a.pslot3)}${row('buy', 'sslot3', '🧑‍🏫', 'Extra staff slot', 'A permanent 3rd coach on duty', '$2.99', a.sslot3)}
       ${row('buy', 'tokens', '🎟', '3 Number Changes', 'Give players the number they want', '$0.99')}
@@ -257,6 +314,14 @@
     if (S.end && S.end.pos <= 4) ms('top4'); C.save(); return rep; });
 
   A.cswap = v => { C.swapCoach(v); C.ui.refresh(); C.render(); };
+  // ================= Rejuvenate: one place to freshen the squad, offered wherever tiredness shows (round 6) =================
+  C.openRejuv = () => C.ui.open('Rejuvenate', () => { const car = C.car(), M = C.medState(), kits = (car.items && car.items.kit) || 0, xi = C.tac().xi.map(C.P).filter(Boolean), tired = car.squad.filter(p => !p.inj && p.energy < 70).sort((a, b) => a.energy - b.energy).slice(0, 8);
+    return `<div class="srow"><span>🔋 Starting XI average</span><b>${Math.round(xi.reduce((s, p) => s + p.energy, 0) / (xi.length || 1))}%</b></div>
+      <button class="lrow" data-act="teamsess"><span class="li">👥</span><span class="lt"><b>Team session: +12 for the whole squad</b><small>${M.team ? `Free in ${M.team} match${M.team > 1 ? 'es' : ''}` : 'Free now'}</small></span><span class="lr">${M.team ? `${C.GEM} ${C.TREAT.team}` : 'Free'}</span></button>
+      <label class="fld">Recovery kits: +25 for one player (you have ${kits})</label>${tired.length ? tired.map(p => `<div class="medrow"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(C.sn(p))}</b><small>🔋 ${Math.round(p.energy)}%</small></div><div class="medbt"><button class="btn sm2 ${kits ? 'pri' : 'off'}" data-act="treat" data-v="${p.id}|kit" ${kits ? '' : 'disabled'}>🧴 Kit</button></div></div>`).join('') : '<p class="note">Everyone is fresh.</p>'}
+      <div class="jbtns" style="grid-template-columns:1fr 1fr;margin-top:8px"><button class="btn sec2" data-act="buykitc">🧴 Buy kit · ${C.GEM} ${C.TREAT.kit}</button><button class="btn sec2" data-act="storeat" data-v="items">Recovery Pack</button></div>
+      <p class="note">Resting a player for a match also restores Freshness: +30 on the bench, +40 out of the squad.</p>`; }, { popup: true });
+  A.rejuv = () => C.openRejuv();
   // the Home tiles and campus buttons link here
   A.events = () => C.openEvents();
 })(window.CFC);

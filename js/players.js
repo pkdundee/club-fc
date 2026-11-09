@@ -8,7 +8,7 @@
 
   // ---------- attributes (Q15b, Q29) ----------
   C.ATTR = { pac: ['⚡', 'Pace'], sho: ['🎯', 'Shooting'], pas: ['🔁', 'Passing'], dri: ['🌀', 'Dribbling'], def: ['🛡', 'Defending'], phy: ['💪', 'Physical'] };
-  C.GKATTR = { stp: ['🧤', 'Shot-stopping'], crs: ['✈️', 'Crosses'], str: ['💪', 'Strength'], ref: ['⚡', 'Reflexes'], psn: ['🧭', 'Positioning'], dis: ['🦶', 'Distribution'] };
+  C.GKATTR = { stp: ['🧤', 'Shot-stopping'], crs: ['🙌', 'Crosses'], str: ['💪', 'Strength'], ref: ['⚡', 'Reflexes'], psn: ['🧭', 'Positioning'], dis: ['🥾', 'Distribution'] };
   const PROFILE = {
     CB: { def: 10, phy: 6, pac: -2, sho: -14, pas: -4, dri: -8 }, LB: { def: 5, pac: 6, sho: -10, pas: -2, dri: -2 }, RB: { def: 5, pac: 6, sho: -10, pas: -2, dri: -2 },
     DM: { def: 6, pas: 4, phy: 4, sho: -8, dri: -4, pac: -3 }, CM: { pas: 8, dri: 2 }, LM: { pac: 6, pas: 3, dri: 4, def: -4, sho: -2 }, RM: { pac: 6, pas: 3, dri: 4, def: -4, sho: -2 },
@@ -100,7 +100,7 @@
 
   // one-off tidy (9g): clear numbers that don't suit the position (a no. 3 up front, a no. 0), unless the player asked for it
   const CLASSIC = { 1: ['GK'], 2: ['RB', 'CB'], 3: ['LB', 'CB'], 4: ['CB', 'DM'], 5: ['CB', 'DM'], 6: ['DM', 'CM', 'CB'], 7: ['RW', 'RM', 'LW', 'LM'], 8: ['CM', 'DM', 'AM'], 9: ['ST'], 10: ['AM', 'ST', 'CM'], 11: ['LW', 'LM', 'RW', 'RM'] };
-  C.tidyNumbers = sq => { let n = 0; for (const p of sq) if (p.num != null && (p.num === 0 || (CLASSIC[p.num] && !CLASSIC[p.num].includes(p.pos))) && p.want !== p.num) { p.num = 0; n++; } if (n) C.assignNumbers(sq); return n; };
+  C.tidyNumbers = sq => { let n = 0; for (const p of sq) if (p.num != null && (p.num === 0 || (CLASSIC[p.num] && !CLASSIC[p.num].includes(p.pos) && p.want !== p.num))) { p.num = 0; n++; } if (n) C.assignNumbers(sq); return n; };
 
   // ---------- squad helpers ----------
   C.rosterCap = (car = C.car()) => Math.min(28, 24 + Math.ceil(car.b.dorms / 3));
@@ -122,13 +122,17 @@
   // ---------- numbers ----------
   C.giveNumber = (pid, n) => { const car = C.car(), p = C.P(pid); if (car.tokens < 1) return 'none'; if (car.squad.some(q => q.num === n && q.id !== pid)) return 'taken';
     car.tokens--; p.num = n; if (p.want === n) { p.morale = Math.min(100, p.morale + 12); } C.save(); return 'ok'; };
+  // the number's holder takes yours: no need to clear it first (round 6). Someone losing a number they wanted is unhappy.
+  C.swapNumber = (pid, n) => { const car = C.car(), p = C.P(pid), o = car.squad.find(q => q.num === n && q.id !== pid); if (car.tokens < 1) return 'none'; car.tokens--; const mine = p.num; p.num = n; if (o) { o.num = mine; if (o.want === n) o.morale = Math.max(10, o.morale - 10); } if (p.want === n) p.morale = Math.min(100, p.morale + 12); C.save(); return 'ok'; };
+  // surnames alone, with an initial when two players share one (round 6)
+  C.sn = p => C.car() && C.car().squad.filter(q => q.ln === p.ln).length > 1 && C.car().squad.some(q => q.id === p.id) ? `${p.fn[0]}. ${p.ln}` : p.ln;
   C.toggleCaptain = pid => { const car = C.car(); const i = car.captains.indexOf(pid); if (i >= 0) car.captains.splice(i, 1); else { if (car.captains.length >= 3) return false; car.captains.push(pid); } C.save(); return true; };
 
   // ---------- release (Q15d): frees scholarship money, no cash ----------
   C.release = pid => { const car = C.car(); if (car.squad.length <= 16) return false; car.squad = car.squad.filter(p => p.id !== pid); car.captains = car.captains.filter(x => x !== pid); car.devq = car.devq.filter(q => q.pid !== pid); C.save(); return true; };
 
   // ---------- development plans (Q15c, Q21c): a real-time queue with slots ----------
-  C.DEVSLOTS = [{ id: 'free', name: 'Free slot' }, { id: 'vip', name: "Coach's Club slot", why: "Join the Coach's Club" }, { id: 'iap', name: 'Extra training slot', why: 'One-off purchase' }, { id: 'prog', name: 'Earned slot', why: 'Training Ground Lv 10' }];
+  C.DEVSLOTS = [{ id: 'free', name: 'Free slot' }, { id: 'prog', name: 'Earned slot', why: 'Training Ground Lv 10' }, { id: 'vip', name: "Coach's Club slot", why: "Join the Coach's Club" }, { id: 'iap', name: 'Extra training slot', why: 'One-off purchase' }];
   C.devSlotOpen = id => id === 'free' || (id === 'vip' && C.isVip()) || (id === 'iap' && C.acct().tslot3) || (id === 'prog' && (C.level('training') >= 10 || C.pbv('slot') >= 1));
   C.devOpenSlots = () => C.DEVSLOTS.filter(s => C.devSlotOpen(s.id)).length;
   C.devFree = () => C.car().devq.length < C.devOpenSlots();

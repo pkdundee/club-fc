@@ -39,8 +39,11 @@
   function campusHTML() {
     const car = C.car(), col = C.college(), a = C.acct(), tier = C.TIERS[car.tier];
     const busy = car.queue.length, open = C.openSlots(), idle = C.idleBuilders(), nb = C.newBuildable().length, rc = C.readyCount();
+    // bottom left: functional icons stacked above the comms button (what to do next)
+    const radio = '<svg viewBox="0 0 24 24" width="26" height="26"><path d="M9 1.5v5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><rect x="6" y="6" width="12" height="16" rx="2.5" fill="#fff"/><rect x="8.4" y="8.4" width="7.2" height="4.6" rx="1" fill="#0284c7"/><path d="M8.6 15.5h6.8M8.6 18.3h6.8" stroke="#0284c7" stroke-width="1.5" stroke-linecap="round"/></svg>';
     const slots = `<button class="ev" data-act="queue"><div class="c" style="background:linear-gradient(150deg,#f59e0b,#b45309)">👷</div>${busy}/${open}${idle && rc ? '<span class="dot">!</span>' : ''}</button>
-      <button class="ev" data-act="blist"><div class="c" style="background:linear-gradient(150deg,#22c55e,#15803d)">🏗</div>Buildings${nb ? `<span class="dot">${nb}</span>` : rc ? `<span class="dot">${rc}</span>` : ''}</button>`;
+      <button class="ev" data-act="blist"><div class="c" style="background:linear-gradient(150deg,#22c55e,#15803d)">🏗</div>Buildings${nb ? `<span class="dot">${nb}</span>` : rc ? `<span class="dot">${rc}</span>` : ''}</button>
+      <button class="ev comms" data-act="nexttask" aria-label="What to do next"><div class="c" style="background:linear-gradient(150deg,#38bdf8,#0369a1)">${radio}</div>${C.mainReady() ? `<span class="dot">${C.mainReady()}</span>` : ''}</button>`;
     return `<div class="view">
       <div class="map" id="map"><div id="mapin"></div></div>
       <div class="hud top">
@@ -48,18 +51,18 @@
           ${C.powerBadge()}</div>
         <div class="res">${C.resBar()}</div>
       </div>
-      <div class="side sl">${slots}</div>
+      <div class="side sbl">${slots}</div>
       <div class="side sr">
         ${C.fwActive() ? `<button class="ev" data-act="firstweek"><div class="c" style="background:linear-gradient(150deg,#f97316,#ea580c)">📅</div>Week 1${C.fwClaimable() ? `<span class="dot">${C.fwClaimable()}</span>` : ''}</button>` : ''}
         ${C.portalOpen() ? `<button class="ev" data-act="portalgo"><div class="c" style="background:linear-gradient(150deg,#a855f7,#6d28d9)">🚪</div>Portal<span class="dot">!</span></button>` : ''}
         <button class="ev" data-act="events"><div class="c" style="background:linear-gradient(150deg,#f59e0b,#d97706)">🎁</div>Events${C.loClaimable() ? `<span class="dot">${C.loClaimable()}</span>` : ''}</button>
-        <button class="ev" data-act="inbox"><div class="c" style="background:linear-gradient(150deg,#0ea5e9,#0369a1)">✉️</div>Inbox${C.inboxUnread() ? `<span class="dot">${C.inboxUnread()}</span>` : ''}</button>
         <button class="ev" data-act="inventory"><div class="c" style="background:linear-gradient(150deg,#a78bfa,#6d28d9)">🎒</div>Items</button>
+      </div>
+      <div class="side srb">
+        <button class="ev" data-act="inbox"><div class="c" style="background:linear-gradient(150deg,#0ea5e9,#0369a1)">✉️</div>Inbox${C.inboxUnread() ? `<span class="dot">${C.inboxUnread()}</span>` : ''}</button>
         <button class="ev" data-act="ask"><div class="c" style="background:linear-gradient(150deg,#16a34a,#15803d)">❓</div>Help</button>
         <button class="ev" data-act="store"><div class="c" style="background:linear-gradient(150deg,#ef4444,#b91c1c)">🛒</div>Store</button>
-
       </div>
-      <div class="zbtns"><button data-act="zoom" data-v="1" aria-label="Zoom in">+</button><button data-act="zoom" data-v="-1" aria-label="Zoom out">−</button></div>
     </div>`;
   }
 
@@ -117,8 +120,10 @@
     zoom = C.clamp(n, minZ, Math.max(2.2, minZ));
     const m = C.$('#map'), sv = m && m.querySelector('svg'); if (!sv) return;
     sv.setAttribute('width', W() * zoom); sv.setAttribute('height', H() * zoom);
-    m.classList.toggle('zoomed', zoom > 1.15);
+    m.classList.toggle('zoomed', zoom > 1.15); C.applyFixed();
   }
+  // groups that keep their screen size at any zoom (building action buttons)
+  C.applyFixed = () => C.$$('#map .fixz').forEach(g => g.setAttribute('transform', `translate(${g.dataset.x},${g.dataset.y}) scale(${(1 / zoom).toFixed(3)})`));
   // Zoom keeping the point under (ax, ay) still; defaults to the middle of the screen.
   function setZoom(n, ax, ay) {
     const m = C.$('#map'); if (!m) return;
@@ -142,13 +147,15 @@
 
   // ================= building actions when selected on the map (Last War style) =================
   // only shortcuts that aren't already a tap away elsewhere (tabs, campus buttons, collect bubbles)
-  const SHORTCUTS = { hq: [['📊', 'Program', 'proginfo', ''], ['🧢', 'Staff', 'tab', 'staff']], film: [['📋', 'Playbook', 'playbook', '']], med: [['🩺', 'Medical Room', 'medical', '']] };
+  // every action button opens a popup: it never leaves the map (round 6)
+  const SHORTCUTS = { hq: [['📊', 'Program', 'bpop', 'proginfo'], ['🧢', 'Staff', 'bpop', 'hqstaff']], film: [['📋', 'Playbook', 'bpop', 'playbook']], med: [['🩺', 'Medical Room', 'bpop', 'medical']], kitroom: [['🎒', 'Kit Room', 'bpop', 'kitroom']], academic: [['📚', 'Academics', 'bpop', 'academic']] };
   C.buildingActions = k => {
     const lvl = C.level(k), q = C.inQueue(k), ready = C.readyArrow(k), out = [];
     if (lvl) (SHORTCUTS[k] || []).forEach(([icon, label, act, v]) => out.push({ icon, label, act, v }));
-    out.push(q ? { icon: '⏩', label: 'Speed up', act: 'bldopen', v: k, main: true, hot: true }
-      : !lvl ? { icon: 'up', label: 'Build', act: 'bldopen', v: k, main: true, hot: true }
-      : ready ? { icon: 'up', label: 'Upgrade', act: 'bldopen', v: k, main: true, hot: true } : { icon: 'ℹ️', label: 'Details', act: 'bldopen', v: k, main: true, col: '#64748b' });
+    // the upgrade button is always last (right-most) and stays active until the building's maximum level; only then is it an orange "i"
+    out.push(q ? { icon: '⏩', label: 'Speed up', act: 'bldopen', v: k, main: true }
+      : lvl >= C.topLevel(k) ? { icon: 'i', label: 'Details', act: 'bldopen', v: k, main: true, col: '#f97316' }
+      : { icon: 'up', label: lvl ? 'Upgrade' : 'Build', act: 'bldopen', v: k, main: true });
     return out;
   };
   // ---------- Building Queue (item 38): every builder, what they're doing, and how to get more ----------
@@ -168,14 +175,15 @@
   C.blistTab = 'program';
   C.openBuildList = () => C.ui.open('Buildings', () => {
     const car = C.car(), tab = C.blistTab, keys = Object.keys(C.BUILDINGS);
-    const nb = C.newBuildable(), shown = tab === 'new' ? nb : keys.filter(k => C.BUILDINGS[k].owner === (tab === 'program' ? 'program' : 'school') && !nb.includes(k))
-      .sort((a, b) => C.level(a) - C.level(b));
+    const nb = C.newBuildable(), lockedB = k => C.BUILDINGS[k].needHQ && C.level('hq') < C.BUILDINGS[k].needHQ && !C.level(k);
+    const rank = k => lockedB(k) ? 2 : nb.includes(k) ? 0 : 1;
+    const shown = keys.filter(k => C.BUILDINGS[k].owner === (tab === 'school' ? 'school' : 'program')).sort((a, b) => rank(a) - rank(b) || C.level(a) - C.level(b));
     const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), locked = d.needHQ && C.level('hq') < d.needHQ && !lv;
       const ready = C.readyArrow(k) || (nb.includes(k) && C.requirements(k).every(r => r[2]));
       return `<button class="bcard ${locked ? 'off' : ''}" data-act="bldopen" data-v="${k}">${ready ? '<i class="bup"></i>' : ''}<div class="bpic">${C.buildingThumb(k, Math.max(1, lv), car, 96, 70)}</div>
         <b class="blv">${q ? '🔨 ' + C.dur(C.remaining(q)) : locked ? 'HQ Lv ' + d.needHQ : lv ? 'Lv.' + lv : 'NEW'}</b><span>${C.esc(d.name)}</span></button>`; };
     const tb = (k, n, c) => `<button class="${tab === k ? 'on' : ''}" data-act="blisttab" data-v="${k}">${n}${c ? ` <em>${c}</em>` : ''}</button>`;
-    return `<div class="bigtabs">${tb('program', 'Program')}${tb('school', 'Support')}${nb.length ? tb('new', 'New', nb.length) : ''}</div>
+    return `<div class="bigtabs">${tb('program', 'Program', nb.filter(k => C.BUILDINGS[k].owner === 'program').length)}${tb('school', 'Support', nb.filter(k => C.BUILDINGS[k].owner === 'school').length)}</div>
       <div class="bgrid">${shown.map(card).join('') || '<p class="note">Nothing new to build right now.</p>'}</div>
       <div class="bfoot">👷 Builders ${car.queue.length}/${C.openSlots()}</div>`;
   });
@@ -193,13 +201,13 @@
   C.openBuilding = k => C.ui.open(C.BUILDINGS[k].name, () => upgradeCard(k), { modal: true });
 
   function statRows(k, lv) {
-    const def = C.BUILDINGS[k], now = lv ? def.stats(lv) : null, next = lv < 30 ? def.stats(lv + 1) : null;
+    const def = C.BUILDINGS[k], now = lv ? def.stats(lv) : null, next = lv < C.topLevel(k) ? def.stats(lv + 1) : null;
     const rows = (next || now).map((r, i) => {
       const icon = r[0] === 'seat' ? C.seatIcon(C.college().c1) : r[0];
       const a = now ? now[i][2] : '—', b = next ? next[i][2] : null;
       return `<div class="tr"><span class="k">${icon} ${r[1]}</span><span class="v">${b != null ? `${a} <span class="ar">▶</span> <em>${b}</em>` : `<em>${a}</em>`}</span></div>`;
     });
-    if (lv < 30) { const f = C.featureAt(k, lv + 1); if (f) rows.push(`<div class="tr new"><span class="k">✨ New at Lv ${lv + 1}</span><span class="v"><em>${f}</em></span></div>`); }
+    if (lv < C.topLevel(k)) { const f = C.featureAt(k, lv + 1); if (f) rows.push(`<div class="tr new"><span class="k">✨ New at Lv ${lv + 1}</span><span class="v"><em>${f}</em></span></div>`); }
     return rows.join('');
   }
 
@@ -211,9 +219,7 @@
       : kind && C.BUILDINGS[kind] ? `<button class="obtain" data-act="bldopen" data-v="${kind}">Go</button>` : '<b class="no">✖</b>';
     return `<div class="cr ${ok ? '' : 'bad'}"><span class="ic">${icon}</span><span class="ct">${label}</span>${end}</div>`;
   }
-  // speed-up items from the Inventory, usable right here
-  function speedItems(k) { if (!C.meta) return ''; const inv = C.meta().inv, ks = ['sp5', 'sp15', 'sp60', 'sp180'].filter(x => inv[x] > 0); if (!ks.length) return '';
-    return `<div class="spitems">${ks.map(x => `<button data-act="usespeed" data-v="${k}|${x}">⏩ ${{ sp5: '5m', sp15: '15m', sp60: '1h', sp180: '3h' }[x]}<em>×${inv[x]}</em></button>`).join('')}</div>`; }
+  const speedItems = k => C.speedRow ? C.speedRow('b', k) : '';
   function upgradeCard(k) {
     const car = C.car(), def = C.BUILDINGS[k], lv = car.b[k], q = C.inQueue(k);
     const head = (lvTxt) => `<div class="uc"><div class="top"><div class="pic">${C.buildingThumb(k, q ? q.to : Math.min(30, lv + (lv < 30 ? 1 : 0)), car, 170, 112)}</div>
@@ -225,19 +231,18 @@
       return head(`Lv.${lv} <span class="ar">▶</span> ${q.to}`) + `<div class="tbl">${statRows(k, lv)}</div>
         <div class="orig"><span>Under construction · <b data-timer="${k}">${C.dur(rem)}</b> left</span><span>${C.GEM} ${C.short(gems)}</span></div>
         <div class="bt"><button class="fin" data-act="speed" data-v="${k}">${free ? 'Finish<br><em style="color:#15803d">Free</em>' : `Finish Now<br><em class="${gems < g ? 'short' : ''}">${C.GEM} ${g}</em>`}</button>
-        <button class="upg" data-act="adspeed" data-v="${k}" ${C.adsLeft() <= 0 ? 'disabled' : ''}>▶ Watch ad<br>−15 min (${C.adsLeft()} left)</button></div>${speedItems(k)}</div>`;
+        <button class="upg" data-act="inventory">⏩ Speed-ups<br>in Inventory</button></div>${speedItems(k)}</div>`;
     }
-    if (lv >= 30) return head(`Lv.30 <span class="ar">★</span>`) + `<div class="tbl">${statRows(k, lv)}</div><div class="maxed">✨ Fully upgraded</div></div>`;
+    if (lv >= C.topLevel(k)) return head(`Lv.30 <span class="ar">★</span>`) + `<div class="tbl">${statRows(k, lv)}</div><div class="maxed">✨ Fully upgraded</div></div>`;
 
     const reqs = C.requirements(k), ok = reqs.every(r => r[2]), t = C.timeOf(k, lv + 1), gi = C.coinsFor(t), gems = C.acct().gold;
-    const prod = C.PRODUCERS[k] && lv ? `<div class="adrow"><button data-act="collect" data-v="${k}">Collect ${C.PRODUCERS[k] === 'cp' ? '<i class="cpi"></i>' : '💵'} ${C.short(C.stored(k))}</button></div>` : '';
     const slotMsg = ok && !C.freeSlot() ? `<span style="color:#fde68a">All build slots are busy</span>` : '<span></span>';
     return head(lv ? `Lv.${lv} <span class="ar">▶</span> ${lv + 1}` : `Build <span class="ar">▶</span> Lv 1`) +
       `<div class="tbl"><div class="tscroll">${statRows(k, lv)}</div><div class="costh">Cost</div>
         <div class="tscroll">${reqs.map(r => costRow(r)).join('')}</div></div>
       <div class="orig">${slotMsg}<span>Original Time: ${C.dur(t)}</span></div>
       <div class="bt"><button class="fin" data-act="instant" data-v="${k}" ${ok ? '' : 'disabled'}>Finish Now<br><em class="${gems < gi ? 'short' : ''}">${C.GEM} ${gi}</em></button>
-      <button class="upg" data-act="upgrade" data-v="${k}" ${C.canUpgrade(k) ? '' : 'disabled'}>${lv ? 'Upgrade' : 'Build'}<br>⏱ ${C.dur(t)}</button></div>${prod}</div>`;
+      <button class="upg" data-act="upgrade" data-v="${k}" ${C.canUpgrade(k) ? '' : 'disabled'}>${lv ? 'Upgrade' : 'Build'}<br>⏱ ${C.dur(t)}</button></div></div>`;
   }
 
   // Pay Coins to skip the build time entirely (resources still required)

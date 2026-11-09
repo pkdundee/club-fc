@@ -3,8 +3,15 @@
   let filter = 'all';
   const yrN = ['', 'Fr', 'So', 'Jr', 'Sr'];
   const ec = e => e >= 80 ? '#16a34a' : e >= 60 ? '#84cc16' : e >= 40 ? '#eab308' : '#f97316';
-  const moraleIcon = m => m >= 80 ? '😀' : m >= 65 ? '🙂' : m >= 50 ? '😐' : m >= 35 ? '🙁' : '😟';
-  const ROLE = { xi: ['XI', 'var(--school)'], bench: ['Bench', 'var(--sky)'], res: ['Reserves', 'var(--silver)'] };
+  // morale in the 5-colour scheme: a face drawn green, lime, gold, orange or red
+  C.moraleFace = (m, size = 18) => { const i = m >= 80 ? 0 : m >= 65 ? 1 : m >= 50 ? 2 : m >= 35 ? 3 : 4, col = ['#16a34a', '#84cc16', '#eab308', '#f97316', '#dc2626'][i], mouth = ['M7 13.5q5 5 10 0', 'M7.5 14q4.5 3 9 0', 'M8 15h8', 'M7.5 16q4.5-3 9 0', 'M7 17q5-5 10 0'][i];
+    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-label="Morale"><circle cx="12" cy="12" r="11" fill="${col}"/><circle cx="8.3" cy="9.3" r="1.6" fill="#111827"/><circle cx="15.7" cy="9.3" r="1.6" fill="#111827"/><path d="${mouth}" fill="none" stroke="#111827" stroke-width="1.9" stroke-linecap="round"/></svg>`; };
+  const moraleIcon = m => C.moraleFace(m);
+  const ROLE = { xi: ['XI', 'var(--school)'], bench: ['Bench', 'var(--sky)'], res: ['Reserves', 'var(--silver)'], inj: ['Injured', '#dc2626'] };
+  const STARS = n => `<span class="rstars">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`;
+  // current job in the side: the position they're selected at, otherwise SUB, RES or INJ in grey
+  const selBadge = (p, t, role) => { if (p.inj) return '<span class="pos off">INJ</span>'; const i = t.xi.indexOf(p.id); if (i >= 0) { const q = C.FORMATIONS[t.form][i][0]; return `<span class="pos ${C.POSGROUP(q)}">${q}</span>`; } return `<span class="pos off">${role === 'bench' ? 'SUB' : 'RES'}</span>`; };
+  const LOCKI = '<svg viewBox="0 0 24 24" width="13" height="13"><path d="M7 11V8a5 5 0 0 1 10 0v3" fill="none" stroke="#fff" stroke-width="2.4"/><rect x="5" y="11" width="14" height="10" rx="2.5" fill="#fff"/></svg>';
   C.yrIcon = n => { const r = 6, c = 2 * Math.PI * r; return `<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="${r}" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="3"/><circle cx="8" cy="8" r="${r}" fill="none" stroke="var(--school2)" stroke-width="3" stroke-dasharray="${c * n / 4} ${c}" transform="rotate(-90 8 8)"/></svg>`; };
   const kitOf = p => { const col = C.college(), k = C.kitColours(col.c1, col.c2); return p.pos === 'GK' ? { k1: '#facc15', k2: '#111827' } : { k1: k[0], k2: k[1] }; };
   C.faceOf = (p, vb = '24 12 72 72') => `<svg viewBox="${vb}" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">${window.faceV4(Object.assign({}, p.look, kitOf(p)))}</svg>`;
@@ -13,25 +20,29 @@
   // ================= squad list =================
   C.squadHTML = () => {
     const car = C.car(), sq = car.squad, roles = C.roles(), col = C.college();
-    const list = sq.filter(p => filter === 'all' || roles[p.id] === filter).sort((a, b) => ({ xi: 0, bench: 1, res: 2 }[roles[a.id]] - { xi: 0, bench: 1, res: 2 }[roles[b.id]]) || ['gk', 'def', 'mid', 'fwd'].indexOf(C.POSGROUP(a.pos)) - ['gk', 'def', 'mid', 'fwd'].indexOf(C.POSGROUP(b.pos)) || b.rating - a.rating);
-    const count = k => sq.filter(p => roles[p.id] === k).length;
-    const dev = C.DEVSLOTS.map((s, i) => { const q = car.devq[i];
-      if (q) { const p = C.P(q.pid), f = 1 - C.remaining(q) / ((q.end - q.start) / 1000); return `<button class="dq" data-act="player" data-v="${q.pid}"><span class="c">${C.ringSVG(f, '#22c55e', 46)}<i>${C.faceOf(p)}</i></span><b data-dtimer="${q.pid}">${C.dur(C.remaining(q))}</b></button>`; }
-      return C.devSlotOpen(s.id) ? `<button class="dq free" data-act="toast" data-v="Open a player card and tap Train"><span class="c">🏋️</span><b>Free</b></button>` : `<button class="dq lock" data-act="devslot" data-v="${s.id}"><span class="c">🔒</span><b>${s.id === 'vip' ? 'VIP' : s.id === 'iap' ? '$' : 'TG 10'}</b></button>`; }).join('');
+    const t = C.tac(), list = sq.filter(p => filter === 'all' || (filter === 'inj' ? p.inj : roles[p.id] === filter)).sort((a, b) => ({ xi: 0, bench: 1, res: 2 }[roles[a.id]] - { xi: 0, bench: 1, res: 2 }[roles[b.id]]) || ['gk', 'def', 'mid', 'fwd'].indexOf(C.POSGROUP(a.pos)) - ['gk', 'def', 'mid', 'fwd'].indexOf(C.POSGROUP(b.pos)) || b.rating - a.rating);
+    // training slots: running plans first; locked slots carry their requirement inside the icon, active ones need no tag
+    let qi = 0;
+    const dev = C.DEVSLOTS.map(s => { if (C.devSlotOpen(s.id)) { const q = car.devq[qi++];
+        if (q) { const p = C.P(q.pid), f = 1 - C.remaining(q) / ((q.end - q.start) / 1000); return `<button class="dq" data-act="player" data-v="${q.pid}"><span class="c">${C.ringSVG(f, '#22c55e', 46)}<i>${C.faceOf(p)}</i></span><b data-dtimer="${q.pid}">${C.dur(C.remaining(q))}</b></button>`; }
+        return `<button class="dq free" data-act="toast" data-v="Open a player card and tap Train"><span class="c"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></span></button>`; }
+      return `<button class="dq lockd" data-act="devslot" data-v="${s.id}"><span class="c">${LOCKI}<em>${s.id === 'vip' ? 'VIP' : s.id === 'iap' ? '$2.99' : 'TG 10'}</em></span></button>`; }).join('');
     const rare = car.items && car.items.rareRecruit ? `<button class="rarebn" data-act="rare">🎁 You have a Rare recruit from your First Week. <b>Sign them</b>${car.squad.length >= C.rosterCap() ? ' (roster full: upgrade the Dorms or release a player)' : ''}</button>` : '';
-    return `<div class="view scrolly">
-      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎟 ${car.tokens} number changes</small></div></div>
+    // the header stays put; only the list scrolls (round 6)
+    return `<div class="view sqv">
+      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 34)}<div style="flex:1"><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎟 ${car.tokens} number changes</small></div><button class="tacbn sm" data-act="tactics"><i class="xoi"></i> ${t.form}</button></div>
         <div class="res hres">${C.resBar()}</div><div class="chips">${C.schChip()}</div>
-        <div class="dqrow"><span>Training plans</span>${dev}</div><div class="sqbtns"><button class="tacbn" data-act="tactics"><i class="xoi"></i> Tactics · ${C.tac().form}</button><button class="tacbn" data-act="medical">🩺 Medical${car.squad.filter(p => p.inj).length ? ' · ' + car.squad.filter(p => p.inj).length : ''}</button></div></div>
-      ${rare}<div style="padding:0 16px">${C.advice(sq.some(p => p.energy < 60) ? 'snc' : 'mot')}</div>
-      <div class="filters">${[['all', 'All ' + sq.length], ['xi', 'XI ' + count('xi')], ['bench', 'Bench ' + count('bench')], ['res', 'Reserves ' + count('res')]].map(([k, n]) => `<button class="f ${filter === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${k !== 'all' ? `<i style="background:${ROLE[k][1]}"></i>` : ''}${n}</button>`).join('')}</div>
-      ${list.map(p => `<button class="prow" style="--mk:${ROLE[roles[p.id]][1]}" data-act="player" data-v="${p.id}">
-        <div class="av plain"><div class="face">${C.faceOf(p)}</div><span class="num">${p.num}</span></div>
-        <div class="pinfo"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(p.id) ? ' <span class="cap">C</span>' : ''}${p.want && p.want !== p.num ? ' <span title="Wants a different number">🎟</span>' : ''}${C.inDev(p.id) ? ' <span title="In training">🏋️</span>' : ''}${p.inj ? ' <span title="Injured">🩹</span>' : ''}${p.ban ? ' <span title="Suspended">🟥</span>' : ''}</b>
-          <div class="tags"><span class="pos ${C.POSGROUP(p.pos)}">${p.pos}</span><span class="yr plain">${yrN[p.year]}</span><span class="sch">${schLabel(p)}</span>${p.rs ? '<span class="sch">🎽</span>' : ''}</div>
-          <div class="pmatch">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}<span class="cond" style="color:${C.condCol(p.energy)}">${C.condRing(p.energy, 14)} ${Math.round(p.energy)}%</span></div></div>
-        <div class="rate"><b>${p.rating}</b>${p.up > 0 ? `<span class="up">▲ +${p.up}</span>` : `<small>${moraleIcon(p.morale)}</small>`}</div></button>`).join('')}
-      <p class="note" style="padding:0 16px">XI and bench come from your Tactics. Freshness drops when players play and comes back when they rest a match.</p></div>`;
+        <div class="dqrow"><span>Training</span>${dev}</div></div>
+      <div class="filters sqf">${[['all', 'All'], ['xi', 'XI'], ['bench', 'Bench'], ['res', 'Reserves'], ['inj', 'Injured']].map(([k, n]) => `<button class="f ${filter === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${k !== 'all' ? `<i style="background:${ROLE[k][1]}"></i>` : ''}${n}</button>`).join('')}</div>
+      <div class="sqscroll" id="sqscroll">${rare}<div style="padding:0 16px">${C.advice(sq.some(p => p.energy < 60) ? 'snc' : 'mot')}</div>
+      ${filter === 'inj' ? `<button class="btn full sec2" data-act="medical" style="margin:8px 16px;width:calc(100% - 32px)">🩺 Medical Room</button>${list.length ? '' : '<p class="note" style="text-align:center">Nobody injured. 🙌</p>'}` : ''}
+      ${list.map(p => `<button class="prow" style="--mk:${p.inj ? '#dc2626' : ROLE[roles[p.id]][1]}" data-act="player" data-v="${p.id}">
+        <div class="av plain"><div class="face">${C.faceOf(p)}</div><span class="num">${p.num}</span>${p.inj ? '<span class="injx"></span>' : ''}</div>
+        <div class="pinfo"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(p.id) ? ' <span class="cap">C</span>' : ''}${p.want && p.want !== p.num ? ' <span title="Wants a different number">🎟</span>' : ''}${C.inDev(p.id) ? ' <span title="In training">🏋️</span>' : ''}${p.ban ? ' <span title="Suspended">🟥</span>' : ''}</b>
+          <div class="tags">${selBadge(p, t, roles[p.id])}<span class="yr plain">${yrN[p.year]}</span>${STARS(p.stars)}${p.rs ? '<span class="sch">🎽</span>' : ''}</div>
+          <div class="pmatch">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}</div></div>
+        <div class="rate3"><b>${p.rating}</b>${p.up > 0 ? `<span class="up">▲ +${p.up}</span>` : ''}<span class="cond" style="color:${C.condCol(p.energy)}">${C.condRing(p.energy, 13)} ${Math.round(p.energy)}%</span>${moraleIcon(p.morale)}</div></button>`).join('')}
+      <p class="note" style="padding:0 16px">★ Development Stars come from completing training plans. Freshness drops when players play and comes back when they rest a match.</p></div></div>`;
   };
   C.setSquadFilter = v => { filter = v; C.render(); };
   // Promises (Q7a): line-up for the first few matches, then real starts and appearances
@@ -49,30 +60,30 @@
     const acol = v => v >= 65 ? 'var(--fit5)' : v >= 55 ? 'var(--fit4)' : v >= 45 ? 'var(--fit3)' : v >= 30 ? 'var(--fit2)' : 'var(--fit1)';
     const heroBg = gk ? 'radial-gradient(120% 90% at 50% 20%,#facc15 0%,#ca8a04 55%,#713f12 100%)' : `radial-gradient(120% 90% at 50% 20%,${C.shade(col.c1, .25)} 0%,${col.c1} 55%,${C.shade(col.c1, -.5)} 100%)`;
     const devHTML = q ? `<div class="card devnow"><span>🏋️</span><div><b>${q.focus.startsWith('pos:') ? 'Retraining: ' + q.focus.slice(4) : 'Training: ' + A[q.focus][1]}</b><small><span data-dtimer="${id}">${C.dur(C.remaining(q))}</span> left</small></div>
-        <button class="btn sm2" data-act="devspeed" data-v="${id}">${C.isFreeFinish(q) ? 'Free' : '<i class="coin"></i> ' + C.goldToFinish(q)}</button></div>`
-      : `${C.capNote ? C.capNote(p) : ''}<button class="btn full pri" data-act="train" data-v="${id}">🏋️ Train</button>`;
+        <button class="btn sm2 go" data-act="devspeedpop" data-v="${id}">⏩ Speed up</button></div>`
+      : `${C.capNote ? C.capNote(p) : ''}<button class="trainbtn" data-act="train" data-v="${id}"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M2 12h20M6 7v10M18 7v10M3.5 9.5v5M20.5 9.5v5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>Train</button>`;
     const P = C.portalOpen(), risk = P && P.risk[id], roleNow = C.roles()[id];
     const kept = C.promiseKept(p, roleNow);
     const extras = [p.acad && p.schol ? '📚 Academic aid' : '', p.cjob ? '💼 Campus job' : '', p.house ? '🏠 Housing help' : '', p.raise ? `📈 +${Math.round(p.raise * 100)}% next year` : ''].filter(Boolean);
-    return `${risk ? `<button class="riskbn" data-act="keep" data-v="${id}">🚪 Thinking about the portal: ${C.REASONS[risk.why][0]} ${C.REASONS[risk.why][2]}. <b>Try to keep</b></button>` : ''}<div class="hero" style="background:${heroBg};margin:0 -16px">
-        <div class="bignum">${p.num}</div><svg class="port" viewBox="0 0 120 120">${window.faceV4(Object.assign({}, p.look, kitOf(p), { num: p.num }))}</svg>
-        <div class="nameplate"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(id) ? ' <span class="cap big">C</span>' : ''}</b>
-          <div class="tags"><span class="pos ${C.POSGROUP(p.pos)}">${p.pos}</span><span class="yr plain" style="border-color:rgba(255,255,255,.5);color:#fff">${yrN[p.year]}</span><span class="stars">${'★'.repeat(p.stars)}${'☆'.repeat(5 - p.stars)}</span><span class="rarp" style="background:${rar[1]}">${rar[0]}</span></div>
+    return `${risk ? `<button class="riskbn" data-act="keep" data-v="${id}">🚪 Thinking about the portal: ${C.REASONS[risk.why][0]} ${C.REASONS[risk.why][2]}. <b>Try to keep</b></button>` : ''}<div class="phero" style="background:${heroBg}">
+        <div class="bignum">${p.num}</div><div class="phf">${C.faceOf(p)}${p.inj ? '<span class="injx"></span>' : ''}</div>
+        <div class="phi"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(id) ? ' <span class="cap big">C</span>' : ''}</b>
+          <div class="pmatch">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}<span class="yr plain" style="border-color:rgba(255,255,255,.5);color:#fff">${yrN[p.year]}</span></div>
           <small class="hometown">${p.flag} ${C.esc(p.town)} · GPA ${p.gpa}</small></div></div>
       <div class="kpis" style="margin-top:12px">
         <div class="kpi"><b>${p.rating}</b><small>Rating</small></div><div class="kpi"><b style="color:var(--fit5)">${p.pot}</b><small>Potential</small></div>
         <div class="kpi"><div class="mini">${C.ringSVG(p.energy / 100, ec(p.energy), 40, 4)}<span>${Math.round(p.energy)}%</span></div><small>Freshness</small></div>
-        <div class="kpi"><b style="font-size:24px">${moraleIcon(p.morale)}</b><small>Morale</small></div></div>
+        <div class="kpi">${C.moraleFace(p.morale, 30)}<small>Morale</small></div></div>${p.energy < 60 && !p.inj ? `<button class="btn full sec2" data-act="rejuv" style="margin-top:8px">🧴 Tired: rejuvenate</button>` : ''}
       <h3 class="jh">${gk ? 'Goalkeeping' : 'Skills'} <button class="hlink" data-act="help" data-v="attrs">?</button></h3>
-      <div class="card"><div class="attrs">${Object.keys(A).map(k => `<div class="attr ${C.KEY[p.pos].includes(k) ? 'key' : ''}"><span class="ai">${A[k][0]}</span><div class="ab"><div><span>${A[k][1]}</span><em>${p.a[k]}</em></div><div class="bar"><i style="width:${p.a[k]}%;background:${acol(p.a[k])}"></i></div></div></div>`).join('')}</div>
-        ${gk ? `<div class="kstyle">Style: ${C.KEEPER_STYLE(p).map(s => `<span>${s}</span>`).join('')}</div>` : `<div class="kstyle">Also plays: ${p.sec.length ? p.sec.map(s => `<span>${s}</span>`).join('') : '<span>Only ' + p.pos + '</span>'}</div>`}</div>
-      <h3 class="jh">Development <small class="devp">${p.dev}/${p.stars + 2} to next ★</small></h3>${devHTML}${C.gearRowHTML ? C.gearRowHTML(p) : ''}
+      <div class="card"><div class="attrs">${Object.keys(A).map(k => `<div class="attr ${C.KEY[p.pos].includes(k) ? 'key' : ''}"><span class="ai">${A[k][0]}</span><div class="ab"><div><span>${A[k][1]}</span><em>${p.a[k]}<small>/${C.attrCap(p, k)}</small></em></div><div class="bar capb"><i style="width:${p.a[k]}%;background:${acol(p.a[k])}"></i><u style="left:${C.attrCap(p, k)}%"></u></div></div></div>`).join('')}</div>
+        ${gk ? `<div class="kstyle">Style: ${C.KEEPER_STYLE(p).map(s => `<span>${s}</span>`).join('')}</div>` : ''}</div>
+      <h3 class="jh">Development ${STARS(p.stars)} <small class="devp">${p.stars >= 5 ? 'all 5 stars' : `${p.dev}/${p.stars + 2} plans to next ★`}</small></h3>${devHTML}${C.gearRowHTML ? C.gearRowHTML(p) : ''}
       <h3 class="jh">Squad number <span class="tok">🎟 ${car.tokens}</span></h3>
       <div class="card numcard"><svg class="jersey" viewBox="0 0 60 60"><path d="M18 6 L24 4 Q30 9 36 4 L42 6 L56 14 L50 26 L44 23 V56 H16 V23 L10 26 L4 14Z" fill="${kitOf(p).k1}" stroke="${kitOf(p).k2}" stroke-width="1.5"/><text x="30" y="44" text-anchor="middle" font-family="Graduate,serif" font-size="20" fill="${kitOf(p).k2}">${p.num}</text></svg>
         <div style="flex:1"><b style="font-size:15px">Wears No. ${p.num}</b><br><small class="mutey">${p.want ? (p.want === p.num ? 'Their favourite number · 😀' : `Wants No. ${p.want} · morale lower until they get it`) : 'No preference'}</small></div>
         <button class="btn sm2" data-act="numbers" data-v="${id}">Change</button></div>
-      ${p.want && p.want !== p.num ? `<button class="btn full sec2" data-act="givenum" data-v="${id}" style="margin-top:8px">Give No. ${p.want} (🎟 1)${car.squad.some(x => x.num === p.want) ? ' · taken by ' + C.esc(car.squad.find(x => x.num === p.want).ln) : ''}</button>` : ''}
-      <h3 class="jh">Package</h3>
+      ${p.want && p.want !== p.num ? `<button class="btn full sec2" data-act="numpick" data-v="${id}|${p.want}" style="margin-top:8px">Give No. ${p.want} (🎟 1)${car.squad.some(x => x.num === p.want) ? ' · worn by ' + C.esc(C.sn(car.squad.find(x => x.num === p.want))) : ''}</button>` : ''}
+      <h3 class="jh">Package <button class="hlink" data-act="academic" data-v="">📚</button></h3>
       <div class="card srows"><div class="srow"><span>Scholarship</span><b>${p.acad ? '📚 Academic aid (college pays)' : p.schol ? `🎓 ${C.money(p.schol)}/yr · ${Math.round(p.schol / car.job.coa * 100)}% of costs` : 'Walk-on (no athletic aid)'}</b></div>
         ${extras.length ? `<div class="srow"><span>Extras</span><b>${extras.join(' · ')}</b></div>` : ''}
         ${p.promise ? `<div class="srow"><span>Promise</span><b>${C.ROLES[p.promise][0]} ${C.ROLES[p.promise][1]} · ${kept ? '<span style="color:var(--fit5)">kept ✔</span>' : '<span style="color:var(--fit1)">not kept ✖</span>'}</b></div>` : ''}
@@ -84,26 +95,66 @@
       ${p.cs ? `<p class="note">Career: ${p.cs.seasons} season${p.cs.seasons > 1 ? 's' : ''} · ${p.cs.apps} apps · ${p.cs.g} goals · ${p.cs.a} assists</p>` : ''}${p.inj ? `<p class="note" style="color:#b91c1c">🩹 Injured: out for ${p.inj} more match${p.inj > 1 ? 'es' : ''}</p>` : ''}${p.ban ? '<p class="note" style="color:#b91c1c">🟥 Suspended for the next match</p>' : ''}`;
   }
 
-  // ================= train =================
+  // ================= train: a page with the player's core details fixed at the top =================
+  // advice from the coach about THIS player: the key skill with the most room to grow
+  const trainAdvice = p => { const A = C.attrsOf(p), keys = C.KEY[p.pos].filter(k => p.a[k] < C.attrCap(p, k)), others = Object.keys(A).filter(k => p.a[k] < C.attrCap(p, k));
+    const pool = keys.length ? keys : others; if (!pool.length) return `${p.fn} is at their limit in every skill. Consider retraining a position.`;
+    const best = pool.sort((a, b) => (C.attrCap(p, b) - p.a[b]) - (C.attrCap(p, a) - p.a[a]))[0];
+    return `For ${p.fn} I'd work on ${A[best][1]}: ${keys.length ? 'a key skill for a ' + p.pos + ' with' : 'it has'} the most room to grow (${p.a[best]}, can reach ${C.attrCap(p, best)}).`; };
+  const trainBoosts = p => { const b = [], lv = C.level('training'), pb = Math.round(C.pbv('trn') * 100), co = Math.round(C.staffF('dev') * 25);
+    if (C.event && C.event().id === 'camp') b.push(['🏋️', 'Training Camp event', '−25% time', 1]);
+    if (lv) b.push(['⚽', `Training Ground Lv ${lv}`, `+${lv * 3}% speed`]); if (pb) b.push(['📋', 'Playbook', `+${pb}% speed`]); if (co) b.push(['🧢', 'Development coach', `+${co}% speed`]); if (p.year <= 2) b.push(['🎓', p.year === 1 ? 'Freshman' : 'Sophomore', `+${p.year === 1 ? 20 : 10}% speed`]);
+    return `<div class="trboost">${b.map(x => `<span class="${x[3] ? 'evb' : ''}">${x[0]} ${x[1]} <b>${x[2]}</b></span>`).join('')}</div>`; };
+  const planInfo = (p, f) => { const A = C.attrsOf(p); return f.startsWith('pos:') ? `Retrain as ${f.slice(4)}` : `${A[f][1]} ${p.a[f]} → ${Math.min(C.attrCap(p, f), p.a[f] + (p.year <= 2 ? 2 : 1))}`; };
   C.openTrain = id => C.ui.open('Training plan', () => {
-    const p = C.P(id), A = C.attrsOf(p), car = C.car();
+    const p = C.P(id), A = C.attrsOf(p), c = C.onStaff().find(x => x.spec === (p.pos === 'GK' ? 'gk' : 'dev')) || C.onStaff().find(x => x.spec === 'gen') || C.onStaff()[0];
     const rows = Object.keys(A).map(k => { const cap = C.attrCap(p, k), at = p.a[k] >= cap;
-      return `<button class="lrow ${at ? 'lock' : ''}" data-act="plan" data-v="${id}|${k}"><span class="li">${A[k][0]}</span><span class="lt"><b>${A[k][1]} ${p.a[k]} → ${Math.min(cap, p.a[k] + (p.year <= 2 ? 2 : 1))}</b><small>${at ? 'At this player\'s limit' : `⏱ ${C.dur(C.planTime(p, k))} · 💵 ${C.short(C.planCost(p, k))}`}</small></span><span class="lr">${C.KEY[p.pos].includes(k) ? '<span class="pill">Key</span>' : ''}</span></button>`; }).join('');
-    const pos = C.nearPositions(p).map(q => `<button class="lrow" data-act="plan" data-v="${id}|pos:${q}"><span class="li">🔄</span><span class="lt"><b>Retrain as ${q}</b><small>${C.FITLABEL[C.fit(p, q)]} now · ⏱ ${C.dur(C.planTime(p, 'pos:' + q))} · 💵 ${C.short(C.planCost(p, 'pos:' + q))}</small></span></button>`).join('');
-    return `${C.advice(p.pos === 'GK' ? 'gk' : 'dev')}<div class="raytake" style="margin-top:0"><span>🏋️</span><p><b>Training</b>${p.year <= 2 ? 'Young players improve fastest: +2 per plan.' : 'Upperclassmen improve slower: +1 per plan.'} Every ${p.stars + 2} plans earns a Development Star.</p></div>
-      ${C.devFree() ? '' : '<p class="note" style="color:#b91c1c">All training slots are busy.</p>'}
-      ${rows}${pos ? `<label class="fld">Position retraining</label>${pos}` : ''}
-      <p class="note">Training Ground Lv ${C.level('training')} speeds plans up by ${C.level('training') * 3}%. Plans keep running while you're away.</p>`;
+      return `<button class="lrow ${at ? 'lock' : ''}" ${at ? 'disabled' : `data-act="planask" data-v="${id}|${k}"`}><span class="li">${A[k][0]}</span><span class="lt"><b>${A[k][1]} ${p.a[k]} → ${Math.min(cap, p.a[k] + (p.year <= 2 ? 2 : 1))}</b><small>${at ? "At this player's limit" : `⏱ ${C.dur(C.planTime(p, k))} · 💵 ${C.short(C.planCost(p, k))}`}</small></span><span class="lr">${C.KEY[p.pos].includes(k) ? '<span class="pill">Key</span>' : ''}</span></button>`; }).join('');
+    return `<div class="trhd"><div class="trp"><div class="phf sm">${C.faceOf(p)}</div><div class="trn"><b>${C.esc(p.fn)} ${C.esc(p.ln)}</b><div class="pmatch">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}</div></div>
+        <div class="trk"><b>${p.rating}</b><small>Rating</small></div><div class="trk"><b style="color:var(--fit5)">${p.pot}</b><small>Potential</small></div></div>${trainBoosts(p)}</div>
+      ${c ? `<div class="advice"><div class="advf">${C.coachFace(c)}</div><p><b>${C.esc(c.fn)} ${C.esc(c.ln)} · ${C.SPECS[c.spec][1]}</b>${C.esc(trainAdvice(p))}</p></div>` : ''}
+      <p class="note">${p.year <= 2 ? 'Young players improve fastest: +2 per plan.' : 'Upperclassmen improve slower: +1 per plan.'} ${p.stars < 5 ? `${p.stars + 2 - p.dev} more plan${p.stars + 2 - p.dev > 1 ? 's' : ''} earn${p.stars + 2 - p.dev > 1 ? '' : 's'} a Development Star.` : ''}</p>
+      ${rows}<button class="lrow" data-act="reposask" data-v="${id}"><span class="li">🔄</span><span class="lt"><b>Reposition training</b><small>Learn a new position</small></span><span class="lr">›</span></button>`;
   });
+  const A2 = C.ACTS;
+  // not a slot free? Say how to get more, offering only what you don't already have
+  C.slotsBusy = () => { const a = C.acct(), vip = C.isVip();
+    C.ui.open('All training slots busy', () => `<p class="note" style="margin-top:0">Every training slot is in use. Wait for one to finish, or open another:</p>
+      ${C.level('training') < 10 ? `<button class="lrow" data-act="bldopen" data-v="training"><span class="li">⚽</span><span class="lt"><b>Training Ground Lv 10</b><small>Earns a slot for free · now Lv ${C.level('training')}</small></span><span class="lr">›</span></button>` : ''}
+      ${vip ? '' : `<button class="lrow" data-act="storeat" data-v="passes"><span class="li">👑</span><span class="lt"><b>Coach's Club</b><small>+1 slot in every queue</small></span><span class="lr">$4.99/mo</span></button>`}
+      ${a.tslot3 ? '' : `<button class="lrow" data-act="storeat" data-v="items"><span class="li">🏋️</span><span class="lt"><b>Extra Training Slot</b><small>A permanent extra slot</small></span><span class="lr">$2.99</span></button>`}`, { popup: true }); };
+  A2.train = v => { if (!C.devFree()) return C.slotsBusy(); C.openTrain(v); };
+  // every selection confirms first
+  A2.planask = v => { const [id, f] = v.split('|'), p = C.P(id); C.confirm('Start training?', `<div class="card"><b style="font-size:15px">${C.esc(C.sn(p))}: ${planInfo(p, f)}</b><div class="srow" style="margin-top:6px"><span>Time</span><b>⏱ ${C.dur(C.planTime(p, f))}</b></div><div class="srow"><span>Cost</span><b>💵 ${C.short(C.planCost(p, f))}</b></div></div>`, 'Start', 'plan', v); };
+  A2.reposask = id => { const p = C.P(id), near = C.nearPositions(p);
+    C.ui.open('Reposition training', () => `<p class="note" style="margin-top:0">Current positions:</p><div class="pmatch" style="margin-bottom:8px">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}</div>
+      ${near.length ? near.map(q => `<button class="lrow" data-act="planask" data-v="${id}|pos:${q}"><span class="li">🔄</span><span class="lt"><b>Retrain as ${q}</b><small>${C.FITLABEL[C.fit(p, q)]} now · ⏱ ${C.dur(C.planTime(p, 'pos:' + q))} · 💵 ${C.short(C.planCost(p, 'pos:' + q))}</small></span></button>`).join('') : '<p class="note">No nearby positions to learn.</p>'}`, { popup: true }); };
+  A2.plan = v => { const [pid, f] = v.split('|'), r = C.startPlan(pid, f);
+    if (r === true) { C.toast('🏋️ Training plan started'); C.ui.popTo('Player'); if (C.tab === 'squad') C.render(); }
+    else if (r === 'pre') C.toast('🗓 Player training starts with the season'); else if (r === 'cash') C.toast('Not enough Booster $'); else if (r === 'cap') C.toast("At this player's limit"); else C.slotsBusy(); };
+  // speeding up training is explained, and confirmed
+  A2.devspeedpop = id => { const q = C.inDev(id); if (!q) return; const free = C.isFreeFinish(q), g = C.goldToFinish(q), p = C.P(id);
+    C.ui.open('Speed up training', () => `<div class="card"><b>${C.esc(C.sn(p))}</b><div class="srow"><span>Time left</span><b data-dtimer="${id}">${C.dur(C.remaining(q))}</b></div></div>
+      <p class="note">Finish the plan straight away, or wait: plans keep running while you're away.${free ? ' With 2 minutes or less left, it is free.' : ''}</p>
+      <button class="btn full ${free || C.acct().gold >= g ? 'pri' : 'sec2'}" data-act="devfinish" data-v="${id}">${free ? 'Finish for free' : `Finish now · <i class="coin"></i> ${g}`}</button><p class="note" style="text-align:center">You have <i class="coin"></i> ${C.short(C.acct().gold)}</p>${C.speedRow ? (C.speedRow('t', id) ? `<label class="fld">Or use a speed-up</label>${C.speedRow('t', id)}` : '<p class="note">Training speed-ups come from Missions, events and the Store.</p>') : ''}`, { popup: true }); };
+  A2.devfinish = id => { const q = C.inDev(id); if (!q) return C.ui.back(); if (!C.isFreeFinish(q)) { const g = C.goldToFinish(q); if (C.acct().gold < g) return C.toast('Not enough Coins'); C.acct().gold -= g; } q.end = C.now(); C.tickDev().forEach(m => C.toast(m)); C.save(); C.ui.back(); C.ui.refresh(); C.render(); };
+  A2.devslot = v => { if (v === 'prog') return C.ui.open('Training Ground Lv 10', () => `<p class="note" style="margin-top:0">This training slot opens when your Training Ground reaches <b>Lv 10</b>. It's Lv ${C.level('training')} now.</p><button class="btn full pri" data-act="bldopen" data-v="training">Go to the Training Ground</button>`, { popup: true });
+    C.openStoreAt && C.openStoreAt(v === 'vip' ? 'passes' : 'items'); };
+  A2.storeat = v => C.openStoreAt && C.openStoreAt(v);
 
-  // ================= numbers =================
+  // ================= numbers: taken numbers swap, and you see who you'd be taking one from =================
   C.openNumbers = id => C.ui.open('Squad number', () => {
-    const p = C.P(id), car = C.car(), taken = {}; car.squad.forEach(x => taken[x.num] = x);
-    const nums = []; for (let n = 0; n <= 40; n++) nums.push(n);
-    return `<p class="note" style="margin-top:0">Numbers are hard to take back: changing one uses a 🎟 Number Change. You have <b>${car.tokens}</b>.</p>
-      <div class="numgrid">${nums.map(n => { const t = taken[n]; return `<button class="${t ? (t.id === id ? 'me' : 'tk') : ''} ${p.want === n ? 'want' : ''}" data-act="${t ? 'toast' : 'setnum'}" data-v="${t ? (t.id === id ? 'Already wearing it' : 'Taken by ' + C.esc(t.fn + ' ' + t.ln)) : id + '|' + n}">${n}</button>`; }).join('')}</div>
-      <p class="note">⭐ = the number ${C.esc(p.fn)} wants. More Number Changes come from events, the Season Pass and the store.</p>`;
+    const p = C.P(id), car = C.car(), taken = {}, roles = C.roles(); car.squad.forEach(x => taken[x.num] = x);
+    const nums = []; for (let n = 1; n <= 40; n++) nums.push(n);
+    return `<p class="note" style="margin-top:0">Tap a number. If someone wears it, you'll see who they are, and the two of you swap. Each change uses a 🎟 Number Change: you have <b>${car.tokens}</b>.</p>
+      <div class="numgrid">${nums.map(n => { const t = taken[n], w = t && t.want === n; return `<button class="${t ? (t.id === id ? 'me' : 'tk') : ''} ${p.want === n ? 'want' : ''} ${w && t.id !== id ? 'wanted' : ''} ${t && t.id !== id && roles[t.id] === 'xi' ? 'reg' : ''}" data-act="${t && t.id === id ? 'toast' : 'numpick'}" data-v="${t && t.id === id ? 'Already wearing it' : id + '|' + n}">${n}</button>`; }).join('')}</div>
+      <p class="note">⭐ = the number ${C.esc(p.fn)} wants · ❤ = the holder's favourite · bold = worn by a starter. More Number Changes come from events and the Store.</p>`;
   });
+  A2.numpick = v => { const [id, ns] = v.split('|'), n = +ns, p = C.P(id), car = C.car(), o = car.squad.find(q => q.num === n && q.id !== id), roles = C.roles();
+    const rolTxt = { xi: 'a starter', bench: 'on the bench', res: 'in the reserves' };
+    const who = o ? `<div class="card numo"><div class="relface">${C.faceOf(o)}</div><div><b>${C.esc(o.fn)} ${C.esc(o.ln)}</b><small>${o.pos} · rating ${o.rating} · ${rolTxt[roles[o.id]]}</small><small>${o.want === n ? `<span class="short">❤ No. ${n} is their favourite: losing it hurts their morale</span>` : 'No strong feeling about this number'}</small></div></div>` : '';
+    C.confirm(o ? `Swap No. ${n}?` : `Take No. ${n}?`, `${who}<p class="note">${C.esc(p.fn)} takes No. ${n}${o ? `, and ${C.esc(o.fn)} takes No. ${p.num}` : ''}. ${p.want === n ? 'That\'s the number they want. 😀 ' : ''}Uses 🎟 1 (you have ${car.tokens}).</p>`, 'Confirm', 'numgo', v); };
+  A2.numgo = v => { const [id, n] = v.split('|'), r = C.swapNumber(id, +n); if (r === 'ok') { C.toast('🎟 Number changed'); C.ui.popTo('Player'); C.render(); } else C.toast('No Number Changes left (see the Store)'); };
 
   // ================= release =================
   C.openRelease = id => C.ui.open('Release player', () => {

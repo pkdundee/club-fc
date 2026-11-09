@@ -31,18 +31,21 @@
   const PIG_MAX = 300;
   C.piggy = () => meta().piggy || 0;
   C.piggyAdd = n => { const M = meta(); M.piggy = Math.min(PIG_MAX, (M.piggy || 0) + n); };
-  C.piggyHTML = () => { const n = C.piggy(); return `<div class="piggy"><span>🐷</span><div><b>Piggy Bank</b><small>Wins add 🪙 5, tasks add 🪙 2 · up to ${PIG_MAX}</small><div class="hbar"><i style="width:${n / PIG_MAX * 100}%;background:#f472b6"></i></div></div>
-    <button class="btn sm2 ${n >= 50 ? 'pri' : 'sec2'}" data-act="piggybreak" ${n >= 50 ? '' : 'disabled'}>🪙 ${n}<br><small>${n >= 50 ? '$1.99' : 'min 50'}</small></button></div>`; };
+  C.piggyHTML = () => { const n = C.piggy(); return `<div class="piggy" data-act="piggyinfo"><span>🐷</span><div><b>Piggy Bank</b><small>Wins add <i class="coin"></i> 5, tasks add <i class="coin"></i> 2 · up to ${PIG_MAX}</small><div class="hbar"><i style="width:${n / PIG_MAX * 100}%;background:#f472b6"></i></div></div>
+    <button class="btn sm2 ${n >= 50 ? 'pri' : 'sec2'}" data-act="piggybreak" ${n >= 50 ? '' : 'disabled'}><i class="coin"></i> ${n}<br><small>${n >= 50 ? '$1.99' : 'min 50'}</small></button></div>`; };
   A.piggybreak = (v, el) => { const n = C.piggy(); if (n < 50) return;
-    if (!(el && el.dataset.ok)) return C.confirm('Break the Piggy Bank', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><p class="note">Get <b>🪙 ${n} Coins</b> for $1.99.</p>`, 'Buy $1.99', 'piggybreak', '');
-    meta().piggy = 0; C.giveReward({ gold: n }); C.mail('purchases', '🧾', 'Purchase: Piggy Bank', `You broke the Piggy Bank: 🪙 ${n} Coins.<br><small>Test store: nothing was charged.</small>`, null); C.toast(`🐷 +${n} Coins`); C.ui.refresh(); C.render(); };
+    if (!(el && el.dataset.ok)) return C.confirm('Break the Piggy Bank', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><p class="note">Get <b><i class="coin"></i> ${n} Coins</b> for $1.99.</p>`, 'Buy $1.99', 'piggybreak', '');
+    meta().piggy = 0; C.giveReward({ gold: n }); C.mail('purchases', '🧾', 'Purchase: Piggy Bank', `You broke the Piggy Bank: <i class="coin"></i> ${n} Coins.<br><small>Test store: nothing was charged.</small>`, null); C.toast(`🐷 +${n} Coins`); C.ui.refresh(); C.render(); };
 
   // ================= Win Streak: rewards for consecutive wins, sent to the Inbox =================
   const STREAK = [[2, { gold: 10 }], [3, { gold: 20, sp15: 1 }], [5, { gold: 40, badge: 3 }], [8, { gold: 80, badge: 6, sp60: 1 }]];
   C.STREAK = STREAK;
   C.streak = () => meta().streak || 0;
   C.streakHTML = () => { const n = C.streak(), next = STREAK.find(s => s[0] > n);
-    return `<div class="streak"><span>🔥</span><div><b>Win streak: ${n}</b><small>${next ? `${next[0] - n} more win${next[0] - n > 1 ? 's' : ''} for ${C.rwText(next[1])}` : 'Top reward reached: keep it going!'}</small></div><div class="stks">${STREAK.map(s => `<i class="${n >= s[0] ? 'on' : ''}">${s[0]}</i>`).join('')}</div></div>`; };
+    return `<div class="streak" data-act="streakinfo"><span>🔥</span><div><b>Win streak: ${n}</b><small>${next ? `${next[0] - n} more win${next[0] - n > 1 ? 's' : ''} for ${C.rwText(next[1])}` : 'Top reward reached: keep it going!'}</small></div><div class="stks">${STREAK.map(s => `<i class="${n >= s[0] ? 'on' : ''}">${s[0]}</i>`).join('')}</div></div>`; };
+
+  A.streakinfo = () => C.ui.open('Win Streak', () => `<p class="note" style="margin-top:0">Win matches in a row for rewards, sent to your Inbox. A draw or defeat resets the streak. Current streak: <b>${C.streak()}</b>.</p>${STREAK.map(([n, r]) => `<div class="mrow2 ${C.streak() >= n ? 'done' : ''}"><div class="mh"><span>🔥</span><b>${n} wins in a row</b></div><div class="mb">${C.itemTiles(r)}${C.streak() >= n ? '<span class="donechk">✔</span>' : ''}</div></div>`).join('')}`, { popup: true });
+  A.piggyinfo = () => C.ui.open('Piggy Bank', () => `<p class="note" style="margin-top:0">Coins pile up as you play: each win adds <i class="coin"></i> 5 and each claimed task <i class="coin"></i> 2, up to ${PIG_MAX}. Break it open from 50 Coins for $1.99.</p><div class="srow"><span>In the bank now</span><b><i class="coin"></i> ${C.piggy()}</b></div>`, { popup: true });
 
   // ================= hooks =================
   const wrap = (name, f) => { const o = C[name]; if (o) C[name] = (...a) => f(o, ...a); };

@@ -7,7 +7,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'phase-9k · 3 Nov 2026';
+  C.BUILD = 'phase-9o · 4 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -55,7 +55,7 @@
         if (!C.inQueue(v)) { C.ui.closeAll(); C.render(); } else C.ui.refresh(); break; }
       case 'collect': { const amt = C.collect(v); if (amt) C.fwEvent(C.PRODUCERS[v] === 'cp' ? 'collect_cp' : 'collect_cash'); if (amt) C.toast(`${C.PRODUCERS[v] === 'cp' ? '<i class="cpi"></i>' : '💵'} +${C.short(amt)} collected`); if (C.ui.isOpen()) C.ui.refresh(); C.redrawMap(); C.updateLive(); break; }
       case 'queue': C.openQueue(); break;
-      case 'blist': C.blistTab = C.newBuildable().length ? 'new' : 'program'; C.openBuildList(); break;
+      case 'blist': C.openBuildList(); break;
       case 'blisttab': C.blistTab = v; C.ui.refresh(); break;
       case 'slotinfo': { const s = C.SLOTS.find(x => x.id === v); C.toast(`🔒 ${s.name}: ${s.why}`); if (v !== 'prog') C.openStore(); break; }
       // careers
@@ -263,7 +263,7 @@
     const done = C.tick();
     if (done.length) { done.forEach(q => C.toast(`✨ ${LEVEL_NAMES(q.key)} reached Lv ${q.to}`)); C.render(); if (C.ui.isOpen()) C.ui.refresh(); return; }
     C.updateLive();
-    if (C.ui.isOpen() && C.$('.uc [data-timer]')) C.ui.refresh();
+    if (C.ui.isOpen() && C.$('.uc [data-timer]')) C.ui.refresh();   // no flash: refreshes don't replay the open animation
     if (++n % 20 === 0 && !C.ui.isOpen()) C.redrawMap(); // let new collect bubbles appear
   }, 1000);
 

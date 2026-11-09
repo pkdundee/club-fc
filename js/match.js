@@ -87,13 +87,13 @@
   function drawPre() {
     const car = C.car(), f = M.f, t = C.tac(), S = C.sea(), oppT = S.teams[M.my === 0 ? f.a : f.h], col = C.college(), w = C.WEATHER[f.wx];
     const avgE = Math.round(t.xi.map(C.P).reduce((s, p) => s + p.energy, 0) / 11);
-    const mineRows = t.xi.map(C.P).map((p, i) => `<div class="lu"><span class="lun">${p.num}</span><div class="luf">${C.faceOf(p)}</div><b>${C.esc(p.ln)}</b><small>${C.FORMATIONS[t.form][i][0]}</small></div>`).join('');
+    const mineRows = t.xi.map(C.P).map((p, i) => `<div class="lu"><span class="lun">${p.num}</span><div class="luf">${C.faceOf(p)}</div><b>${C.esc(C.sn(p))}</b><small>${C.FORMATIONS[t.form][i][0]}</small></div>`).join('');
     const oppRows = M.opp.xi.map((p, i) => `<div class="lu r"><small>${C.FORMATIONS[M.opp.form][i][0]}</small><b>${C.esc(p.ln)}</b><span class="lun">${p.num}</span></div>`).join('');
     const home = M.my === 0;
     host().innerHTML = `<div class="pre"><div class="prehd"><small>${label(f)} · ${w[0]} ${w[1]} · 👥 ${M.att.toLocaleString()}</small>
         <div class="vsrow"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'}</small></div><span class="vsx">VS</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
         <div class="radio">📻 K${col.abbr} campus radio with Duane &amp; Bev</div></div>
-      ${t.xi.map(C.P).filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${t.xi.map(C.P).filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match or use a recovery kit in the Medical Room.</div>` : ''}
+      ${t.xi.map(C.P).filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${t.xi.map(C.P).filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
       <div class="lus"><div><h4>${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div><div><h4>${M.opp.form}</h4>${oppRows}</div></div>
       <div class="prebtns"><button class="btn sec2" data-act="mtac"><i class="xoi"></i> Tactics</button><button class="btn sec2" data-act="mquick">⏩ Quick result</button><button class="btn sec2" data-act="mleave">✕</button></div>
       <button class="btn full pri kick" data-act="mkick">▶ Kick off <span id="cdn">${M.cd ? '· ' + M.cd : ''}</span></button>
@@ -169,7 +169,7 @@
   C.redGo = () => { const n = C.$('#redc'); if (n) n.remove(); M.playing = true; };
   function say(t) { if (!t) return; const n = C.$('#tick'); if (n) { n.textContent = t; n.classList.remove('pop'); void n.offsetWidth; n.classList.add('pop'); } }
   function feed(e) { const n = C.$('#mfeed'); if (!n) return; const ic = { goal: '⚽', yellow: '🟨', red: '🟥', injury: '🩹', sub: '🔁', penalty: '🎯' }[e.type];
-    const who = e.who ? e.who.p.ln : '', mine = e.side === M.my;
+    const who = e.who ? C.sn(e.who.p) : '', mine = e.side === M.my;
     n.insertAdjacentHTML('afterbegin', `<div class="${mine ? 'me' : ''}"><b>${e.min}'</b> ${ic} ${C.esc(who)}${e.type === 'sub' && e.extra && e.extra.off ? ' for ' + C.esc(e.extra.off.p.ln) : ''}</div>`); }
 
   // kits: home team in home colours; away team switches to its away kit if the two look alike; keepers get a colour nobody else wears

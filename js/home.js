@@ -19,7 +19,7 @@
   const dayNo = () => Math.floor(new Date().setHours(0, 0, 0, 0) / 864e5);
   C.todayDeal = () => DEALS[dayNo() % DEALS.length];
   const daily = () => { const car = C.car(); if (!car.daily || car.daily.day !== C.todayKey()) car.daily = { day: C.todayKey(), gift: false, deal: false }; return car.daily; };
-  C.GIFT = { gold: 10, cash: 1500 };
+  C.GIFT = { cp: 5, cash: 500 };   // a small daily pick-up, redeemed in Events > Missions > Daily
   C.claimGift = () => { const d = daily(); if (d.gift) return null; d.gift = true; C.giveReward(C.GIFT); return C.GIFT; };
   C.buyDeal = () => { const d = daily(); if (d.deal) return 'owned'; d.deal = true; C.giveReward(C.todayDeal().r); return true; };
   C.dealBought = () => daily().deal;
@@ -29,13 +29,14 @@
   C.nextStep = () => {
     const car = C.car(), d = daily(), inj = car.squad.filter(p => p.inj && p.injury && !p.injury.physio && p.injury.sev === 0 && !p.injury.conc && p.injury.k !== 'flu').length;
     const ready = Object.keys(C.BUILDINGS).filter(k => C.readyArrow(k) || (C.newBuildable().includes(k) && C.requirements(k).every(r => r[2])));
-    if (!d.gift) return ['🎁', 'Claim your daily gift.', 'dailygift', ''];
+    if (!C.loginClaimed()) return ['🎁', 'Claim your login reward.', 'dailytasks', ''];
     if (C.mainNext) { const t = C.mainNext(); if (t && (car.pre || C.meta().main.length < 10)) return t[3](car) ? ['🎯', `Claim your Mission reward: ${t[2]}.`, 'events', ''] : [t[1], t[2] + '.', t[5], t[6]]; }
     if (C.loClaimable()) return ['🎉', `You have ${C.loClaimable()} reward${C.loClaimable() > 1 ? 's' : ''} waiting in Events.`, 'events', ''];
     if (C.idleBuilders() && ready.length) return ['🔨', `A builder is free: upgrade the ${C.BUILDINGS[ready[0]].name}.`, 'bldopen', ready[0]];
     const coll = Object.keys(C.PRODUCERS).filter(k => C.bubble(k));
     if (coll.length) return ['💵', 'Income is waiting on campus: collect it.', 'tab', 'campus'];
     if (C.pbRunning && !C.pbRunning() && car.cp >= 20) return ['📋', 'Start some Playbook research.', 'playbook', ''];
+    if (C.myFixture() && C.tac().xi.map(C.P).filter(p => p && p.energy < 50).length >= 3) return ['🧴', 'Your starters are tired: rejuvenate before the next match.', 'rejuv', ''];
     if (inj && C.medState().physio > 0) return ['🩺', `Use a physio session on an injured player.`, 'medical', ''];
     if (C.adUnread()) return ['🏛', 'The Director has a message for you.', 'ad', ''];
     if (C.inboxUnread && C.meta().inbox.some(x => x.r && !x.claimed)) return ['✉️', 'You have rewards waiting in your Inbox.', 'inbox', ''];
@@ -55,7 +56,7 @@
       <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<div style="flex:1"><b>Coach ${C.esc(car.coach)}</b><small>${C.esc(col.short)} · ${C.tierLabel()} · ⭐ ${C.rep()}</small></div><button class="hgear" data-act="collegemap" data-v="" aria-label="College Map">🗺</button><button class="hgear" data-act="ask" aria-label="Help">❓</button><button class="hgear" data-act="settings" aria-label="Settings">⚙️</button></div>
         <div class="res hres">${C.resBar()}</div><div class="hpow">${C.powerBadge('lt')}</div></div>
       ${C.nextStepHTML()}
-      ${d.gift ? '' : `<button class="gift" data-act="dailygift"><span>🎁</span><div><b>Daily gift</b><small>${C.rwText(C.GIFT)} · free, once a day</small></div><em>Claim</em></button>`}
+      ${C.loginClaimed() ? '' : `<button class="gift" data-act="dailytasks"><span>🎁</span><div><b>Login reward</b><small>${C.rwText(C.GIFT)} · waiting in your Daily tasks</small></div><em>Go</em><i class="ldot"></i></button>`}
       <div class="homebn">${C.gamedayHTML()}</div>
       <div class="htiles">
         ${tile('🏟', 'Matchday', 'tab', 'season')}${tile('<i class="xoi big"></i>', 'Tactics', 'tactics', '')}${tile('🏫', 'Campus', 'tab', 'campus', C.idleBuilders() && C.readyCount() ? '!' : '')}
@@ -65,7 +66,7 @@
       </div>
       <div class="deal ${d.deal ? 'done' : ''}"><div class="dl"><small>Today's deal</small><b>${deal.icon} ${C.esc(deal.name)}</b><p>${C.rwText(deal.r)}</p></div>
         ${d.deal ? '<span class="dbought">✔ Bought today</span>' : `<button class="dbuy" data-act="buydeal" data-v="${deal.id}"><s>${deal.was}</s>${deal.price}</button>`}</div>
-      <button class="evbn" data-act="events"><span>${ev.icon}</span><div><b>${ev.name}</b><small>${ev.desc}</small></div>${C.loClaimable() ? `<em>${C.loClaimable()}</em>` : ''}</button>
+      <button class="evbn" data-act="events"><span>${ev.icon}</span><div><b>${ev.name} · free this week</b><small>${ev.desc}</small></div>${C.loClaimable() ? `<em>${C.loClaimable()}</em>` : ''}</button>
       <p class="note" style="text-align:center;padding:8px 16px">🧪 Test build: purchases are simulated.</p></div>`;
   };
   // the one resource bar used on every tab (round 4, item 13): Booster $, Coaching Points, Coins (+ opens the Store)

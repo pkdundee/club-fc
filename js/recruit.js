@@ -43,7 +43,7 @@
     let want = year === 1 && rel < 2 ? 'squad' : rel >= 6 || sub === 'down' ? 'starter' : 'rotation';
     if (year >= 3 && want === 'squad') want = 'rotation';
     const kit = KITS[Math.floor(r() * KITS.length)];
-    Object.assign(p, { src, from, ask, want, kit, u: r(), scouted: src === 'camp', interest: Math.round(40 + r() * 30 + C.level('dorms') + (src === 'camp' ? 10 : 0)), deal: { round: 0, last: null, low: 0 } });
+    Object.assign(p, { src, from, ask, want, kit, u: r(), scouted: src === 'camp', interest: Math.round(40 + r() * 30 + C.level('dorms') + (C.car().b.academic || 0) + (src === 'camp' ? 10 : 0)), deal: { round: 0, last: null, low: 0 } });
     const t = C.now();
     if (src === 'inbox') p.exp = t + 48 * H;
     if (src === 'camp' || src === 'agency') p.exp = t + 72 * H;
@@ -213,7 +213,7 @@
       if (r() < .03) opts.push(['home', .45]);
       if (!opts.length) continue;
       const [why, ch] = opts.sort((a, b) => b[1] - a[1])[0];
-      risk[p.id] = { why, chance: C.clamp((ch + (60 - p.morale) / 200 - (car.captains.includes(p.id) ? .1 : 0)) * (1 - C.staffF('mot') * .3), .05, .9), done: [] };
+      risk[p.id] = { why, chance: C.clamp((ch + (60 - p.morale) / 200 - (car.captains.includes(p.id) ? .1 : 0)) * (1 - C.staffF('mot') * .3) * (1 - (C.acadRetention ? C.acadRetention() : 0)), .05, .9), done: [] };
     }
     R.list = R.list.filter(x => x.src !== 'portal');
     ['down', 'down', 'down', 'side', 'side', 'grad'].forEach(s => { const x = genRecruit(r, 'portal', s); R.list.push(x); });

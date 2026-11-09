@@ -11,6 +11,7 @@
   C.freeSlot = () => C.car().queue.length < C.openSlots();
 
   // Highest level a building can reach right now
+  C.topLevel = k => C.BUILDINGS[k].max || 30;   // the building's absolute maximum; special buildings can set a lower one (1, 5, 10)
   C.maxLevel = k => k === 'hq' ? C.tierCap() : Math.min(C.level('hq'), C.tierCap());
 
   // Coaches' Office prerequisites (round 4, item 15): from Lv 3, the Performance Lab plus one rotating building at the level below
@@ -28,9 +29,9 @@
     if (cost.cp) rows.push(['<i class="cpi"></i>', `${C.short(car.cp)} / ${cost.cp} Coaching Points`, car.cp >= cost.cp]);
     return rows;
   };
-  C.canUpgrade = k => !C.inQueue(k) && C.level(k) < 30 && C.requirements(k).every(r => r[2]) && C.freeSlot();
+  C.canUpgrade = k => !C.inQueue(k) && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]) && C.freeSlot();
   // "Ready" arrow on the map: affordable and allowed, ignoring whether a slot is free
-  C.readyArrow = k => !C.inQueue(k) && C.level(k) > 0 && C.level(k) < 30 && C.requirements(k).every(r => r[2]);
+  C.readyArrow = k => !C.inQueue(k) && C.level(k) > 0 && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]);
 
   C.startUpgrade = k => {
     const car = C.car(), to = C.level(k) + 1;

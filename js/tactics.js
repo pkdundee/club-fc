@@ -85,7 +85,7 @@
       const fit = C.fit(p, s[0]), ins = t.instr[p.id] ?? 2;
       return `<div class="tk" style="left:${left}%;top:${top}%" data-act="pick" data-v="${i}"><div class="tkb">${C.badges(p)}${ins !== 2 ? `<i class="bdg ins">${INSTR[ins][0]}</i>` : ''}</div>
         <button class="tkf" data-act="pick" data-v="${i}">${C.faceOf(p)}</button>
-        <button class="tkn" style="background:${PILL[fit]}" data-act="pick" data-v="${i}"><span>${C.esc(p.ln)}</span><i>▾</i></button>
+        <button class="tkn" style="background:${PILL[fit]}" data-act="pick" data-v="${i}"><span>${C.esc(C.sn(p))}</span><i>▾</i></button>
         <div class="tkm">${ring(p.energy)}<span class="tp">${L[i]}</span><span class="tr">${C.posRating(p, s[0])}</span></div></div>`; }).join('');
     const row = (p, chip, chipCol, rating, slot) => `<button class="lrw" data-act="${slot != null ? 'pick' : 'player'}" data-v="${slot != null ? slot : p.id}">
         <span class="lchip" style="background:${chipCol}">${chip}</span><span class="lnm">${C.esc(p.fn[0] + '. ' + p.ln)}${C.badges(p)}</span><b class="lrt">${rating}</b>
@@ -93,7 +93,7 @@
     const list = F.map((s, i) => { const p = C.P(t.xi[i]); return p ? row(p, L[i], PILL[C.fit(p, s[0])], C.posRating(p, s[0]), i) : `<button class="lrw" data-act="pick" data-v="${i}"><span class="lchip" style="background:${PILL[0]}">${L[i]}</span><span class="lnm">Empty: tap to pick</span></button>`; }).join('')
       + t.bench.map((id, i) => row(C.P(id), 'SUB', '#64748b', C.P(id).rating, 'b' + i)).join('')
       + car.squad.filter(p => !t.xi.includes(p.id) && !t.bench.includes(p.id)).sort((a, b) => b.rating - a.rating).map(p => row(p, 'RES', '#334155', p.rating, null)).join('');
-    const bench = t.bench.map((id, i) => { const p = C.P(id); return `<button class="btok" data-act="pick" data-v="b${i}"><span class="bf">${C.faceOf(p)}</span><b>${C.esc(p.ln)}</b><small>${ring(p.energy, 12)} ${p.pos} · ${p.rating}</small>${C.badges(p) ? `<em>${C.badges(p)}</em>` : ''}</button>`; }).join('') + (t.bench.length < 9 ? `<button class="btok add" data-act="pick" data-v="b${t.bench.length}"><span>+</span><small>Add</small></button>` : '');
+    const bench = t.bench.map((id, i) => { const p = C.P(id); return `<button class="btok" data-act="pick" data-v="b${i}"><span class="bf">${C.faceOf(p)}</span><b>${C.esc(C.sn(p))}</b><small>${ring(p.energy, 12)} ${p.pos} · ${p.rating}</small>${C.badges(p) ? `<em>${C.badges(p)}</em>` : ''}</button>`; }).join('') + (t.bench.length < 9 ? `<button class="btok add" data-act="pick" data-v="b${t.bench.length}"><span>+</span><small>Add</small></button>` : '');
     return `${C.advice('tac')}<div class="forms">${Object.keys(C.FORMATIONS).map(f => `<button class="${t.form === f ? 'on' : ''}" data-act="form" data-v="${f}">${f}</button>`).join('')}</div>
       <div class="ments">${C.MENTALITY.map((m, i) => `<button class="${t.ment === i ? 'on' : ''}" data-act="ment" data-v="${i}"><span>${MENT_ICON[i]}</span></button>`).join('')}</div><p class="mentl">${MENT_ICON[t.ment]} ${C.MENTALITY[t.ment]}</p>
       <div class="tview"><button class="${tview === 'board' ? 'on' : ''}" data-act="tacview" data-v="board">Board</button><button class="${tview === 'list' ? 'on' : ''}" data-act="tacview" data-v="list">List</button></div>
@@ -117,7 +117,7 @@
     const rate = p => pos ? C.posRating(p, pos) : p.rating, colOf = p => pos ? PILL[C.fit(p, pos)] : '#64748b';
     const line = (p, act) => { const un = !C.available(p);
       return `<button class="arow ${un ? 'lock' : ''}" ${act ? `data-act="${un ? 'toast' : 'setpick'}" data-v="${un ? (p.inj ? 'Injured: out ' + (p.inj > 50 ? 'for the season' : p.inj + ' more match' + (p.inj > 1 ? 'es' : '')) : 'Suspended for the next match') : slot + '|' + p.id}"` : ''}>
-        <span class="lchip" style="background:${colOf(p)}">${label}</span><span class="anm">${C.esc(p.fn[0] + '. ' + p.ln)}${C.badges(p)}</span><b class="art">${rate(p)}</b><span class="afr" style="color:${fcol(p.energy)}">${ring(p.energy)} ${Math.round(p.energy)}%</span></button>`; };
+        <span class="lchip" style="background:${colOf(p)}">${label}</span><span class="anm">${C.esc(p.fn[0] + '. ' + p.ln)}${C.badges(p)}</span>${t.xi.includes(p.id) ? '<em class="wtag xi">XI</em>' : t.bench.includes(p.id) ? '<em class="wtag">SUB</em>' : ''}<b class="art">${rate(p)}</b><span class="afr" style="color:${fcol(p.energy)}">${ring(p.energy)} ${Math.round(p.energy)}%</span></button>`; };
     const inXI = id => t.xi.includes(id), onB = id => t.bench.includes(id);
     const cands = car.squad.filter(p => p !== cur && (pkXI || !inXI(p.id)) && (pkSubs || !onB(p.id)))
       .sort((a, b) => (C.available(b) - C.available(a)) || (rate(b) * (.6 + .4 * b.energy / 100)) - (rate(a) * (.6 + .4 * a.energy / 100)));

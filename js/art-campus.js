@@ -47,13 +47,13 @@ const DEFS=`<defs>
 
 // ---------------- buildings (x,y = plot origin, S = plot size). Every level adds a detail; every 6 levels a bigger change ----------------
 function brick(I,x,y,S,lvl,o){const s=stageOf(lvl),g=s===6,l6=(lvl-1)%6+1;let out='';
- const fl=Math.min(4,1+Math.floor((s-1)/1.4)),h=7.5*fl+lvl*.12;const w=S*Math.min(.78,.5+.01*lvl),d=S*Math.min(.6,.38+.008*lvl);const bx=x+(S-w)/2,by=y+(S-d)/2-2;
+ const fl=Math.min(4,1+Math.floor((s-1)/1.4)),h=7.5*fl+lvl*.12;const w=S*.84,d=S*.66;const bx=x+(S-w)/2,by=y+(S-d)/2-2;   // every building fills its tile, at every level (round 6: easy to swap graphics)
  const wall=o.wall||'brick';const top=g?'url(#gold4)':'#e5d9c6';
  const L=wall==='brick'?'url(#brL4)':wall==='white'?'#dfe6ee':'url(#glass4)',R=wall==='brick'?'url(#brR4)':wall==='white'?'#f8fafc':'url(#glassR4)';
  // front path and small per-level details
  out+=I.poly([[bx+w*.4,by+d,0],[bx+w*.6,by+d,0],[bx+w*.6,y+S,0],[bx+w*.4,y+S,0]],'#e7e2d6');
  out+=I.shadow(bx,by,w,d,h);
- if(s>=3){out+=I.box(bx-S*.12,by+d*.25,0,S*.12,d*.6,h*.6,{top:'#e5d9c6',L,R})+I.winL(bx-S*.12,bx,by+d*.85,0,h*.6,2,fl>1?2:1,l6)}
+ if(s>=3){out+=I.box(bx-S*.07,by+d*.25,0,S*.07,d*.6,h*.6,{top:'#e5d9c6',L,R})+I.winL(bx-S*.07,bx,by+d*.85,0,h*.6,1,fl>1?2:1,l6)}
  out+=I.box(bx,by,0,w,d,h,{top,L,R});
  out+=I.winL(bx,bx+w,by+d,0,h,Math.max(2,Math.round(w/6.5)),fl,l6+s)+I.winR(bx+w,by,by+d,0,h,Math.max(2,Math.round(d/6.5)),fl,l6);
  if(s<3)out+=I.gable(bx,by,h,w,d,6+s,o.roof||'#334155',wall==='brick'?'#c9634a':'#eef2f7');
@@ -67,7 +67,7 @@ function brick(I,x,y,S,lvl,o){const s=stageOf(lvl),g=s===6,l6=(lvl-1)%6+1;let ou
  if(s>=2||l6>=4){const [cx,cy]=I.P(bx+w*.25,by+d,h*.7);out+=`<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) skewY(26.565)"><rect x="${-2.4*I.K}" y="${-3*I.K}" width="${4.8*I.K}" height="${6*I.K}" fill="${C1}"/><rect x="${-2.4*I.K}" y="${1.6*I.K}" width="${4.8*I.K}" height="${1.4*I.K}" fill="${C2}"/></g>`}
  if(o.extra)out+=o.extra(bx,by,w,d,h,s);
  return out}
-function hq(I,x,y,S,lvl){const s=stageOf(lvl),g=s===6,l6=(lvl-1)%6+1;let out='';const w=S*Math.min(.8,.6+.008*lvl),d=S*.5,h=10+2.4*s+lvl*.2;const bx=x+(S-w)/2,by=y+(S-d)/2-3;
+function hq(I,x,y,S,lvl){const s=stageOf(lvl),g=s===6,l6=(lvl-1)%6+1;let out='';const w=S*.84,d=S*.62,h=10+2.4*s+lvl*.2;const bx=x+(S-w)/2,by=y+(S-d)/2-3;
  out+=I.poly([[bx+w*.42,by+d,0],[bx+w*.58,by+d,0],[bx+w*.58,y+S,0],[bx+w*.42,y+S,0]],'#e7e2d6');
  out+=I.shadow(bx,by,w,d,h+20);
  out+=I.box(bx,by,0,w,d,h,{top:'#e5d9c6',L:'url(#brL4)',R:'url(#brR4)'})+I.winL(bx,bx+w,by+d,0,h,6,s>=2?2:1,l6+2)+I.winR(bx+w,by,by+d,0,h,3,s>=2?2:1,l6);
@@ -124,10 +124,12 @@ function skills(I,x,y,S,lvl){let out='';const X0=x+8,X1=x+S-8,Y0=y+8,Y1=y+S-8;
  return out}
 function emptyPlot(I,x,y,S,name){const [sx,sy]=I.P(x+S/2,y+S/2,0);let out=I.poly([[x+4,y+4,0],[x+S-4,y+4,0],[x+S-4,y+S-4,0],[x+4,y+S-4,0]],'url(#dirt4)',`stroke="#fff" stroke-width="${.8*I.K}" stroke-dasharray="${3*I.K} ${2*I.K}"`);
  const k=I.K;
- out+=`<g transform="translate(${sx.toFixed(1)},${(sy-22*k).toFixed(1)}) scale(${k})"><g class="hammer"><circle r="7.5" fill="#16a34a" stroke="#fff" stroke-width="1.4"/><text y="3.2" text-anchor="middle" font-size="8.5">🔨</text></g></g>`;
+ out+=`<g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)}) scale(${k})"><circle r="8.5" fill="#16a34a" stroke="#fff" stroke-width="1.4"/><text y="3.4" text-anchor="middle" font-size="9">🔨</text></g>`;
  return out}
-function lockedPlot(I,x,y,S,req){// locked land and plots: plain, no padlock text (how to unlock is explained where you unlock it)
- return I.poly([[x+4,y+4,0],[x+S-4,y+4,0],[x+S-4,y+S-4,0],[x+4,y+S-4,0]],'url(#lockP4)',`stroke="#64748b" stroke-width="${.6*I.K}" opacity=".7"`)}
+function lockedPlot(I,x,y,S,req){// locked land and plots: a barrier pin in the same style as the build pin (round 6)
+ const [sx,sy]=I.P(x+S/2,y+S/2,0),k=I.K;
+ return I.poly([[x+4,y+4,0],[x+S-4,y+4,0],[x+S-4,y+S-4,0],[x+4,y+S-4,0]],'url(#lockP4)',`stroke="#64748b" stroke-width="${.6*I.K}" opacity=".75"`)+
+ `<g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)}) scale(${k})"><circle r="8.5" fill="#475569" stroke="#fff" stroke-width="1.4"/><rect x="-5.6" y="-2.6" width="11.2" height="3.6" rx=".8" fill="#fff"/><path d="M-3.8 1-1.6-2.6H.6L-1.6 1zM1 1 3.2-2.6H5L3.2 1z" fill="#f97316"/><path d="M-4 1v3.4M4 1v3.4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></g>`}
 function construction(I,x,y,S,h){let s='';const x0=x+S*.2,x1=x+S*.8,Y=y+S*.72;for(let i=0;i<=6;i++)s+=I.line([x0+i*(x1-x0)/6,Y,0],[x0+i*(x1-x0)/6,Y,h+4],'#f59e0b',.7);for(let j=0;j<=3;j++)s+=I.line([x0,Y,j*(h+4)/3],[x1,Y,j*(h+4)/3],'#d97706',.7);
  s+=I.box(x+S-6,y+6,0,2,2,h+30,{base:'#f59e0b'});const [ax,ay]=I.P(x+S-5,y+7,h+31);const k=I.K;s+=`<g class="jib" style="transform-origin:${ax}px ${ay}px"><line x1="${ax-36*k}" y1="${ay+9*k}" x2="${ax+12*k}" y2="${ay-3*k}" stroke="#f59e0b" stroke-width="${1.6*k}"/><rect x="${ax+7*k}" y="${ay-5*k}" width="${6*k}" height="${4*k}" fill="#475569"/><line x1="${ax-26*k}" y1="${ay+6.5*k}" x2="${ax-26*k}" y2="${ay+24*k}" stroke="#334155" stroke-width=".5"/></g>`;
  return s}
@@ -149,9 +151,9 @@ function decor(I,x,y,S,kind){let out='';
 // ---------------- live campus ----------------
 const STEP=58,S=46,K4=1.7,W4=600,H4=900;
 const cell=(s,d)=>{const i=(s+d)/2,j=(s-d)/2;return [i*STEP,j*STEP]};
-const ART={film:{wall:'glass',roof:'#0f766e'},video:{wall:'brick',roof:'#111827'},media:{wall:'white',roof:'#0369a1'},med:{wall:'white'},recruit:{wall:'brick',roof:'#7c2d12'},dorms:{wall:'brick',roof:'#334155'},gym:{wall:'glass'},booster:{wall:'white',roof:'#7c2d12'},academic:{wall:'brick',roof:'#1e3a5f'}};
+const ART={kitroom:{wall:'white',roof:'#be123c'},film:{wall:'glass',roof:'#0f766e'},video:{wall:'brick',roof:'#111827'},media:{wall:'white',roof:'#0369a1'},med:{wall:'white'},recruit:{wall:'brick',roof:'#7c2d12'},dorms:{wall:'brick',roof:'#334155'},gym:{wall:'glass'},booster:{wall:'white',roof:'#7c2d12'},academic:{wall:'brick',roof:'#1e3a5f'}};
 const TOP={hq:46,stadium:30,training:14,skills:10};
-const DROP={hq:10,stadium:6,training:4,skills:4};
+const DROP={};   // buildings sit square in their zone
 function medCross(I){return (bx,by,w,d,h)=>{const [cx,cy]=I.P(bx+w,by+d/2,h*.55);const k=I.K;return `<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) skewY(-26.565)"><rect x="${-3.5*k}" y="${-1.2*k}" width="${7*k}" height="${2.4*k}" fill="#ef4444"/><rect x="${-1.2*k}" y="${-3.5*k}" width="${2.4*k}" height="${7*k}" fill="#ef4444"/></g>`}}
 function drawBuilding(I,k,x,y,sz,lvl){
  if(k==='hq')return hq(I,x,y,sz,lvl);
@@ -204,23 +206,21 @@ function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=co
    add(`<polygon points="${pts}" fill="#7dd3fc" fill-opacity=".14" stroke="#7dd3fc" stroke-width="2.4" class="selring" pointer-events="none"/>`);
    add(`<g pointer-events="none" transform="translate(${bx.toFixed(1)},${(by-12).toFixed(1)}) scale(${sc})" font-family="Nunito" font-weight="900" text-anchor="middle" stroke="#0f172a" stroke-width="2.4" paint-order="stroke" stroke-linejoin="round">
     <text y="0" font-size="9" fill="#fff">${C.esc(def.name)}</text><text y="10" font-size="8" fill="#fde047">${lvl ? 'Lv.' + lvl : 'Not built'}</text></g>`);
-   // icon buttons on an arc round the bottom of the building, the main one at the right end
-   const acts=C.buildingActions(k), n=acts.length, cy=(by+fy)/2, R=Math.max(34,fy-cy+6);
-   const ang=n===1?[62]:acts.map((_,i)=>128-i*(76/(n-1)));
-   // every button the same size; the upgrade button stays still (Q: playtest round 2)
-   acts.forEach((a,i)=>{ const r=12.3, t=ang[i]*Math.PI/180;
-    add(`<g data-act="${a.act}" data-v="${a.v}" transform="translate(${(bx+Math.cos(t)*R).toFixed(1)},${(cy+Math.sin(t)*R).toFixed(1)}) scale(${sc})">
-     <g><circle r="${r}" fill="${a.col||'#2563eb'}" stroke="#fff" stroke-width="2"/>${a.icon==='up'?`<path d="M0 ${-r*.62} L${r*.56} 0 H${r*.22} V${r*.58} H${-r*.22} V0 H${-r*.56}Z" fill="#fff"/>`:`<text y="${r*.36}" text-anchor="middle" font-size="${r*1.05}">${a.icon}</text>`}</g>
-     </g>`); });
+   // action buttons (round 6): set layouts for 1-4 buttons, centred under the building, the upgrade button always right-most.
+   // Offsets are screen pixels: the group is scaled by 1/zoom (see C.applyFixed), so they keep their size at any map zoom.
+   const acts=C.buildingActions(k), n=acts.length, R=21, G=52;
+   const LAY={1:[[0,0]],2:[[-G/2,0],[G/2,0]],3:[[-G,-26],[0,0],[G,-26]],4:[[-G*1.5,-26],[-G/2,0],[G/2,0],[G*1.5,-26]]}[n]||[[0,0]];
+   add(`<g class="fixz" data-x="${fx.toFixed(1)}" data-y="${fy.toFixed(1)}" transform="translate(${fx.toFixed(1)},${fy.toFixed(1)})">`+acts.map((a,i)=>{const [dx,dy]=LAY[i];
+    return `<g data-act="${a.act}" data-v="${a.v}" transform="translate(${dx},${dy+6})"><circle r="${R}" fill="${a.col||'#2563eb'}" stroke="#fff" stroke-width="3"/>${a.icon==='up'?`<path d="M0 ${-R*.62} L${R*.56} 0 H${R*.22} V${R*.58} H${-R*.22} V0 H${-R*.56}Z" fill="#fff"/>`:a.icon==='i'?`<circle cy="${-R*.42}" r="${R*.15}" fill="#fff"/><rect x="${-R*.13}" y="${-R*.18}" width="${R*.26}" height="${R*.72}" rx="${R*.1}" fill="#fff"/>`:`<text y="${R*.36}" text-anchor="middle" font-size="${R*1.05}">${a.icon}</text>`}</g>`}).join('')+`</g>`);
   } else if(ready&&!(C.selB&&!opts.preview)){
    // not selected: a small blue-and-white arrow on the building's left corner, like Last War
    // inside the green tile: 28% of the way from the left corner towards the tile centre
    const [lx,ly]=o.corners[3], tcx=(o.corners[0][0]+o.corners[2][0])/2, tcy=(o.corners[0][1]+o.corners[2][1])/2;
-   add(`<g data-act="bld" data-v="${k}" transform="translate(${(lx+(tcx-lx)*.28).toFixed(1)},${(ly+(tcy-ly)*.28-4).toFixed(1)}) scale(${sc})"><g class="upar"><path d="M0 -5.4 L4.8 .2 H1.9 V4.8 H-1.9 V.2 H-4.8Z" fill="#2563eb" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></g></g>`);
+   add(`<g data-act="bld" data-v="${k}" transform="translate(${(lx+(tcx-lx)*.28).toFixed(1)},${(ly+(tcy-ly)*.28-4).toFixed(1)}) scale(${sc})"><g><path d="M0 -5.4 L4.8 .2 H1.9 V4.8 H-1.9 V.2 H-4.8Z" fill="#2563eb" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></g></g>`);
   }
   // collect token: centred over the building at the road intersection behind it (just outside the tile)
   if(amt){ const [tx,ty]=o.corners[0], cp=C.PRODUCERS[k]==='cp';
-   add(`<g data-act="collect" data-v="${k}" transform="translate(${tx.toFixed(1)},${(ty-(sel?30:6)).toFixed(1)}) scale(${sc})"><g class="hammer"><path d="M-14 -11 h28 a4 4 0 0 1 4 4 v9 a4 4 0 0 1 -4 4 h-11 l-3 4 l-3 -4 h-11 a4 4 0 0 1 -4 -4 v-9 a4 4 0 0 1 4 -4z" fill="#fff" stroke="${cp?'#0d9488':'#16a34a'}" stroke-width="1.4"/>
+   add(`<g data-act="collect" data-v="${k}" transform="translate(${tx.toFixed(1)},${(ty-(sel?30:6)).toFixed(1)}) scale(${sc})"><g><path d="M-14 -11 h28 a4 4 0 0 1 4 4 v9 a4 4 0 0 1 -4 4 h-11 l-3 4 l-3 -4 h-11 a4 4 0 0 1 -4 -4 v-9 a4 4 0 0 1 4 -4z" fill="#fff" stroke="${cp?'#0d9488':'#16a34a'}" stroke-width="1.4"/>
     ${cp?'<g transform="translate(-9,-2.5)"><circle r="5" fill="#0d9488"/><path d="M-2.6 -1.6h4a.9.9 0 0 1 .9.9v.5h-3.7a2 2 0 1 1-1.2-1.4z" fill="#fff"/></g>':'<text x="-13" y="1" font-size="8">💵</text>'}
     <text x="14" y="0.8" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="10" fill="#14532d">${cp?'':'$'}${C.short(amt)}</text></g></g>`); }
  }
