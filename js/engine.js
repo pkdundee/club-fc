@@ -33,7 +33,7 @@
     const m = { rng: C.rng(seed || 1), t: 0, half: 1, done: false, ht: false, score: [0, 0], events: [], pause: 0, restart: null, last: [null, null],
       teams: [A, B], ents: [], subs: [[], []], pending: [], knockout: !!opts.knockout, pens: null, stop: false,
       st: { offs: [0, 0], poss: [0, 0], shots: [0, 0], sot: [0, 0], corners: [0, 0], fouls: [0, 0], yc: [0, 0], rc: [0, 0], passes: [0, 0], cmp: [0, 0] },
-      ball: { x: PW / 2, y: PL / 2, h: 0, owner: null, fl: null }, poss: 0, lastTouch: null, used: [0, 0], offAt: {}, med: opts.med || [0, 0],
+      ball: { x: PW / 2, y: PL / 2, h: 0, owner: null, fl: null }, poss: 0, lastTouch: null, used: [0, 0], offAt: {}, med: opts.med || [0, 0], edge: opts.edge ?? .04,
       prof: C.PROFILES[opts.gender === 'w' ? 'w' : 'm'], deep: [PL, PL], trace: opts.trace ? [] : null };
     [A, B].forEach((T, side) => { const F = C.FORMATIONS[T.form]; T.xi.forEach((p, i) => { if (p) m.ents.push(ent(m, p, side, F[i], i)); }); });
     kickoff(m, 0); say(m, -1, 'ko', ''); return m;
@@ -57,7 +57,7 @@
   const BKEY = { sho: 'sho', def: 'def', pas: 'pas', stp: 'gk', ref: 'gk', psn: 'gk', crs: 'gk' };
   function eff(m, e, k) { const v = e.p.a[k] != null ? e.p.a[k] : 30, T = m.teams[e.side], bn = T.bonus || {};
     const fm = FIT_MULT[e.fit] + (1 - FIT_MULT[e.fit]) * (bn.oop || 0), late = bn.late && m.t > HALF * 1.66 && m.score[e.side] < m.score[1 - e.side] ? 1 + bn.late : 1;
-    return v * fm * C.freshPerf(e.energy) * (e.knock ? .88 : 1) * (e.p.rushed ? .85 : 1) * (T.home ? 1.04 : 1) * (1 + (bn[BKEY[k]] || 0)) * late; }
+    return v * fm * C.freshPerf(e.energy) * (e.knock ? .88 : 1) * (e.p.rushed ? .85 : 1) * (T.home ? 1 + m.edge : 1) * (1 + (bn[BKEY[k]] || 0)) * late; }
   const shotSkill = (m, e) => e.slot.pos === 'GK' ? 10 : eff(m, e, 'sho');
   const keepSkill = (m, e) => e ? (eff(m, e, 'stp') * .5 + eff(m, e, 'ref') * .3 + eff(m, e, 'psn') * .2) : 10;
 
@@ -212,7 +212,7 @@
     const g = o => GRP(o.t.slot.pos);
     let c = null;
     if (oppsHigh >= 6) c = pick(o => ['cm', 'dm', 'w', 'fb'].includes(g(o)) && o.open > 8 && o.dist < 35);   // 1. quick release on the counter
-    c = c || pick(o => g(o) === 'cb' && o.open > 6 && o.lane > 2 && o.dist < 28);                              // 2. short to a free centre-back
+    c = c || pick(o => g(o) === 'cb' && o.open > 6 && o.lane > 2 && o.dist < 28);                              // 2. short to a free center-back
     c = c || pick(o => ['fb', 'w'].includes(g(o)) && o.open > 7 && o.lane > 2 && o.dist < 35);                 // 3. short to a full-back or wide player
     c = c || pick(o => g(o) === 'dm' && o.open > 6 && o.lane > 2 && o.dist < 35);                              // 4. into the defensive midfielder
     c = c || pick(o => g(o) === 'cm' && o.open > 8 && o.dist < 55);                                             // 5. long to a free central midfielder

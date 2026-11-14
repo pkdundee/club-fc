@@ -14,7 +14,7 @@
     const r = C.rng((car.created & 0xffffff) ^ 0x2545f491 ^ (car.season * 7919)), col = C.college(car);
     const others = C.collegesAt(car.tier, [car.college]).sort(() => r() - .5).slice(0, 7);   // conference rivals come from your tier
     const teams = [{ me: 1, col: car.college, name: col.short, abbr: col.abbr, c1: col.c1, c2: col.c2, rating: car.job.rating }]
-      .concat(others.map((c, i) => ({ col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: Math.round(car.job.rating + (i - 3) * 1.6 + r() * 3 - 1), form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 1 + Math.floor(r() * 3), seed: Math.floor(r() * 1e9) })));
+      .concat(others.map((c, i) => ({ col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: car.job.rating,   /* parity (9p): every team in the league starts equal */ form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 1 + Math.floor(r() * 3), seed: Math.floor(r() * 1e9) })));
     // double round robin, circle method
     const ids = teams.map((_, i) => i), fx = [];
     for (let rd = 0; rd < 7; rd++) { for (let i = 0; i < 4; i++) { const a = ids[i], b = ids[7 - i]; fx.push({ md: rd + 1, h: rd % 2 ? b : a, a: rd % 2 ? a : b }); } ids.splice(1, 0, ids.pop()); }
@@ -66,7 +66,7 @@
     f.hs = m.score[0]; f.as = m.score[1]; if (m.pens) f.pens = m.pens;
     const rated = C.rateMatch(m), potm = rated[0], mine = rated.filter(x => x.e.side === my);
     const res = Math.sign(m.score[my] - m.score[1 - my]) || (m.pens ? Math.sign(m.pens[my] - m.pens[1 - my]) * .5 : 0);
-    const played = new Set(), gains = [];
+    const played = new Set(), gains = [], nut = 1 + C.physGrowth(C.eff('nutrition')) / 100, nutMor = C.nutMorale(C.eff('nutrition'));
     for (const e of m.ents.filter(e => e.side === my)) {
       const p = C.P(e.p.id); if (!p) continue; const s = e.st; if (s.mins < .5 && !e.on) continue;
       played.add(p.id); p.energy = Math.round(e.energy);
@@ -82,7 +82,7 @@
       const age = ([0, 1.4, 1.2, 1, .8][p.year] || 1) * (1 + C.pbv('xp') + C.staffF('dev') * .2), g = {};
       p.xp = p.xp || {}; const add = (k, v) => { if (p.a[k] == null) return; p.xp[k] = (p.xp[k] || 0) + v * age; };
       if (p.pos === 'GK') { add('stp', s.sv * .06); add('ref', s.sv * .05); add('psn', s.mins * .0015); add('dis', s.pc * .003); add('crs', .02); }
-      else { add('pas', s.pc * .004); add('def', (s.tk + s.int + s.blk) * .035); add('sho', s.sh * .035 + s.g * .08); add('dri', s.drb * .04); add('phy', s.mins * .0012); add('pac', s.mins * .0008); }
+      else { add('pas', s.pc * .004); add('def', (s.tk + s.int + s.blk) * .035); add('sho', s.sh * .035 + s.g * .08); add('dri', s.drb * .04); add('phy', s.mins * .0012 * nut); add('pac', s.mins * .0008 * nut); }
       for (const k in p.xp) while (p.xp[k] >= 1) { p.xp[k] -= 1; if (p.a[k] < C.attrCap(p, k)) { p.a[k]++; g[k] = (g[k] || 0) + 1; } }
       if (Object.keys(g).length) { const old = p.rating; p.rating = C.calcRating(p); p.up = p.rating - old; gains.push([p.id, g]); }
       // playing out of position slowly builds familiarity
@@ -90,12 +90,16 @@
     }
     // everyone else: bans/injuries count down, broken promises sting
     for (const p of car.squad) {
+      if (nutMor) p.morale = Math.min(100, p.morale + nutMor);
       if (!played.has(p.id)) { if (p.ban) p.ban--; else if (p.inj) p.inj--; if (p.promise === 'starter' || p.promise === 'rotation') p.morale = Math.max(10, p.morale - 3); }
     }
     const flu = C.afterMatchMedical(m, my, played, r);
     // money and the AD
     let gate = 0;
     if (f.h === 0) { gate = Math.round(C.attendance(f) * 3 * (1 + C.pbv('gate'))); car.cash += gate; }
+    // Media Center (9p): broadcast money after home matches, and extra Reputation for every win
+    const bc = f.h === 0 ? C.broadcastPay(C.eff('media'), res > 0, car.tier) : 0; car.cash += bc;
+    const repUp = res > 0 ? C.WIN_REP * (1 + C.mediaRep(C.eff('media')) / 100) : 0; if (repUp) car.rep = C.clamp((car.rep ?? 10) + repUp, 0, 100);
     const staffUps = C.staffAfterMatch(res); car.cp += res > 0 ? 15 : res === 0 ? 8 : 5;
     const exp = car.job.stars, conf0 = car.adConf; car.adConf = C.clamp(car.adConf + (res > 0 ? 3 + (exp === 1 ? 1 : 0) : res < 0 ? -3 - (exp === 3 ? 1 : 0) : 0), 0, 100);
     // the rest of the matchday
@@ -103,7 +107,7 @@
     S.fx.filter(x => x.md === S.md && x !== f && x.hs == null).forEach(x => quickResult(x, rr, x.ko));
     const rep = { md: S.md, h: f.h, a: f.a, hs: f.hs, as: f.as, pens: f.pens, stats: m.st, ev: m.events.filter(e => ['goal', 'red', 'yellow', 'injury', 'penalty'].includes(e.type)).map(e => ({ min: e.min, side: e.side, type: e.type, who: e.who ? e.who.p.fn[0] + '. ' + e.who.p.ln : '' })),
       rated: rated.slice(0, 22).map(x => ({ side: x.e.side, id: x.e.p.id, n: x.e.p.fn[0] + '. ' + x.e.p.ln, pos: x.e.slot.pos, r: x.r, g: x.e.st.g, a: x.e.st.a, mins: Math.round(x.e.st.mins) })), potm: potm ? { side: potm.e.side, n: potm.e.p.fn + ' ' + potm.e.p.ln } : null,
-      gains, gate, conf: car.adConf - conf0, my, staffUps, flu, injuries: m.ents.filter(e => e.side === my && e.injured).map(e => { const p = C.P(e.p.id); return p && p.injury ? [p.fn[0] + '. ' + p.ln, p.injury.icon, p.injury.name, p.injury.season ? 'season' : p.inj] : null; }).filter(Boolean), cp: res > 0 ? 15 : res === 0 ? 8 : 5, bonus: C.bonusLines() };
+      gains, gate, bc, repUp, conf: car.adConf - conf0, my, staffUps, flu, injuries: m.ents.filter(e => e.side === my && e.injured).map(e => { const p = C.P(e.p.id); return p && p.injury ? [p.fn[0] + '. ' + p.ln, p.injury.icon, p.injury.name, p.injury.season ? 'season' : p.inj] : null; }).filter(Boolean), cp: res > 0 ? 15 : res === 0 ? 8 : 5, bonus: C.bonusLines() };
     S.reports[S.md] = rep; car.restAt = C.now();
     advance(); C.save(); return rep;
   };

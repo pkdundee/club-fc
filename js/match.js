@@ -118,7 +118,7 @@
     C.simToEnd(M.m); finishUI();
   };
   // the same options for watched and quick matches, so both give the same result; the game profile follows the career (men's or women's)
-  function matchOpts() { return { knockout: !!M.f.ko, gender: C.car().gender, trace: !!M.debug, med: [C.level('med') * (M.my === 0 ? 1 : 0), C.level('med') * (M.my === 1 ? 1 : 0)] }; }
+  function matchOpts() { return { knockout: !!M.f.ko, gender: C.car().gender, trace: !!M.debug, med: [C.level('med') * (M.my === 0 ? 1 : 0), C.level('med') * (M.my === 1 ? 1 : 0)], edge: M.my === 1 ? .04 * (1 - C.travelCut(C.eff('transport')) / 100) : .04 }; }
   function rate() { const m = M.m, b = m.ball, my = M.my; const near = Math.min(b.y, PL - b.y) < 30 || (b.fl && b.fl.type !== 'pass');
     return M.speed === .25 ? 1 : M.speed === 1 ? (near ? 2.3 : 5.5) : M.speed === 5 ? 17 : 34; }
   function loop(now) {
@@ -320,7 +320,7 @@
       ${(r.injuries && r.injuries.length) || r.flu ? `<h3 class="jh">Medical</h3><div class="card">${(r.injuries || []).map(i => `<div class="eff">${i[1]} ${C.esc(i[0])}: ${C.esc(i[2])} · ${i[3] === 'season' ? 'out for the season' : 'out ' + i[3] + ' match' + (i[3] > 1 ? 'es' : '')}</div>`).join('')}${r.flu ? `<div class="eff">🤒 Flu bug: ${r.flu.map(C.esc).join(', ')} miss the next match</div>` : ''}<button class="btn full sec2" data-act="medical" style="margin-top:8px">🩺 Medical Room</button></div>` : ''}
       ${gains ? `<h3 class="jh">Development</h3><div class="card">${gains}</div>` : ''}
       ${r.bonus && r.bonus.length ? `<h3 class="jh">Your edge</h3><div class="card edge">${r.bonus.slice(0, 8).map(b => `<div>${C.esc(b)}</div>`).join('')}</div>` : ''}
-      ${fresh ? `${C.advice('snc')}<div class="card fin"><div>${r.gate ? `💵 Gate income <b>+${C.short(r.gate)}</b>` : '🚌 Away game'}</div><div><i class="cpi"></i> Coaching Points <b>+${r.cp || 0}</b></div>${(r.staffUps || []).map(u => `<div>🧑‍🏫 ${C.esc(u)}</div>`).join('')}<div>🏛 Director confidence <b>${r.conf > 0 ? '▲' : r.conf < 0 ? '▼' : '='}</b></div><div>📊 ${S.end ? 'Season over' : 'Now ' + C.ord(C.myPos()) + ' in the table'}</div></div>
+      ${fresh ? `${C.advice('snc')}<div class="card fin"><div>${r.gate ? `💵 Gate income <b>+${C.short(r.gate)}</b>` : '🚌 Away game'}</div>${r.bc ? `<div>📺 Broadcast money <b>+${C.short(r.bc)}</b></div>` : ''}${r.repUp ? `<div>⭐ Reputation <b>+${r.repUp.toFixed(1)}</b></div>` : ''}<div><i class="cpi"></i> Coaching Points <b>+${r.cp || 0}</b></div>${(r.staffUps || []).map(u => `<div>🧑‍🏫 ${C.esc(u)}</div>`).join('')}<div>🏛 Director confidence <b>${r.conf > 0 ? '▲' : r.conf < 0 ? '▼' : '='}</b></div><div>📊 ${S.end ? 'Season over' : 'Now ' + C.ord(C.myPos()) + ' in the table'}</div></div>
         <button class="btn full pri" data-act="close">Continue</button>` : ''}`;
   }
 })(window.CFC);

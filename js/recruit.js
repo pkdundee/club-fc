@@ -43,7 +43,7 @@
     let want = year === 1 && rel < 2 ? 'squad' : rel >= 6 || sub === 'down' ? 'starter' : 'rotation';
     if (year >= 3 && want === 'squad') want = 'rotation';
     const kit = KITS[Math.floor(r() * KITS.length)];
-    Object.assign(p, { src, from, ask, want, kit, u: r(), scouted: src === 'camp', interest: Math.round(40 + r() * 30 + C.level('dorms') + (C.car().b.academic || 0) + (src === 'camp' ? 10 : 0)), deal: { round: 0, last: null, low: 0 } });
+    Object.assign(p, { src, from, ask, want, kit, u: r(), scouted: src === 'camp', interest: Math.round(40 + r() * 30 + C.level('dorms') + C.eff('academic') + (src === 'camp' ? 10 : 0)), deal: { round: 0, last: null, low: 0 } });
     const t = C.now();
     if (src === 'inbox') p.exp = t + 48 * H;
     if (src === 'camp' || src === 'agency') p.exp = t + 72 * H;
@@ -86,7 +86,7 @@
 
   // ---------- the offer ----------
   const aidOK = x => x.gpa >= 3.3;
-  const aidAmt = x => Math.round(C.car().job.coa * (.15 + (x.gpa - 3.3) / .7 * .2 + C.level('academic') * .01) * (1 + C.pbv('aid')) / 500) * 500;
+  const aidAmt = x => Math.round(C.car().job.coa * (.15 + (x.gpa - 3.3) / .7 * .2 + C.eff('academic') * .01) * (1 + C.pbv('aid')) / 500) * 500;
   C.maxPct = () => isAcad() ? 0 : Math.min(100, floor5(C.poolLeft() / C.car().job.coa * 100));
   function calc(x, o) {
     const coa = C.car().job.coa, schol = o.pct / 100 * coa;

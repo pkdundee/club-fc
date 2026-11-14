@@ -35,12 +35,12 @@
   const n = (car, k) => (car.fw.n[k] || 0);
   const DAYS = [
     { title: 'Day 1 · Settle in', reward: { gold: 50, cash: 3000 }, tasks: [['hq2', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2], ['col1', 'Collect Booster $ once', c => n(c, 'collect_cash') >= 1]] },
-    { title: 'Day 2 · Strength', reward: { gold: 50, cp: 30 }, tasks: [['gym', 'Build the Gym', c => c.b.gym >= 1], ['spd', 'Use a speed-up', c => n(c, 'speed') >= 1]] },
+    { title: 'Day 2 · Strength', reward: { gold: 50, cp: 30 }, tasks: [['gym', 'Upgrade the Gym to Lv 2', c => c.b.gym >= 2], ['spd', 'Use a speed-up', c => n(c, 'speed') >= 1]] },
     { title: 'Day 3 · Learn the game', reward: { gold: 60, cash: 4000 }, tasks: [['ask', 'Search a question in Help', c => !!c.seen.ask], ['hb', "Read 'Scholarships' in the Handbook", c => !!c.seen.hb_schol]] },
     { title: 'Day 4 · Headquarters', reward: { gold: 60, cp: 40 }, tasks: [['hq3', "Coaches' Office Lv 3", c => c.b.hq >= 3], ['std2', 'Stadium Lv 2', c => c.b.stadium >= 2]] },
-    { title: 'Day 5 · Sports science', reward: { gold: 70, cash: 6000 }, tasks: [['film2', 'Performance Lab Lv 2', c => c.b.film >= 2], ['cp3', 'Collect Coaching Points 3 times', c => n(c, 'collect_cp') >= 3]] },
+    { title: 'Day 5 · Sports science', reward: { gold: 70, cash: 6000 }, tasks: [['film2', 'Performance Lab Lv 2', c => c.b.lab >= 2], ['cp3', 'Collect Coaching Points 3 times', c => n(c, 'collect_cp') >= 3]] },
     { title: 'Day 6 · Busy campus', reward: { gold: 80, cp: 60 }, tasks: [['tr2', 'Training Ground Lv 2', c => c.b.training >= 2], ['up6', 'Start 6 upgrades in total', c => n(c, 'upgrade') >= 6]] },
-    { title: 'Day 7 · Big week', reward: { gold: 200, cash: 15000, item: 'rareRecruit' }, tasks: [['hq4', "Coaches' Office Lv 4", c => c.b.hq >= 4], ['bst', 'Build the Booster Club', c => c.b.booster >= 1]] }
+    { title: 'Day 7 · Big week', reward: { gold: 200, cash: 15000, item: 'rareRecruit' }, tasks: [['hq4', "Coaches' Office Lv 4", c => c.b.hq >= 4], ['bst', 'Upgrade the Clubhouse to Lv 3', c => c.b.booster >= 3]] }
   ];
   C.fwInit = car => { if (!car.fw) car.fw = { start: Date.now(), n: {}, claimed: [] }; };
   C.fwEvent = k => { const car = C.car(); if (!car) return; C.fwInit(car); car.fw.n[k] = (car.fw.n[k] || 0) + 1; C.save(); };

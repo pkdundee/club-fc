@@ -3,7 +3,7 @@
   // ---------- positions ----------
   const POS = { GK: [.5, .02], LB: [.12, .22], CB: [.5, .18], RB: [.88, .22], DM: [.5, .36], LM: [.12, .5], CM: [.5, .48], RM: [.88, .5], AM: [.5, .64], LW: [.15, .78], RW: [.85, .78], ST: [.5, .86] };
   C.POSGROUP = p => p === 'GK' ? 'gk' : ['CB', 'LB', 'RB'].includes(p) ? 'def' : ['DM', 'CM', 'LM', 'RM', 'AM'].includes(p) ? 'mid' : 'fwd';
-  C.POSNAME = { GK: 'Goalkeeper', CB: 'Centre back', LB: 'Left back', RB: 'Right back', DM: 'Defensive mid', CM: 'Central mid', LM: 'Left mid', RM: 'Right mid', AM: 'Attacking mid', LW: 'Left wing', RW: 'Right wing', ST: 'Striker' };
+  C.POSNAME = { GK: 'Goalkeeper', CB: 'Center back', LB: 'Left back', RB: 'Right back', DM: 'Defensive mid', CM: 'Central mid', LM: 'Left mid', RM: 'Right mid', AM: 'Attacking mid', LW: 'Left wing', RW: 'Right wing', ST: 'Striker' };
   const SQUAD = ['GK', 'GK', 'CB', 'CB', 'CB', 'CB', 'LB', 'RB', 'DM', 'CM', 'CM', 'CM', 'LM', 'RM', 'AM', 'LW', 'RW', 'ST', 'ST', 'CM', 'ST'];
 
   // ---------- attributes (Q15b, Q29) ----------
@@ -81,12 +81,28 @@
       const rating = Math.round(j.rating - 4 + r() * 8 + rar * 3 + (yrs[i] - 2) * 1.5);
       return C.genPlayer(r, { gender: car.gender, pos, rating, rar, year: yrs[i], pool: r() < .82 ? wpick(r, { us: 30, us_hisp: 12, us_irish: 6, us_ital: 6, us_mw: 8 }) : undefined });
     });
+    if (j.style) C.balanceSquad(sq, j.style, j.rating, r);
     // scholarships: the best players share about 75% of the pool (Q5, Q11); academic colleges give academic aid instead
     const byRating = [...sq].sort((a, b) => b.rating - a.rating);
     if (j.type === 'acad') byRating.slice(0, 5).forEach(p => p.acad = true);
     else { let left = j.pool * .75; for (const p of byRating) { const f = [.6, .5, .5, .4, .4, .35, .3, .25, .25][byRating.indexOf(p)] || 0; const amt = Math.round(f * j.coa / 500) * 500; if (!f || amt > left) continue; p.schol = amt; left -= amt; } }
     C.assignNumbers(sq);
     return sq;
+  };
+
+  // Starting parity (9p, FEEDBACK 65): every squad has the same total strength, but its style shapes where that strength sits.
+  // Lean each position group by the style, then even the whole squad out so its average rating is exactly the target.
+  const STYLE_LEAN = { attack: { fwd: 5, mid: 1, def: -4, gk: -2 }, possession: { mid: 5, fwd: 0, def: -2, gk: -2, pas: 4 }, defend: { def: 5, gk: 3, mid: 0, fwd: -5 },
+    long: { def: 2, fwd: 2, mid: -3, gk: 0, phy: 4 }, counter: { fwd: 3, mid: 0, def: 0, gk: 0, pac: 5, pas: -2 }, balanced: {} };
+  C.STYLES = { attack: 'Attacking', possession: 'Possession', defend: 'Defensive', long: 'Long ball', counter: 'Counter-attack', balanced: 'Balanced' };
+  C.balanceSquad = (sq, style, target, r) => {
+    const L = STYLE_LEAN[style] || {}, bump = (p, v) => { for (const k in p.a) p.a[k] = C.clamp(p.a[k] + v, 8, 95); };
+    for (const p of sq) { bump(p, L[C.POSGROUP(p.pos)] || 0); if (p.pos !== 'GK') for (const k of ['pas', 'pac', 'phy']) if (L[k]) p.a[k] = C.clamp(p.a[k] + L[k], 8, 95); p.rating = C.calcRating(p); }
+    const mean = () => sq.reduce((t, p) => t + p.rating, 0) / sq.length;
+    const d = Math.round(target - mean()); if (d) sq.forEach(p => { bump(p, d); p.rating = C.calcRating(p); });
+    let diff = Math.round(target * sq.length - sq.reduce((t, p) => t + p.rating, 0));
+    for (let guard = 0; diff && guard < 200; guard++) { const p = sq[Math.floor(r() * sq.length)], v = Math.sign(diff); bump(p, v); const old = p.rating; p.rating = C.calcRating(p); diff -= p.rating - old; }
+    sq.forEach(p => { p.pot = C.clamp(Math.max(p.pot, p.rating + 1), p.rating + 1, 95); });
   };
 
   C.assignNumbers = sq => {

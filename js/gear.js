@@ -16,7 +16,7 @@
   C.gearSlots = p => p.pos === 'GK' ? ['gloves', 'boots', 'base', 'tracker'] : ['boots', 'shins', 'base', 'tracker'];
   // level cap by rarity (5 … 25), and the Kit Room's level also limits upgrades
   C.gearCap = g => 5 * (g.rar + 1);
-  C.kitLevel = () => C.car().b.kitroom || 0;
+  C.kitLevel = () => C.eff('kitroom');
   C.gearLvMax = g => Math.min(C.gearCap(g), 2 + C.kitLevel() * 2);
   // a piece boosts its two main skills: Common 1–2%, Ultra Rare 3–5%
   C.gearPct = g => Math.round((1 + g.rar * .5 + (g.lv - 1) / Math.max(1, C.gearCap(g) - 1) * (1 + g.rar * .25)) * 10) / 10;
@@ -91,7 +91,7 @@
   C.kitRoomHTML = () => { const list = gear().slice().sort((a, b) => b.rar - a.rar || b.lv - a.lv);
     return list.length ? `<div class="kitg">${list.map(g => { const who = holder(g) ? C.P(g.on) : null; return `<div class="kitc">${tile(g)}<small>${C.GEAR[g.slot].name}</small><em>${who ? C.esc(C.sn(who)) : 'Spare'}</em></div>`; }).join('')}</div>` : '<p class="note">No gear yet.</p>'; };
   C.openKitRoom = () => C.ui.open('Kit Room', () => { const lv = C.kitLevel(), ready = C.kitReady();
-    return `${lv ? `<div class="card kitdel"><span>📦</span><div><b>${ready ? 'A delivery has arrived' : 'Next delivery'}</b><small>${ready ? 'New gear for your program' : C.dur((kitNext() - C.now()) / 1000) + ' · one piece every ' + Math.round(C.kitEvery() / H) + 'h'}</small></div><button class="btn sm2 ${ready ? 'claim' : 'sec2'}" data-act="kitcollect" ${ready ? '' : 'disabled'}>Collect</button></div>` : `<button class="btn full pri" data-act="bldopen" data-v="kitroom">Build the Kit Room</button>`}
+    return `${lv ? `<div class="card kitdel"><span>📦</span><div><b>${ready ? 'A delivery has arrived' : 'Next delivery'}</b><small>${ready ? 'New gear for your program' : C.dur((kitNext() - C.now()) / 1000) + ' · one piece every ' + Math.round(C.kitEvery() / H) + 'h'}</small></div><button class="btn sm2 ${ready ? 'claim' : 'sec2'}" data-act="kitcollect" ${ready ? '' : 'disabled'}>Collect</button></div>` : `<button class="btn full pri" data-act="bldopen" data-v="kitroom">🔒 Unlocks at Coaches' Office Lv ${C.BUILDINGS.kitroom.needHQ}</button>`}
       <p class="note">Gear is upgraded from a player's card, up to level ${lv ? 2 + lv * 2 : 0} with this Kit Room. Boosts are percentages, at most +${MAXPCT}% on any skill.</p>${C.kitRoomHTML()}`; }, { popup: true });
   A.kitcollect = () => { const g = C.kitCollect(); if (g) { C.toast(`📦 ${RAR[g.rar][0]} ${C.GEAR[g.slot].name}`); C.ui.refresh(); C.render(); } };
 

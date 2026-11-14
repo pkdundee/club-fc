@@ -3,6 +3,10 @@
   const FREE_FINISH = 120; // builds with 2 minutes or less left can be finished free
 
   C.level = k => C.car().b[k];
+  // Locked buildings (9p, FEEDBACK 65): every building starts at Lv 1, but some stay locked until the Coaches' Office reaches their level.
+  // A locked building shows Lv 1 and gives nothing until then; C.eff is the level its effects use.
+  C.locked = (k, car = C.car()) => !!(C.BUILDINGS[k].needHQ && car.b.hq < C.BUILDINGS[k].needHQ);
+  C.eff = k => C.locked(k) ? 0 : (C.level(k) || 0);
   C.inQueue = k => C.car().queue.find(q => q.key === k);
 
   // Slots: free, VIP (Coach's Club), one-off purchase, earned at Coaches' Office Lv 10
@@ -16,14 +20,14 @@
 
   // Coaches' Office prerequisites (round 4, item 15): from Lv 3, the Performance Lab plus one rotating building at the level below
   const HQ_SECOND = ['training', 'med', 'recruit', 'stadium', 'dorms', 'gym', 'media'];
-  C.hqNeeds = to => to < 3 ? [] : [['film', to - 1], [HQ_SECOND[to % HQ_SECOND.length], to - 1]];
+  C.hqNeeds = to => to < 3 ? [] : [['lab', to - 1], [HQ_SECOND[to % HQ_SECOND.length], to - 1]];
   // Requirement rows for the upgrade card: [icon, text, ok, kind]   kind: 'b' = a building (Go), 'cash' (Obtain)
   C.requirements = k => {
     const car = C.car(), lv = C.level(k), to = lv + 1, def = C.BUILDINGS[k], cost = C.costOf(k, to), rows = [];
     if (k !== 'hq') rows.push(['🏛', `Lv.${to} ${C.BUILDINGS.hq.name}`, C.level('hq') >= to, 'hq']);
     else if (to > C.tierCap()) rows.push(['🎓', `${C.TIERS[car.tier].n} cap is Lv ${C.tierCap()}: move up a tier`, false]);
     else C.hqNeeds(to).forEach(([b, l]) => rows.push([C.BUILDINGS[b].icon, `Lv.${l} ${C.BUILDINGS[b].name}`, C.level(b) >= l, b]));
-    if (def.needHQ && lv === 0) rows.push(['🔒', `Unlocks at ${C.BUILDINGS.hq.name} Lv ${def.needHQ}`, C.level('hq') >= def.needHQ]);
+    if (C.locked(k)) rows.push(['🔒', `Unlocks at ${C.BUILDINGS.hq.name} Lv ${def.needHQ}`, C.level('hq') >= def.needHQ]);
     if (k !== 'hq' && to > C.tierCap()) rows.push(['🎓', `${C.TIERS[car.tier].n} cap is Lv ${C.tierCap()}`, false]);
     rows.push(['💵', `${C.short(car.cash)} / ${C.short(cost.cash)}`, car.cash >= cost.cash, 'cash']);
     if (cost.cp) rows.push(['<i class="cpi"></i>', `${C.short(car.cp)} / ${cost.cp} Coaching Points`, car.cp >= cost.cp]);
@@ -31,7 +35,7 @@
   };
   C.canUpgrade = k => !C.inQueue(k) && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]) && C.freeSlot();
   // "Ready" arrow on the map: affordable and allowed, ignoring whether a slot is free
-  C.readyArrow = k => !C.inQueue(k) && C.level(k) > 0 && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]);
+  C.readyArrow = k => !C.inQueue(k) && !C.locked(k) && C.level(k) > 0 && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]);
 
   C.startUpgrade = k => {
     const car = C.car(), to = C.level(k) + 1;
@@ -65,8 +69,8 @@
     return done;
   };
 
-  // ---- production (Media Centre and Booster Club make Booster $, the Performance Lab makes Coaching Points) ----
-  C.PRODUCERS = { media: 'cash', booster: 'cash', film: 'cp' };
+  // ---- production (the Clubhouse makes Booster $, the Performance Lab makes Coaching Points) ----
+  C.PRODUCERS = { booster: 'cash', lab: 'cp' };
   C.stored = k => {
     const car = C.car(), lv = C.level(k); if (!lv) return 0;
     const hrs = Math.min((C.now() - car.store[k]) / 3.6e6, C.STORE_HOURS(lv));

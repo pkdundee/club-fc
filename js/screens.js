@@ -11,7 +11,7 @@
   C.powerBadge = (cls = '') => `<span class="ppow ${cls}" data-act="proginfo" title="Program Power: campus, staff and squad"><i class="ppi"></i>${C.programPower().toLocaleString()}</span>`;
   // the one build-queue icon (item 38) and the buildings list (items 31, 44)
   C.idleBuilders = () => Math.max(0, C.openSlots() - C.car().queue.length);
-  C.newBuildable = () => Object.keys(C.BUILDINGS).filter(k => C.level(k) === 0 && !C.inQueue(k) && !(C.BUILDINGS[k].needHQ && C.level('hq') < C.BUILDINGS[k].needHQ));
+  C.newBuildable = () => Object.keys(C.BUILDINGS).filter(k => C.level(k) === 0 && !C.inQueue(k) && !C.locked(k));
   C.readyCount = () => Object.keys(C.BUILDINGS).filter(k => C.readyArrow(k) || (C.newBuildable().includes(k) && C.requirements(k).every(r => r[2]))).length;
 
   // ================= main render =================
@@ -66,7 +66,7 @@
     </div>`;
   }
 
-  // the next match, front and centre (Q13: play whenever you like; energy is the natural limit)
+  // the next match, front and center (Q13: play whenever you like; energy is the natural limit)
   C.gamedayHTML = gamedayHTML;
   function gamedayHTML() {
     const S = C.sea(), f = C.myFixture();
@@ -148,7 +148,7 @@
   // ================= building actions when selected on the map (Last War style) =================
   // only shortcuts that aren't already a tap away elsewhere (tabs, campus buttons, collect bubbles)
   // every action button opens a popup: it never leaves the map (round 6)
-  const SHORTCUTS = { hq: [['📊', 'Program', 'bpop', 'proginfo'], ['🧢', 'Staff', 'bpop', 'hqstaff']], film: [['📋', 'Playbook', 'bpop', 'playbook']], med: [['🩺', 'Medical Room', 'bpop', 'medical']], kitroom: [['🎒', 'Kit Room', 'bpop', 'kitroom']], academic: [['📚', 'Academics', 'bpop', 'academic']] };
+  const SHORTCUTS = { hq: [['📊', 'Program', 'bpop', 'proginfo'], ['🧢', 'Staff', 'bpop', 'hqstaff']], lab: [['📋', 'Playbook', 'bpop', 'playbook']], med: [['🩺', 'Medical Room', 'bpop', 'medical']], kitroom: [['🎒', 'Kit Room', 'bpop', 'kitroom']], academic: [['📚', 'Academics', 'bpop', 'academic']] };
   C.buildingActions = k => {
     const lvl = C.level(k), q = C.inQueue(k), ready = C.readyArrow(k), out = [];
     if (lvl) (SHORTCUTS[k] || []).forEach(([icon, label, act, v]) => out.push({ icon, label, act, v }));
@@ -175,13 +175,13 @@
   C.blistTab = 'program';
   C.openBuildList = () => C.ui.open('Buildings', () => {
     const car = C.car(), tab = C.blistTab, keys = Object.keys(C.BUILDINGS);
-    const nb = C.newBuildable(), lockedB = k => C.BUILDINGS[k].needHQ && C.level('hq') < C.BUILDINGS[k].needHQ && !C.level(k);
+    const nb = C.newBuildable(), lockedB = k => C.locked(k);
     const rank = k => lockedB(k) ? 2 : nb.includes(k) ? 0 : 1;
     const shown = keys.filter(k => C.BUILDINGS[k].owner === (tab === 'school' ? 'school' : 'program')).sort((a, b) => rank(a) - rank(b) || C.level(a) - C.level(b));
-    const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), locked = d.needHQ && C.level('hq') < d.needHQ && !lv;
+    const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), locked = C.locked(k);
       const ready = C.readyArrow(k) || (nb.includes(k) && C.requirements(k).every(r => r[2]));
       return `<button class="bcard ${locked ? 'off' : ''}" data-act="bldopen" data-v="${k}">${ready ? '<i class="bup"></i>' : ''}<div class="bpic">${C.buildingThumb(k, Math.max(1, lv), car, 96, 70)}</div>
-        <b class="blv">${q ? '🔨 ' + C.dur(C.remaining(q)) : locked ? 'HQ Lv ' + d.needHQ : lv ? 'Lv.' + lv : 'NEW'}</b><span>${C.esc(d.name)}</span></button>`; };
+        <b class="blv">${q ? '🔨 ' + C.dur(C.remaining(q)) : locked ? '🔒 HQ Lv ' + d.needHQ : lv ? 'Lv.' + lv : 'NEW'}</b><span>${C.esc(d.name)}</span></button>`; };
     const tb = (k, n, c) => `<button class="${tab === k ? 'on' : ''}" data-act="blisttab" data-v="${k}">${n}${c ? ` <em>${c}</em>` : ''}</button>`;
     return `<div class="bigtabs">${tb('program', 'Program', nb.filter(k => C.BUILDINGS[k].owner === 'program').length)}${tb('school', 'Support', nb.filter(k => C.BUILDINGS[k].owner === 'school').length)}</div>
       <div class="bgrid">${shown.map(card).join('') || '<p class="note">Nothing new to build right now.</p>'}</div>

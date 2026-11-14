@@ -58,7 +58,7 @@
     { id: 'rivalry', icon: '⚔️', name: 'Rivalry Week', desc: 'Wins earn double Coaching Points and extra Pass XP.' },
     { id: 'drive', icon: '✉️', name: 'Recruiting Drive', desc: 'ID Camps cost half. Recruiting offers earn Pass XP.' },
     { id: 'camp', icon: '🏋️', name: 'Training Camp', desc: 'Training plans take 25% less time.' },
-    { id: 'boost', icon: '💵', name: 'Booster Weekend', desc: 'Income from the Coaches\' Office and Booster Club +50%.' }
+    { id: 'boost', icon: '💵', name: 'Booster Weekend', desc: 'Clubhouse and Performance Lab income +50%.' }
   ];
   C.event = () => C.EVENTS[weekNo() % C.EVENTS.length];
   C.eventEnds = () => new Date(weekKey()).getTime() + 7 * D;

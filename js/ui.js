@@ -1,4 +1,4 @@
-// Club FC: pop-ups with a back history (Q10, Q17), centred modals and toasts.
+// Club FC: pop-ups with a back history (Q10, Q17), centered modals and toasts.
 (function (C) {
   const stack = [];   // [{title, render, mode: 'page' | 'popup' | 'modal', sc}]
   C.ui = {};

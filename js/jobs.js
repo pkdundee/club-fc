@@ -1,26 +1,28 @@
 // Club FC: the job market (Phase 2). 12 openings on 3 looping pages, each page 2 women's + 2 men's
 // with balanced trade-offs (Q3, Q4, Q8, Q9, Q12). Each opening has a full preview before you sign.
 (function (C) {
-  // Stories. "strong" = better squad, less money; "weak" = weaker squad, more money or room to build.
+  // Stories (9p, FEEDBACK 65: starting parity). Every opening is equal: same squad strength, budget, scholarships and Lv 1 buildings.
+  // They differ only in setting and in the style the squad has grown up with, which shapes where its strength sits.
+  const EQUAL = { stars: 2, eq: 5, cash: 22000, rating: 42, pool: 150000, mix: [5, 6, 6, 5] };
   const STORIES = {
-    crumbling: { set: 'strong', stars: 3, kind: 'Win now', title: 'Talented squad, crumbling facilities', eq: 4, cash: 12000,
-      text: 'The locker room is a portable cabin and one floodlight works. But this roster has real players, and the athletic director expects results.',
-      ambition: 'Win the conference within 2 seasons', ray: 'Good players, terrible facilities. Win early, then spend.', lv: { stadium: 1, training: 1, med: 1, dorms: 1 } },
-    promises: { set: 'strong', stars: 3, kind: 'Win now', title: 'New athletic director, big promises', eq: 4, cash: 15000,
-      text: 'A new athletic director wants a winner fast and has already told the local paper. Older squad, decent office, not much money left.',
-      ambition: 'Reach the national tournament in 3 seasons', ray: 'Pressure from day one. The seniors can carry you this year.', lv: { hq: 2, film: 2 } },
-    heroes: { set: 'strong', stars: 2, kind: 'Steady', title: 'Local heroes, tiny crowd', eq: 4, cash: 16000,
-      text: 'Half the squad grew up within 20 miles. The town loves them, but only about 80 people come to games.',
-      ambition: 'Double the crowd and finish top half', ray: 'Loyal squad. Fill those bleachers and they will run through walls.', lv: { dorms: 2, recruit: 2 } },
-    boosters: { set: 'weak', stars: 1, kind: 'Build', title: 'Keen boosters, empty trophy cabinet', eq: 5, cash: 34000,
-      text: 'Local businesses love the team and donate generously. The squad, honestly, does not win much. Money to spend, players to find.',
-      ambition: 'Be respectable in year 1, contenders by year 3', ray: 'Plenty of cash. Build the campus and recruit hard.', lv: { booster: 2, stadium: 1 } },
-    floods: { set: 'weak', stars: 1, kind: 'Build', title: 'The pitch floods when it rains', eq: 5, cash: 26000,
-      text: 'Drainage is "on the list". The last coach left mid-season for a high-school job. Low expectations and a young squad.',
-      ambition: 'Stay out of the bottom 2 while you rebuild', ray: 'Nobody expects anything. Perfect time to build properly.', lv: { training: 1, film: 1 } },
-    blank: { set: 'weak', stars: 2, kind: 'Steady', title: 'A blank slate', eq: 6, cash: 22000,
-      text: 'Mostly young players, a modest budget and an athletic director who just wants the program "to be respectable". The biggest scholarship pool on the board.',
-      ambition: 'Top half this season, then build from there', ray: 'Biggest scholarship pool here. Recruiting heaven.', lv: { recruit: 2 } }
+    crumbling: { style: 'attack', stars: 2, kind: 'Attacking', title: 'Old ground, attacking tradition', eq: 5, cash: 22000,
+      text: 'The locker room is a portable cabin and one floodlight works, but this college has always played on the front foot. The forwards are the pick of the squad.',
+      ambition: 'Win the conference within 3 seasons', ray: 'They love to attack. Shore up the back and they can score with anyone.', lv: {} },
+    promises: { style: 'possession', stars: 2, kind: 'Possession', title: 'New athletic director, big promises', eq: 5, cash: 22000,
+      text: 'A new athletic director wants a winner and has already told the local paper. The last coach built a patient passing side, with clever midfielders.',
+      ambition: 'Reach the national tournament in 3 seasons', ray: 'Good on the ball in midfield. Keep the ball and make them chase.', lv: {} },
+    heroes: { style: 'defend', stars: 2, kind: 'Defensive', title: 'Local heroes, tiny crowd', eq: 5, cash: 22000,
+      text: 'Half the squad grew up within 20 miles. Hard to beat and proud of it: the defenders are the heart of the team. Only about 80 people come to games.',
+      ambition: 'Double the crowd and finish top half', ray: 'Solid at the back. Find them a goal or two and they will grind out wins.', lv: {} },
+    boosters: { style: 'long', stars: 2, kind: 'Long ball', title: 'Keen boosters, direct football', eq: 5, cash: 22000,
+      text: 'Local businesses love the team. They play it long and fight for the second ball, with tall center backs and a strong striker.',
+      ambition: 'Be respectable in year 1, contenders by year 3', ray: 'Big and direct. Strong in the air at both ends.', lv: {} },
+    floods: { style: 'counter', stars: 2, kind: 'Counter-attack', title: 'The pitch floods when it rains', eq: 5, cash: 22000,
+      text: 'Drainage is "on the list". The team sits deep and breaks fast, with quick wingers who love space to run into.',
+      ambition: 'Top half while you build properly', ray: 'Fast on the break. Let them come at you, then hit them.', lv: {} },
+    blank: { style: 'balanced', stars: 2, kind: 'Balanced', title: 'A blank slate', eq: 5, cash: 22000,
+      text: 'A young, even squad with no stand-out area and no strong habits. An athletic director who just wants the program "to be respectable".',
+      ambition: 'Top half this season, then build from there', ray: 'No weak spot and no star line. Shape them however you like.', lv: {} }
   };
   const STRONG = ['crumbling', 'promises', 'heroes'], WEAK = ['boosters', 'floods', 'blank'];
   const TYPES = {
@@ -29,8 +31,9 @@
     acad: { icon: '📚', name: 'Academic college', hint: 'like Division III', line: 'No athletic scholarships. You recruit with academic aid, the campus and playing time.' }
   };
   const GOAL = { 3: 'Top 4 and reach the conference final', 2: 'Finish in the top half', 1: 'Stay out of the bottom 2' };
-  const WEAKSPOT = ['No natural left back', 'Thin at striker', 'Only one goalkeeper', 'Slow centre backs', 'No creative midfielder', 'Small squad'];
+  const WEAKSPOT = ['No natural left back', 'Thin at striker', 'Only one goalkeeper', 'Slow center backs', 'No creative midfielder', 'Small squad'];
   const POSN = ['ST', 'CB', 'CM', 'GK', 'RW', 'LB', 'AM', 'DM'];
+  const STYLEPOS = { attack: ['ST', 'RW', 'AM'], possession: ['CM', 'AM', 'DM'], defend: ['CB', 'GK', 'DM'], long: ['ST', 'CB', 'GK'], counter: ['LW', 'RW', 'ST'], balanced: ['CM', 'CB', 'ST'] };
   C.STORIES = STORIES; C.JOBTYPES = TYPES;
 
   C.makeJobs = seed => {
@@ -51,22 +54,17 @@
     }
     // Two junior colleges and one academic college, never on a repeated school
     const plain = shuffle(jobs.filter(j => !j.repeat));
-    jobs.forEach(j => j.type = 'sch'); plain[0].type = 'juco'; plain[1].type = 'juco'; plain[2].type = 'acad';
+    jobs.forEach(j => j.type = 'sch');   // parity (9p): every starting job is a scholarship college, so none has a different budget or squad rule
     // Details for the preview
     jobs.forEach((j, i) => {
       const st = STORIES[j.story], col = C.COLLEGES[j.college];
       j.id = i; j.stars = st.stars;
       j.coa = j.type === 'juco' ? 9000 + Math.round(r() * 6) * 500 : col.pub ? 26000 + Math.round(r() * 16) * 500 : 50000 + Math.round(r() * 30) * 500;
-      j.limit = j.type === 'juco' ? 18 : j.gender === 'w' ? 9.9 : 9.0;
-      j.eq = j.type === 'acad' ? 0 : j.type === 'juco' ? st.eq + 4 : st.eq;
-      j.pool = Math.round(j.eq * j.coa / 1000) * 1000;
-      j.cash = st.cash + Math.round(r() * 6) * 500;
-      j.rating = { 3: 46, 2: 42, 1: 38 }[st.stars] + Math.round(r() * 3);
-      j.mix = { 'Win now': [3, 4, 7, 8], Steady: [5, 6, 6, 5], Build: [8, 7, 4, 3] }[st.kind].slice();
-      if (j.type === 'juco') j.mix = [12, 10, 0, 0];
-      j.weak = pick(WEAKSPOT);
-      j.top = shuffle(POSN).slice(0, 3).map((pos, k) => ({ pos, rating: j.rating + 9 - k * 2 - Math.round(r() * 2), yr: ['Fr', 'So', 'Jr', 'Sr'][Math.min(3, Math.floor(r() * 4) + (st.kind === 'Win now' ? 1 : 0))] }));
-      j.last = { 3: 3, 2: 6, 1: 9 }[st.stars] + Math.round(r() * 1);
+      j.limit = j.gender === 'w' ? 9.9 : 9.0;
+      j.eq = EQUAL.eq; j.pool = EQUAL.pool; j.cash = EQUAL.cash; j.rating = EQUAL.rating; j.mix = EQUAL.mix.slice(); j.style = st.style;
+      j.weak = { attack: 'Shaky at the back', possession: 'Not much pace', defend: 'Short of goals', long: 'Slow in midfield', counter: 'Weak on the ball', balanced: 'No stand-out players' }[st.style] || pick(WEAKSPOT);
+      j.top = (STYLEPOS[st.style] || shuffle(POSN)).slice(0, 3).map((pos, k) => ({ pos, rating: j.rating + 7 - k * 2, yr: ['So', 'Jr', 'Sr'][k] }));
+      j.last = 5 + Math.round(r() * 1);
       const b = {}; for (const k in C.BUILDINGS) b[k] = C.BUILDINGS[k].start; Object.assign(b, st.lv); j.b = b;
     });
     return jobs;
@@ -90,7 +88,7 @@
       <div class="lvlbadge">${ladder(1)} Level 1 · Small college <span class="mute">(${ty.hint})</span></div>
       <div class="jstory"><b>${C.esc(st.title)}</b> · ${st.kind}</div>
       <div class="jvals">
-        <div><small>Squad</small><b class="st">${'★'.repeat(j.stars)}<i>${'★'.repeat(3 - j.stars)}</i></b><em>avg ${j.rating}</em><span style="--w:${(C.clamp(sv, 0, 1) * 100).toFixed(0)}%;--c:#3b82f6"></span></div>
+        <div><small>Style</small><b>${C.esc(st.kind)}</b><em>avg ${j.rating}</em><span style="--w:${(C.clamp(sv, 0, 1) * 100).toFixed(0)}%;--c:#3b82f6"></span></div>
         <div><small>Budget</small><b>💵 ${C.short(j.cash)}</b><em>one-off</em><span style="--w:${(bv * 100).toFixed(0)}%;--c:#16a34a"></span></div>
         <div><small>Scholarships</small><b>${j.eq ? '🎓 ' + j.eq + '/' + j.limit : '📚 Aid'}</b><em>${j.eq ? C.short(j.pool) + '/yr' : 'academic only'}</em><span style="--w:${(pv * 100).toFixed(0)}%;--c:#f59e0b"></span></div></div>
     </div>`;
@@ -102,7 +100,7 @@
         <button data-act="jpage" data-v="1" aria-label="Next page">›</button></div>
       <div class="jfilter"><button class="${M.onlyShort ? '' : 'on'}" data-act="jshort" data-v="0">All openings</button><button class="${M.onlyShort ? 'on' : ''}" data-act="jshort" data-v="1">☆ Shortlist</button></div>
       <div data-swipe="jpage">${list.length ? list.map(jobCard).join('') : '<p class="note" style="text-align:center;padding:30px 0">Tap ☆ on an opening to shortlist it.</p>'}</div>
-      <p class="note">Every page has 2 women's and 2 men's openings: one stronger squad with less money, and one weaker squad with more room to build. Tap an opening to look around before you sign.</p>`;
+      <p class="note">Every opening starts equal: the same squad strength, budget, scholarships and Lv 1 buildings. They differ in setting and in the style each squad has grown up with. You choose your own tactics once you're there. Tap an opening to look around before you sign.</p>`;
   }
   C.jobPage = d => { if (M.onlyShort) return; M.page = (M.page + d + 3) % 3; C.ui.refresh(); };
   C.toggleShort = id => { M.short.has(id) ? M.short.delete(id) : M.short.add(id); C.ui.refresh(); };
@@ -122,7 +120,7 @@
         <div class="k"><small>Athletic director's goal</small><b>${GOAL[j.stars]}</b></div>
         <div class="k"><small>Long-term ambition</small><b>${C.esc(st.ambition)}</b></div>
         <div class="k"><small>Last season</small><b>${C.ord(j.last)} of 10</b></div>
-        <div class="k"><small>Program type</small><b>${st.kind}</b></div>
+        <div class="k"><small>Squad style</small><b>${st.kind}</b></div>
       </div>
       <h3 class="jh">💵 Money</h3>
       <div class="kgrid">
@@ -133,7 +131,7 @@
       </div>
       <h3 class="jh">👕 Squad</h3>
       <div class="card">
-        <div class="srow"><span>Strength</span><b>${'★'.repeat(j.stars)}${'☆'.repeat(3 - j.stars)} · avg ${j.rating}</b></div>
+        <div class="srow"><span>Strength</span><b>avg ${j.rating} · equal at every opening</b></div><div class="srow"><span>Style</span><b>${C.esc(st.kind)}</b></div>
         <div class="srow"><span>Best players</span><b>${j.top.map(t => `${t.pos} ${t.rating} (${t.yr})`).join(' · ')}</b></div>
         <div class="srow"><span>Weak spot</span><b>⚠ ${C.esc(j.weak)}</b></div>
         <div class="mixbar">${j.mix.map((n, i) => n ? `<i style="flex:${n};background:${mixCols[i]}">${['Fr', 'So', 'Jr', 'Sr'][i]} ${n}</i>` : '').join('')}</div>

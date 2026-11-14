@@ -33,6 +33,7 @@ function iso(K,OX,OY){
 
 const DEFS=`<defs>
  <filter id="blur4" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.1"/></filter>
+ <filter id="lockg4"><feColorMatrix type="saturate" values=".2"/></filter>
  <filter id="glow4"><feGaussianBlur stdDeviation="2.4"/></filter>
  <linearGradient id="glass4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d4ecff"/><stop offset=".5" stop-color="#86bde8"/><stop offset="1" stop-color="#3f72a8"/></linearGradient>
  <linearGradient id="glassR4" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6f4ff"/><stop offset=".55" stop-color="#a3cff1"/><stop offset="1" stop-color="#5d91c5"/></linearGradient>
@@ -148,14 +149,31 @@ function decor(I,x,y,S,kind){let out='';
   out+=I.box(x+18,y+20,0,7,18,6,{base:C1})+I.winR(x+25,y+21,y+37,2.6,5,5,1,0)+I.box(x+18,y+20,6,7,18,.6,{base:'#e2e8f0'});}
  return out}
 
+// ---------------- painted building art (9p) ----------------
+// Each render is a 1536 x 1024 image whose tile has its top corner at (768,354) and is 1300 px wide; it is scaled onto the plot.
+const ART_MAX=7,PAINTED={hq:1,stadium:1,training:1,skills:1,gym:1,med:1,lab:1,recruit:1,video:1,media:1,dorms:1,academic:1,kitroom:1,booster:1};
+const STAD={};   // the Stadium recoloured to the school's main colour, cached as a data URL
+function stadiumHref(n){const C=window.CFC,key=n+C1,base=`img/campus/b_stadium_${n}.webp`;if(STAD[key])return STAD[key]==='busy'?base:STAD[key];
+ if(!window.paintStadium)return base;STAD[key]='busy';const im=new Image();im.onload=()=>{try{STAD[key]=window.paintStadium(im,C1).toDataURL('image/webp',.86);C.redrawMap&&C.redrawMap()}catch(e){STAD[key]=base}};im.onerror=()=>STAD[key]=base;im.src=base;return base}
+function painted(I,k,x,y,sz,lvl,locked){const n=Math.min(ART_MAX,window.CFC.renderOf(lvl)),f=2*sz*I.K/1300,[tx,ty]=I.P(x,y,0);
+ const href=k==='stadium'?stadiumHref(n):`img/campus/b_${k}_${n}.webp`;
+ return `<image href="${href}" x="${(tx-768*f).toFixed(1)}" y="${(ty-354*f).toFixed(1)}" width="${(1536*f).toFixed(1)}" height="${(1024*f).toFixed(1)}"${locked?' filter="url(#lockg4)" opacity=".85"':''}/>`}
+// placeholder for buildings still waiting for their art (Transport, Nutrition): the painted empty plot with a simple drawn building
+function placeholder(I,k,x,y,sz,lvl,locked){const f=2*sz*I.K/1300,[tx,ty]=I.P(x,y,0);
+ const o=Object.assign({},ART[k]||{wall:'brick'});o.extra=k==='transport'?(bx,by,w,d)=>I.box(bx+w*.08,by+d+2,0,w*.5,5,5.5,{top:'#f8fafc',L:'#eab308',R:'#facc15'}):(bx,by,w,d)=>I.box(bx+w*.62,by+d+2,0,w*.3,6,5,{top:'#dcfce7',L:'url(#glass4)',R:'url(#glassR4)'});
+ return `<image href="img/campus/plot_empty.webp" x="${(tx-768*f).toFixed(1)}" y="${(ty-354*f).toFixed(1)}" width="${(1536*f).toFixed(1)}" height="${(1024*f).toFixed(1)}"/><g${locked?' filter="url(#lockg4)" opacity=".85"':''}>${brick(I,x+sz*.08,y+sz*.08,sz*.84,lvl,o)}</g>`}
+function lockPin(I,x,y,S){const [sx,sy]=I.P(x+S/2,y+S/2,0),k=I.K;return `<g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)}) scale(${k})"><circle r="8.5" fill="#475569" stroke="#fff" stroke-width="1.4"/><text y="3.4" text-anchor="middle" font-size="9">🔒</text></g>`}
+
 // ---------------- live campus ----------------
 const STEP=58,S=46,K4=1.7,W4=600,H4=900;
 const cell=(s,d)=>{const i=(s+d)/2,j=(s-d)/2;return [i*STEP,j*STEP]};
-const ART={kitroom:{wall:'white',roof:'#be123c'},film:{wall:'glass',roof:'#0f766e'},video:{wall:'brick',roof:'#111827'},media:{wall:'white',roof:'#0369a1'},med:{wall:'white'},recruit:{wall:'brick',roof:'#7c2d12'},dorms:{wall:'brick',roof:'#334155'},gym:{wall:'glass'},booster:{wall:'white',roof:'#7c2d12'},academic:{wall:'brick',roof:'#1e3a5f'}};
+const ART={kitroom:{wall:'white',roof:'#be123c'},lab:{wall:'glass',roof:'#0f766e'},transport:{wall:'white',roof:'#ca8a04'},nutrition:{wall:'glass',roof:'#15803d'},video:{wall:'brick',roof:'#111827'},media:{wall:'white',roof:'#0369a1'},med:{wall:'white'},recruit:{wall:'brick',roof:'#7c2d12'},dorms:{wall:'brick',roof:'#334155'},gym:{wall:'glass'},booster:{wall:'white',roof:'#7c2d12'},academic:{wall:'brick',roof:'#1e3a5f'}};
 const TOP={hq:46,stadium:30,training:14,skills:10};
 const DROP={};   // buildings sit square in their zone
 function medCross(I){return (bx,by,w,d,h)=>{const [cx,cy]=I.P(bx+w,by+d/2,h*.55);const k=I.K;return `<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) skewY(-26.565)"><rect x="${-3.5*k}" y="${-1.2*k}" width="${7*k}" height="${2.4*k}" fill="#ef4444"/><rect x="${-1.2*k}" y="${-3.5*k}" width="${2.4*k}" height="${7*k}" fill="#ef4444"/></g>`}}
-function drawBuilding(I,k,x,y,sz,lvl){
+function drawBuilding(I,k,x,y,sz,lvl,locked){
+ if(PAINTED[k])return painted(I,k,x,y,sz,lvl,locked);
+ if(k==='transport'||k==='nutrition')return placeholder(I,k,x,y,sz,lvl,locked);
  if(k==='hq')return hq(I,x,y,sz,lvl);
  if(k==='stadium')return stadium(I,x,y,sz,lvl);
  if(k==='training')return training(I,x,y,sz,lvl);
@@ -180,10 +198,11 @@ function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=co
    add(hit+decor(I,x,y,S,p.k));continue}
   const k=p.b,def=C.BUILDINGS[k],lvl=car.b[k],q=car.queue.find(z=>z.key===k);
   let g='';
-  if(lvl===0&&def.needHQ&&car.b.hq<def.needHQ)g=lockedPlot(I,x,y,S,'HQ Lv '+def.needHQ);
+  const isLocked=!!(def.needHQ&&car.b.hq<def.needHQ);
+  if(isLocked)g=drawBuilding(I,k,x,y,sz,Math.max(1,lvl),true)+lockPin(I,x,y,S);   // parity (9p): locked buildings show at Lv 1, greyed, with a lock
   else if(lvl===0&&!q)g=emptyPlot(I,x,y,S,def.name.split(' ')[0]);
   else{g=lvl>0?drawBuilding(I,k,x,y,sz,lvl):I.poly([[x+4,y+4,0],[x+S-4,y+4,0],[x+S-4,y+S-4,0],[x+4,y+S-4,0]],'url(#dirt4)');if(q)g+=construction(I,x,y,S,lvl?16:4)}
-  const drop=lvl?(DROP[k]||5):0;
+  const drop=lvl&&!PAINTED[k]&&k!=='transport'&&k!=='nutrition'?(DROP[k]||5):0;
   add(`<g data-act="bld" data-v="${k}">${hit}<g transform="translate(0,${drop})">${g}</g></g>`);
   // badge sits at the roofline, but never above the back edge of its own plot
   const [bx,by0]=I.P(x+sz/2,y+sz/2,lvl?(TOP[k]||22):4),back=I.P(x,y,0)[1],front=I.P(x+sz,y+sz,0);
@@ -194,9 +213,9 @@ function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=co
  // badges, timers and collect bubbles
  const sc=1.35;
  for(const o of overlays){const {k,bx,by,lvl,q,def,fx,fy}=o;
-  if(q&&C.selB!==k){const [tx,ty]=o.corners[0];add(`<g data-act="bld" data-v="${k}" transform="translate(${tx.toFixed(1)},${(ty-6).toFixed(1)}) scale(${sc})"><path d="M-18 -11 h36 a4 4 0 0 1 4 4 v9 a4 4 0 0 1 -4 4 h-15 l-3 4 l-3 -4 h-15 a4 4 0 0 1 -4 -4 v-9 a4 4 0 0 1 4 -4z" fill="#fff" stroke="#f59e0b" stroke-width="1.4"/>
-    <g transform="translate(-13,-2.5)"><circle r="5" fill="#f59e0b"/><path d="M0 -3 V0 L2.2 1.4" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>
-    <text x="18" y="0.8" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9.5" fill="#78350f" data-timer="${k}">${C.dur(C.remaining(q))}</text></g>`);continue}
+  if(q&&C.selB!==k){const [tx,ty]=o.corners[0];add(`<g data-act="bld" data-v="${k}" transform="translate(${tx.toFixed(1)},${(ty-6).toFixed(1)}) scale(${sc})"><path d="M-27 -11 h54 a4 4 0 0 1 4 4 v9 a4 4 0 0 1 -4 4 h-24 l-3 4 l-3 -4 h-24 a4 4 0 0 1 -4 -4 v-9 a4 4 0 0 1 4 -4z" fill="#fff" stroke="#f59e0b" stroke-width="1.4"/>
+    <g transform="translate(-22,-2.5)"><circle r="5" fill="#f59e0b"/><path d="M0 -3 V0 L2.2 1.4" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>
+    <text x="27" y="0.8" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9.5" fill="#78350f" data-timer="${k}">${C.dur(C.remaining(q))}</text></g>`);continue}
   const sel=!opts.preview&&C.selB===k, ready=!opts.preview&&C.readyArrow(k);
   if(!lvl&&!sel)continue;
   const amt=!opts.preview&&lvl&&C.PRODUCERS[k]?C.bubble(k):0;
@@ -206,7 +225,7 @@ function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=co
    add(`<polygon points="${pts}" fill="#7dd3fc" fill-opacity=".14" stroke="#7dd3fc" stroke-width="2.4" class="selring" pointer-events="none"/>`);
    add(`<g pointer-events="none" transform="translate(${bx.toFixed(1)},${(by-12).toFixed(1)}) scale(${sc})" font-family="Nunito" font-weight="900" text-anchor="middle" stroke="#0f172a" stroke-width="2.4" paint-order="stroke" stroke-linejoin="round">
     <text y="0" font-size="9" fill="#fff">${C.esc(def.name)}</text><text y="10" font-size="8" fill="#fde047">${lvl ? 'Lv.' + lvl : 'Not built'}</text></g>`);
-   // action buttons (round 6): set layouts for 1-4 buttons, centred under the building, the upgrade button always right-most.
+   // action buttons (round 6): set layouts for 1-4 buttons, centered under the building, the upgrade button always right-most.
    // Offsets are screen pixels: the group is scaled by 1/zoom (see C.applyFixed), so they keep their size at any map zoom.
    const acts=C.buildingActions(k), n=acts.length, R=21, G=52;
    const LAY={1:[[0,0]],2:[[-G/2,0],[G/2,0]],3:[[-G,-26],[0,0],[G,-26]],4:[[-G*1.5,-26],[-G/2,0],[G/2,0],[G*1.5,-26]]}[n]||[[0,0]];
@@ -214,11 +233,11 @@ function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=co
     return `<g data-act="${a.act}" data-v="${a.v}" transform="translate(${dx},${dy+6})"><circle r="${R}" fill="${a.col||'#2563eb'}" stroke="#fff" stroke-width="3"/>${a.icon==='up'?`<path d="M0 ${-R*.62} L${R*.56} 0 H${R*.22} V${R*.58} H${-R*.22} V0 H${-R*.56}Z" fill="#fff"/>`:a.icon==='i'?`<circle cy="${-R*.42}" r="${R*.15}" fill="#fff"/><rect x="${-R*.13}" y="${-R*.18}" width="${R*.26}" height="${R*.72}" rx="${R*.1}" fill="#fff"/>`:`<text y="${R*.36}" text-anchor="middle" font-size="${R*1.05}">${a.icon}</text>`}</g>`}).join('')+`</g>`);
   } else if(ready&&!(C.selB&&!opts.preview)){
    // not selected: a small blue-and-white arrow on the building's left corner, like Last War
-   // inside the green tile: 28% of the way from the left corner towards the tile centre
+   // inside the green tile: 28% of the way from the left corner towards the tile center
    const [lx,ly]=o.corners[3], tcx=(o.corners[0][0]+o.corners[2][0])/2, tcy=(o.corners[0][1]+o.corners[2][1])/2;
    add(`<g data-act="bld" data-v="${k}" transform="translate(${(lx+(tcx-lx)*.28).toFixed(1)},${(ly+(tcy-ly)*.28-4).toFixed(1)}) scale(${sc})"><g><path d="M0 -5.4 L4.8 .2 H1.9 V4.8 H-1.9 V.2 H-4.8Z" fill="#2563eb" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></g></g>`);
   }
-  // collect token: centred over the building at the road intersection behind it (just outside the tile)
+  // collect token: centered over the building at the road intersection behind it (just outside the tile)
   if(amt){ const [tx,ty]=o.corners[0], cp=C.PRODUCERS[k]==='cp';
    add(`<g data-act="collect" data-v="${k}" transform="translate(${tx.toFixed(1)},${(ty-(sel?30:6)).toFixed(1)}) scale(${sc})"><g><path d="M-14 -11 h28 a4 4 0 0 1 4 4 v9 a4 4 0 0 1 -4 4 h-11 l-3 4 l-3 -4 h-11 a4 4 0 0 1 -4 -4 v-9 a4 4 0 0 1 4 -4z" fill="#fff" stroke="${cp?'#0d9488':'#16a34a'}" stroke-width="1.4"/>
     ${cp?'<g transform="translate(-9,-2.5)"><circle r="5" fill="#0d9488"/><path d="M-2.6 -1.6h4a.9.9 0 0 1 .9.9v.5h-3.7a2 2 0 1 1-1.2-1.4z" fill="#fff"/></g>':'<text x="-13" y="1" font-size="8">💵</text>'}
@@ -233,6 +252,6 @@ window.CFC.campusSize=[W4,H4];
 // A single building at a given level, for the upgrade card
 window.CFC.buildingThumb=function(k,lvl,car,w=200,h=150){const col=window.CFC.college(car);C1=col.c1;C2=col.c2;const sz=k==='stadium'?STEP+S:S;const tall=k==='stadium'?44:k==='hq'?78:62;
  const Kk=Math.min(w*.96/(2*sz),h/(sz+tall));const I=iso(Kk,w/2,(h-sz*Kk+tall*Kk)/2);
- const body=lvl>0?drawBuilding(I,k,0,0,sz,lvl):emptyPlot(I,0,0,S,window.CFC.BUILDINGS[k].name.split(' ')[0]);
+ const body=lvl>0?drawBuilding(I,k,0,0,sz,lvl,window.CFC.car()&&window.CFC.locked(k,car)):emptyPlot(I,0,0,S,window.CFC.BUILDINGS[k].name.split(' ')[0]);
  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">${DEFS}${I.poly([[-30,-30,0],[sz+30,-30,0],[sz+30,sz+30,0],[-30,sz+30,0]],'url(#grass4)')}${body}</svg>`};
 })();

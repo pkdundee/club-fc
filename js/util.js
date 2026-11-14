@@ -17,9 +17,9 @@ window.CFC = window.CFC || {};
   C.money = n => '$' + Math.round(n).toLocaleString('en-US');
 
   // seconds -> "1h 51m" / "4d 2h" / "45s"
-  // all timers read 00:36m (hours:minutes); under a minute 00:45s; over a day 3d 04:10m (round 6)
-  C.dur = s => { s = Math.max(0, Math.ceil(s)); const pad = n => String(n).padStart(2, '0'); if (s < 60) return `00:${pad(s)}s`;
-    const tm = Math.ceil(s / 60), d = Math.floor(tm / 1440), h = Math.floor(tm % 1440 / 60), mm = tm % 60; return `${d ? d + 'd ' : ''}${pad(h)}:${pad(mm)}m`; };
+  // all timers read 00:00:00 (hours:minutes:seconds), with days in front when needed: 1d 00:00:00 (FEEDBACK 63)
+  C.dur = s => { s = Math.max(0, Math.ceil(s)); const pad = n => String(n).padStart(2, '0');
+    const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return `${d ? d + 'd ' : ''}${pad(h)}:${pad(m)}:${pad(x)}`; };
   C.shade = (hex, f) => { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = n >> 8 & 255, b = n & 255;
     const m = v => Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f); return `rgb(${m(r)},${m(g)},${m(b)})`; };
 

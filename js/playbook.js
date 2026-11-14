@@ -22,12 +22,12 @@
   // total bonus for an effect key
   C.pbv = k => { const P = pb(); let v = 0; for (const B of C.PB) B[3].forEach((n, t) => { if (n[1] === k) v += (P[B[0] + '.' + t] || 0) * n[2]; }); return v; };
   C.pbTotal = () => Object.values(pb()).reduce((s, v) => s + v, 0);
-  C.pbSlotOpen = id => id === 'free' || (id === 'vip' && C.isVip()) || (id === 'iap' && C.acct().pslot3) || (id === 'prog' && (C.pbv('slot') >= 1 || C.level('film') >= 10));
+  C.pbSlotOpen = id => id === 'free' || (id === 'vip' && C.isVip()) || (id === 'iap' && C.acct().pslot3) || (id === 'prog' && (C.pbv('slot') >= 1 || C.eff('lab') >= 10));
   C.pbSlots = () => C.PBSLOTS.filter(s => C.pbSlotOpen(s.id)).length;
   C.pbRunning = () => { pb(); return C.car().pbq.length; };
   C.pbUnlocked = key => { const { B, t } = node(key); return t === 0 || C.pbLv(B[0] + '.' + (t - 1)) >= 5; };
   C.pbCost = (key, to) => { const t = node(key).t; return { cp: Math.round(8 * Math.pow(1.32, to + t * 4) / 5) * 5, cash: t ? Math.round(1500 * Math.pow(1.3, to + t * 3) / 100) * 100 : to > 4 ? Math.round(600 * Math.pow(1.3, to) / 100) * 100 : 0 }; };
-  C.pbTime = (key, to) => Math.min(86400, Math.round(60 * Math.pow(1.55, to + node(key).t * 3) * (1 - C.level('film') * .01)));
+  C.pbTime = (key, to) => Math.min(86400, Math.round(60 * Math.pow(1.55, to + node(key).t * 3) * (1 - C.eff('lab') * .01)));
   C.pbInQueue = key => C.car().pbq.find(q => q.key === key);
   C.pbStart = key => {
     const car = C.car(), { n } = node(key), to = C.pbLv(key) + 1; pb();
