@@ -70,60 +70,72 @@
   C.STORE_HOURS = l => 6 + l * .2;
 
   C.BUILDINGS = {
-    hq: { name: "Coaches' Office", icon: '🏛', owner: 'program', start: 1, mult: 1.6,
+    hq: { name: "Coaches' Office", icon: '🏛', owner: 'program', start: 0, mult: 1.6,
       desc: 'Your headquarters. Its level caps every other building and unlocks slots. It earns nothing itself.',
       stats: l => [['🧱', 'Building cap', 'Lv ' + l], ['🔨', 'Build slots', l >= 10 ? '+1 earned' : 'Lv 10: +1'], ['🧢', 'Staff slots', l >= 8 ? '+1 earned' : 'Lv 8: +1']] },
-    stadium: { name: 'Stadium', icon: '🏟', owner: 'school', start: 1, mult: 1.3,
+    stadium: { name: 'Stadium', icon: '🏟', owner: 'school', start: 0, mult: 1.3,
       desc: 'Seats, gate income and home advantage. Bigger crowds, louder atmosphere.',
       stats: l => [['seat', 'Seats', seats(l).toLocaleString()], ['💵', 'Gate income / home game', C.money(seats(l) * 3)], ['📣', 'Home advantage', pct(1 + .2 * l)]] },
-    training: { name: 'Training Ground', icon: '⚽', owner: 'program', start: 1, mult: 1.2,
+    training: { name: 'Training Ground', icon: '⚽', owner: 'program', start: 0, mult: 1.2,
       desc: 'Team training quality and how fast players develop.',
       stats: l => [['📈', 'Team training', '+' + pct(2 * l)], ['🏋️', 'Development speed', '+' + pct(1.5 * l)]] },
-    gym: { name: 'Gym', icon: '🏋️', owner: 'program', start: 1, mult: 1.1,
+    gym: { name: 'Gym', icon: '🏋️', owner: 'program', start: 0, mult: 1.1,
       desc: 'Strength and conditioning: faster energy recovery and fewer injuries.',
       stats: l => [['🔋', 'Freshness recovery', '+' + pct(1.5 * l)], ['🩹', 'Injury chance', '−' + pct(l)]] },
-    med: { name: 'Sports Medicine', icon: '🩺', owner: 'program', start: 1, mult: 1.1,
+    med: { name: 'Sports Medicine', icon: '🩺', owner: 'program', start: 0, mult: 1.1,
       desc: 'Faster recovery from injuries, and free recovery items each day.',
       stats: l => [['⏱', 'Injury recovery', '+' + pct(3 * l)], ['💊', 'Recovery items / day', 1 + Math.floor(l / 5)]] },
-    lab: { name: 'Performance Lab', icon: '🔬', owner: 'program', start: 1, mult: 1.15,
+    lab: { name: 'Performance Lab', icon: '🔬', owner: 'program', start: 0, mult: 1.15,
       desc: 'Sports science and data. Produces Coaching Points for your Playbook.',
       stats: l => [['<i class="cpi"></i>', 'Coaching Points / hour', C.prod.lab(l)], ['🔬', 'Research speed', '+' + pct(l)]] },
-    recruit: { name: 'Recruiting Office', icon: '✉️', owner: 'program', start: 1, mult: 1.15,
+    recruit: { name: 'Recruiting Office', icon: '✉️', owner: 'program', start: 0, mult: 1.15,
       desc: 'More applications, sharper scouting and more campus jobs to offer recruits.',
       stats: l => [['📨', 'Applications / day', 3 + l], ['🔍', 'Rating range', '±' + Math.max(1, 4 - Math.floor(l / 3))], ['💼', 'Campus jobs / season', 2 + Math.floor(l / 3)]] },
-    video: { name: 'Analysis Suite', icon: '🎞', owner: 'program', start: 1, mult: 1.15, needHQ: 3,
+    video: { name: 'Analysis Suite', icon: '🎞', owner: 'program', start: 0, mult: 1.15,
       desc: "Coaches' film and opponent analysis: reports before matches, sharper scouting and highlight reels for recruits.",
       stats: l => [['📄', 'Opponent report', l >= 5 ? 'Full (shape, key players)' : l ? 'Basic (shape)' : '—'], ['🎯', 'Match familiarity', '+' + pct(.5 * l)], ['💛', 'Recruit interest', '+' + Math.round(1.5 * l)]] },
-    media: { name: 'Media Center', icon: '📡', owner: 'school', start: 1, mult: 1.1,
+    media: { name: 'Media Center', icon: '📡', owner: 'school', start: 0, mult: 1.1,
       desc: 'Broadcasts and streams your matches, and gets the program noticed. Earns money after every home match and adds Reputation for every win.',
       stats: l => [['📺', 'Broadcast money / home match', C.money(C.broadcastPay(l, false, C.car ? (C.car() || {}).tier || 5 : 5))], ['🏆', 'After a win', '×1.5'], ['⭐', 'Reputation from wins', '+' + pct(C.mediaRep(l))]] },
-    dorms: { name: 'Dorms', icon: '🏠', owner: 'school', start: 1, mult: 1.1,
+    dorms: { name: 'Dorms', icon: '🏠', owner: 'school', start: 0, mult: 1.1,
       desc: 'Campus life: bigger roster and more appeal to recruits.',
       stats: l => [['👕', 'Roster size', Math.min(28, 24 + Math.ceil(l / 3))], ['💛', 'Recruit appeal', '+' + pct(l)]] },
-    academic: { name: 'Academic Center', icon: '📚', owner: 'school', start: 1, mult: 1.2, needHQ: 3,
+    academic: { name: 'Academic Center', icon: '📚', owner: 'school', start: 0, mult: 1.2,
       desc: "Every player's package, grades and wellbeing in one place. Support here keeps players happy and impresses recruits.",
       stats: l => [['📚', 'Academic aid', '+' + pct(l)], ['😀', 'Morale after each match', '+' + (l * .1).toFixed(1)], ['🚪', 'Transfer portal risk', '−' + pct(Math.min(30, l * 1.5))], ['💛', 'Recruit interest', '+' + l]] },
-    kitroom: { name: 'Kit Room', icon: '🎒', owner: 'program', start: 1, mult: 1.1, needHQ: 2,
+    kitroom: { name: 'Kit Room', icon: '🎒', owner: 'program', start: 0, mult: 1.1,
       desc: 'Where your gear lives. New pieces are delivered here, and its level sets how far gear can be upgraded.',
       stats: l => [['📦', 'New gear', l ? 'Every ' + Math.max(8, 26 - l * 2) + 'h' : '—'], ['⬆', 'Gear upgrade limit', 'Lv ' + (2 + l * 2)], ['✨', 'Better gear chance', '+' + pct(Math.min(15, l))]] },
-    booster: { name: 'Clubhouse', icon: '🥂', owner: 'school', start: 1, mult: 1.0,
+    booster: { name: 'Clubhouse', icon: '🥂', owner: 'school', start: 0, mult: 1.0,
       desc: 'Where players relax and supporters meet. Fundraisers here bring in Booster $ every hour.',
       stats: l => [['💵', 'Booster $ / hour', C.money(C.prod.booster(l))], ['📦', 'Storage', C.STORE_HOURS(l).toFixed(1) + 'h']] },
-    transport: { name: 'Transport', icon: '🚌', owner: 'school', start: 1, mult: 1.1, needHQ: 5,
+    transport: { name: 'Transport', icon: '🚌', owner: 'school', start: 0, mult: 1.1,
       desc: 'Team buses and travel planning. Players arrive fresher for away games, so the home side has less of an edge.',
       stats: l => [['🚌', "Home side's edge on away days", '−' + pct(C.travelCut(l))]] },
-    nutrition: { name: 'Nutrition', icon: '🥗', owner: 'program', start: 1, mult: 1.1, needHQ: 10,
+    nutrition: { name: 'Nutrition', icon: '🥗', owner: 'program', start: 0, mult: 1.1,
       desc: 'Team meals and a fueling station. Players grow stronger and faster, and feel better after matches.',
       stats: l => [['💪', 'Pace and Physical growth', '+' + pct(C.physGrowth(l))], ['😀', 'Morale after each match', '+' + C.nutMorale(l).toFixed(2)]] },
-    skills: { name: 'Skills Field', icon: '🎯', owner: 'school', start: 1, mult: 1.0,
+    skills: { name: 'Skills Field', icon: '🎯', owner: 'school', start: 0, mult: 1.0,
       desc: 'Home of the skills mini-games (coming later): more free tries each day.',
       stats: l => [['🎯', 'Free mini-game tries / day', 3 + Math.floor(l / 3)]] }
   };
 
+  // Unlocks (9q, FEEDBACK 84): a new career starts with blank plots; the Coaches' Office is built first, then 7 more.
+  // These appear as the Coaches' Office grows. Before that their plot is blank ground with nothing on the map.
+  Object.entries({ booster: 2, kitroom: 2, video: 3, academic: 3, gym: 4, skills: 4, transport: 5, nutrition: 10 }).forEach(([k, l]) => C.BUILDINGS[k].needHQ = l);
+  // Building types for the builders drawer and the full list (FEEDBACK 87)
+  C.BTYPE = { hq: 'economy', booster: 'economy', media: 'economy', lab: 'economy', recruit: 'economy', transport: 'economy', academic: 'economy',
+    stadium: 'soccer', training: 'soccer', gym: 'soccer', med: 'soccer', video: 'soccer', nutrition: 'soccer', kitroom: 'soccer', dorms: 'soccer', skills: 'soccer' };
+  C.BJOB = { hq: 'Leads the campus: no building goes above it', stadium: 'Seats, gate money and home advantage', training: 'Team training and player growth',
+    gym: 'Freshness recovery, fewer injuries', med: 'Faster injury recovery', lab: 'Makes Coaching Points', recruit: 'Applications and scouting',
+    video: 'Opponent reports and match familiarity', media: 'Broadcast money and Reputation', dorms: 'Roster size and recruit appeal',
+    academic: 'Academic aid and player wellbeing', kitroom: 'Gear deliveries and upgrades', booster: 'Fundraising: Booster $ every hour',
+    transport: 'Fresher legs on away days', nutrition: 'Faster physical growth', skills: 'Skills mini-games (coming later)' };
+
   // Cost to reach level `to` (Booster $, Coaching Points) and build time in seconds.
-  C.costOf = (key, to) => { const m = C.BUILDINGS[key].mult;
+  C.costOf = (key, to) => { const m = C.BUILDINGS[key].mult; if (to <= 1) return { cash: 0, cp: 0 };   // first build is free (FEEDBACK 85)
     return { cash: Math.round(1200 * m * Math.pow(1.33, to - 1) / 50) * 50, cp: 0 }; };  // buildings cost Booster $ only (Coaching Points are for the Playbook)
-  C.timeOf = (key, to) => Math.round((to <= 1 ? 30 : 40 * Math.pow(1.38, to)) * C.BUILDINGS[key].mult);
+  C.timeOf = (key, to) => to <= 1 ? 3 : Math.round(40 * Math.pow(1.38, to) * C.BUILDINGS[key].mult);   // first build: a few seconds
 
   // Painted art (9p): one render per band of levels. Renders 8 to 10 are for later levels.
   C.renderOf = l => l >= 50 ? 10 : l >= 45 ? 9 : l >= 40 ? 8 : l >= 30 ? 7 : Math.max(1, Math.min(6, Math.floor(l / 5) + 1));

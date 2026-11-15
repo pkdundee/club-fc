@@ -37,34 +37,66 @@
 
   // ================= campus =================
   function campusHTML() {
-    const car = C.car(), col = C.college(), a = C.acct(), tier = C.TIERS[car.tier];
-    const busy = car.queue.length, open = C.openSlots(), idle = C.idleBuilders(), nb = C.newBuildable().length, rc = C.readyCount();
-    // bottom left: functional icons stacked above the comms button (what to do next)
-    const radio = '<svg viewBox="0 0 24 24" width="26" height="26"><path d="M9 1.5v5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><rect x="6" y="6" width="12" height="16" rx="2.5" fill="#fff"/><rect x="8.4" y="8.4" width="7.2" height="4.6" rx="1" fill="#0284c7"/><path d="M8.6 15.5h6.8M8.6 18.3h6.8" stroke="#0284c7" stroke-width="1.5" stroke-linecap="round"/></svg>';
-    const slots = `<button class="ev" data-act="queue"><div class="c" style="background:linear-gradient(150deg,#f59e0b,#b45309)">👷</div>${busy}/${open}${idle && rc ? '<span class="dot">!</span>' : ''}</button>
-      <button class="ev" data-act="blist"><div class="c" style="background:linear-gradient(150deg,#22c55e,#15803d)">🏗</div>Buildings${nb ? `<span class="dot">${nb}</span>` : rc ? `<span class="dot">${rc}</span>` : ''}</button>
-      <button class="ev comms" data-act="nexttask" aria-label="What to do next"><div class="c" style="background:linear-gradient(150deg,#38bdf8,#0369a1)">${radio}</div>${C.mainReady() ? `<span class="dot">${C.mainReady()}</span>` : ''}</button>`;
+    // 9q layout (FEEDBACK 75, 82, 87): college badge as the profile icon top left, compact resources, Store top right,
+    // small side buttons, the next task in a strip above the tabs, and the builders drawer along the bottom.
+    const car = C.car(), col = C.college(), a = C.acct();
+    const busy = car.queue.length, open = C.openSlots(), rc = C.readyCount();
+    const sq = (act, icon, label, badge, bg) => `<button class="sq" data-act="${act}"><span class="sqc" style="background:${bg}">${C.ico(icon, 26)}</span>${label ? `<b>${label}</b>` : ''}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
+    const rnd = (act, icon, badge) => `<button class="rnd" data-act="${act}">${C.ico(icon, 24)}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
+    const t = C.mainNext && C.mainNext(), task = t ? (t[3](car) ? `🎯 Claim: ${t[2]}` : `${t[1]} ${t[2]}`) : '';
     return `<div class="view">
       <div class="map" id="map"><div id="mapin"></div></div>
-      <div class="hud top">
-        <div class="idrow">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>${C.esc(col.short)}</b><small>${C.tierLabel()} · ${car.gender === 'w' ? "Women's" : "Men's"} · ⭐ ${C.rep()}</small></div>
-          ${C.powerBadge()}</div>
-        <div class="res">${C.resBar()}</div>
+      <div class="hud top tb9">
+        <button class="pf" data-act="profile" aria-label="Profile">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<span class="pflv">${car.b.hq || 0}</span></button>
+        <div class="tbm"><div class="res">${C.resBar()}</div><div class="tbpow" data-act="proginfo"><i class="ppi"></i>${C.programPower().toLocaleString()}</div></div>
+        <button class="storeb" data-act="store">${C.ico('cart', 22)}<span><i class="coin"></i><b id="r-gold2">${C.short(a.gold)}</b></span></button>
       </div>
-      <div class="side sbl">${slots}</div>
-      <div class="side sr">
-        ${C.fwActive() ? `<button class="ev" data-act="firstweek"><div class="c" style="background:linear-gradient(150deg,#f97316,#ea580c)">📅</div>Week 1${C.fwClaimable() ? `<span class="dot">${C.fwClaimable()}</span>` : ''}</button>` : ''}
-        ${C.portalOpen() ? `<button class="ev" data-act="portalgo"><div class="c" style="background:linear-gradient(150deg,#a855f7,#6d28d9)">🚪</div>Portal<span class="dot">!</span></button>` : ''}
-        <button class="ev" data-act="events"><div class="c" style="background:linear-gradient(150deg,#f59e0b,#d97706)">🎁</div>Events${C.loClaimable() ? `<span class="dot">${C.loClaimable()}</span>` : ''}</button>
-        <button class="ev" data-act="inventory"><div class="c" style="background:linear-gradient(150deg,#a78bfa,#6d28d9)">🎒</div>Items</button>
+      <div class="side tl9">
+        ${sq('drawer', 'hammer', busy + '/' + open, rc ? rc : 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
+        ${sq('playbook', 'book', C.pbRunning() + '/' + C.pbSlots(), 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
       </div>
-      <div class="side srb">
-        <button class="ev" data-act="inbox"><div class="c" style="background:linear-gradient(150deg,#0ea5e9,#0369a1)">✉️</div>Inbox${C.inboxUnread() ? `<span class="dot">${C.inboxUnread()}</span>` : ''}</button>
-        <button class="ev" data-act="ask"><div class="c" style="background:linear-gradient(150deg,#16a34a,#15803d)">❓</div>Help</button>
-        <button class="ev" data-act="store"><div class="c" style="background:linear-gradient(150deg,#ef4444,#b91c1c)">🛒</div>Store</button>
+      <div class="side tr9">
+        ${C.fwActive() ? sq('firstweek', 'cal', 'Week 1', C.fwClaimable(), 'linear-gradient(160deg,#fb923c,#c2410c)') : ''}
+        ${C.portalOpen() ? sq('portalgo', 'door', 'Portal', true, 'linear-gradient(160deg,#c084fc,#7e22ce)') : ''}
+        ${sq('events', 'gift', 'Events', C.loClaimable(), 'linear-gradient(160deg,#fbbf24,#d97706)')}
       </div>
+      <div class="side bl9">
+        ${rnd('blist', 'list', 0)}
+        ${rnd('nexttask', 'radio', C.mainReady())}
+        ${rnd('ask', 'help', 0)}
+      </div>
+      <div class="side br9">
+        ${sq('inventory', 'bag', 'Items', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
+        ${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
+      </div>
+      ${task ? `<button class="taskstrip" data-act="nexttask"><span class="tsi">${C.ico('target', 20)}</span><span class="tst">${C.esc(task)}</span><span class="tsg">›</span></button>` : ''}
+      ${C.drawerOpen ? drawerHTML() : ''}
     </div>`;
   }
+  // ---------- builders drawer (FEEDBACK 87): every building as a card, by type, in a scrolling strip along the bottom ----------
+  C.drawerTab = 'economy';
+  function drawerHTML() {
+    const car = C.car(), keys = Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === C.drawerTab);
+    const order = k => C.buildable(k) ? 0 : C.readyArrow(k) ? 1 : C.inQueue(k) ? 2 : C.locked(k) ? 4 : 3;
+    const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), to = lv + 1, cost = C.costOf(k, to), lock = C.locked(k);
+      const need = !lock && lv && C.level('hq') < to ? `Needs Coaches' Office Lv ${to}` : '';
+      const foot = lock ? `Unlocks when the Coaches' Office reaches Lv ${d.needHQ}` : q ? `🔨 <span data-timer="${k}">${C.dur(C.remaining(q))}</span>`
+        : C.buildable(k) ? 'Build · Free' : lv >= C.topLevel(k) ? 'Max level' : need || `⏱ ${C.dur(C.timeOf(k, to))} · 💵 ${C.short(cost.cash)}`;
+      return `<button class="dcard ${lock ? 'off' : ''} ${C.buildable(k) ? 'new' : ''}" data-act="bldopen" data-v="${k}">${C.buildable(k) ? '<s>NEW</s>' : C.readyArrow(k) ? '<i class="bup"></i>' : ''}
+        <div class="dpic">${C.buildingThumb(k, Math.max(1, lv), car, 120, 80)}</div><b>${C.esc(d.name)}</b><small>${C.esc(C.BJOB[k] || '')}</small><em>${lv ? 'Lv ' + lv + ' · ' : ''}${foot}</em></button>`; };
+    const tb = (k, n) => `<button class="${C.drawerTab === k ? 'on' : ''}" data-act="drawertab" data-v="${k}">${n}</button>`;
+    return `<div class="drawer"><div class="dtabs">${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}<button disabled title="Coming later">Decoration</button><button class="dx" data-act="drawer">✕</button></div>
+      <div class="dstrip">${keys.sort((a, b) => order(a) - order(b) || C.level(a) - C.level(b)).map(card).join('')}</div></div>`;
+  }
+  C.ACTS.drawer = () => { C.drawerOpen = !C.drawerOpen; C.selB = null; C.render(); };
+  C.ACTS.drawertab = v => { C.drawerTab = v; C.render(); };
+  C.ACTS.profile = () => C.openProfile();
+  // ---------- profile popup (FEEDBACK 75): coach, college, key stats, and the account buttons ----------
+  C.openProfile = () => C.ui.open('Profile', () => { const car = C.car(), col = C.college();
+    const b = (act, icon, n) => `<button class="pfb" data-act="${act}"><span>${icon}</span>${n}</button>`;
+    return `<div class="pfhead">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b>Coach ${C.esc(car.coach)}</b><small>${C.esc(col.full)} · ${car.gender === 'w' ? "Women's" : "Men's"} program</small></div></div>
+      <div class="pfstats"><div><small>Program Power</small><b>${C.programPower().toLocaleString()}</b></div><div><small>Coaches' Office</small><b>Lv ${car.b.hq || 0}</b></div><div><small>Reputation</small><b>${C.rep()}</b></div><div><small>Tier</small><b>${C.esc(C.tierLabel())}</b></div></div>
+      <div class="pfbtns">${b('proginfo', '📊', 'Program')}${b('careers', '👤', 'Account')}${b('settings', '⚙️', 'Settings')}${b('collegemap', '🗺', 'Rankings')}</div>`; });
 
   // the next match, front and center (Q13: play whenever you like; energy is the natural limit)
   C.gamedayHTML = gamedayHTML;
@@ -97,11 +129,18 @@
   });
   window.addEventListener('pointerup', endGesture); window.addEventListener('pointercancel', endGesture);
 
+  // The ground-and-buildings layer is kept and reused until something on the campus changes, so taps and screen changes
+  // never rebuild it (no blinking, FEEDBACK 73). Only the markers layer is redrawn.
+  let baseCache = null;
   function mountMap() {
-    const m = C.$('#map'), inner = C.$('#mapin');
-    inner.innerHTML = C.campusSVG(C.car());
+    const m = C.$('#map'), inner = C.$('#mapin'), L = C.campusLayers(C.car());
+    let sv = baseCache && baseCache.key === L.key ? baseCache.svg : null;
+    if (!sv) { inner.innerHTML = L.svg; sv = inner.querySelector('svg'); baseCache = { key: L.key, svg: sv }; }
+    else if (sv.parentNode !== inner) { inner.innerHTML = ''; inner.appendChild(sv); }
+    sv.querySelector('#camOver').innerHTML = L.over();
     applyZoom(zoom);
     if (!view) view = { sl: Math.max(0, (W() * zoom - m.clientWidth) / 2), st: 40 };
+    if (m.dataset.wired) return; m.dataset.wired = '1';
     m.scrollLeft = view.sl; m.scrollTop = view.st;
     m.addEventListener('scroll', () => { view.sl = m.scrollLeft; view.st = m.scrollTop; }, { passive: true });
     m.addEventListener('pointerdown', e => {
@@ -142,7 +181,7 @@
       const bar = C.$(`[data-bar="${q.key}"]`); if (bar) bar.setAttribute('width', (28 * C.clamp(1 - C.remaining(q) / ((q.end - q.start) / 1000), 0, 1)).toFixed(1));
     }
     const set = (id, v) => { const e = C.$(id); if (e) e.textContent = v; };
-    set('#r-cash', '$' + C.short(car.cash)); set('#r-cp', C.short(car.cp)); set('#r-gold', C.short(C.acct().gold));
+    set('#r-cash', '$' + C.short(car.cash)); set('#r-cp', C.short(car.cp)); set('#r-gold', C.short(C.acct().gold)); set('#r-gold2', C.short(C.acct().gold));
   };
 
   // ================= building actions when selected on the map (Last War style) =================
@@ -172,20 +211,20 @@
     return `<p class="note" style="margin-top:0">Each builder works on one building at a time. More builders come from the Coach's Club, a one-off purchase and your Coaches' Office.</p>${rows}`;
   });
   // ---------- List of buildings (items 31, 44): everything on campus, what's ready, new builds first ----------
-  C.blistTab = 'program';
+  // ---------- full list of buildings (FEEDBACK 77, 87): full screen, Economy / Soccer, 4 columns, each with its status ----------
+  C.blistTab = 'economy';
   C.openBuildList = () => C.ui.open('Buildings', () => {
-    const car = C.car(), tab = C.blistTab, keys = Object.keys(C.BUILDINGS);
-    const nb = C.newBuildable(), lockedB = k => C.locked(k);
-    const rank = k => lockedB(k) ? 2 : nb.includes(k) ? 0 : 1;
-    const shown = keys.filter(k => C.BUILDINGS[k].owner === (tab === 'school' ? 'school' : 'program')).sort((a, b) => rank(a) - rank(b) || C.level(a) - C.level(b));
-    const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), locked = C.locked(k);
-      const ready = C.readyArrow(k) || (nb.includes(k) && C.requirements(k).every(r => r[2]));
-      return `<button class="bcard ${locked ? 'off' : ''}" data-act="bldopen" data-v="${k}">${ready ? '<i class="bup"></i>' : ''}<div class="bpic">${C.buildingThumb(k, Math.max(1, lv), car, 96, 70)}</div>
-        <b class="blv">${q ? '🔨 ' + C.dur(C.remaining(q)) : locked ? '🔒 HQ Lv ' + d.needHQ : lv ? 'Lv.' + lv : 'NEW'}</b><span>${C.esc(d.name)}</span></button>`; };
-    const tb = (k, n, c) => `<button class="${tab === k ? 'on' : ''}" data-act="blisttab" data-v="${k}">${n}${c ? ` <em>${c}</em>` : ''}</button>`;
-    return `<div class="bigtabs">${tb('program', 'Program', nb.filter(k => C.BUILDINGS[k].owner === 'program').length)}${tb('school', 'Support', nb.filter(k => C.BUILDINGS[k].owner === 'school').length)}</div>
-      <div class="bgrid">${shown.map(card).join('') || '<p class="note">Nothing new to build right now.</p>'}</div>
-      <div class="bfoot">👷 Builders ${car.queue.length}/${C.openSlots()}</div>`;
+    const car = C.car(), tab = C.blistTab === 'program' ? 'economy' : C.blistTab, keys = Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === tab);
+    const rank = k => C.buildable(k) ? 0 : C.readyArrow(k) ? 1 : C.inQueue(k) ? 2 : C.locked(k) ? 4 : 3;
+    const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), lock = C.locked(k), max = !lock && lv && (lv >= C.topLevel(k) || (k !== 'hq' && lv >= C.level('hq')));
+      const flag = C.buildable(k) ? '<s class="bnew">NEW</s>' : C.readyArrow(k) ? '<i class="bup"></i>' : '';
+      const lab = lock ? `🔒 HQ ${d.needHQ}` : q ? '🔨 ' + C.dur(C.remaining(q)) : !lv ? 'Build' : max ? 'Max Level' : 'Lv.' + lv;
+      return `<button class="bcard9 ${lock ? 'off' : ''}" data-act="bldopen" data-v="${k}">${flag}<div class="bpic">${C.buildingThumb(k, Math.max(1, lv), car, 110, 76)}<b class="blv">${lab}</b></div><span>${C.esc(d.name)}</span></button>`; };
+    const n = t => Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === t && (C.buildable(k) || C.readyArrow(k))).length;
+    const tb = (k, nm) => `<button class="${tab === k ? 'on' : ''}" data-act="blisttab" data-v="${k}">${nm}${n(k) ? ` <em>${n(k)}</em>` : ''}</button>`;
+    return `<div class="bigtabs">${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}</div>
+      <div class="bgrid9">${keys.sort((a, b) => rank(a) - rank(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
+      <div class="bfoot">👷 Building Queue: ${car.queue.length}/${C.openSlots()}</div>`;
   });
   C.openProgramInfo = () => C.ui.open('Program', () => {
     const car = C.car(), col = C.college(), t = C.table().find(x => x.i === 0);
@@ -241,8 +280,8 @@
       `<div class="tbl"><div class="tscroll">${statRows(k, lv)}</div><div class="costh">Cost</div>
         <div class="tscroll">${reqs.map(r => costRow(r)).join('')}</div></div>
       <div class="orig">${slotMsg}<span>Original Time: ${C.dur(t)}</span></div>
-      <div class="bt"><button class="fin" data-act="instant" data-v="${k}" ${ok ? '' : 'disabled'}>Finish Now<br><em class="${gems < gi ? 'short' : ''}">${C.GEM} ${gi}</em></button>
-      <button class="upg" data-act="upgrade" data-v="${k}" ${C.canUpgrade(k) ? '' : 'disabled'}>${lv ? 'Upgrade' : 'Build'}<br>⏱ ${C.dur(t)}</button></div></div>`;
+      <div class="bt">${lv ? `<button class="fin" data-act="instant" data-v="${k}" ${ok ? '' : 'disabled'}>Finish Now<br><em class="${gems < gi ? 'short' : ''}">${C.GEM} ${gi}</em></button>` : ''}
+      <button class="upg" data-act="upgrade" data-v="${k}" ${C.canUpgrade(k) ? '' : 'disabled'}>${lv ? `Upgrade<br>⏱ ${C.dur(t)}` : 'Build<br>Free'}</button></div></div>`;
   }
 
   // Pay Coins to skip the build time entirely (resources still required)
@@ -250,7 +289,8 @@
     const car = C.car(), lv = car.b[k], to = lv + 1, t = C.timeOf(k, to), g = C.coinsFor(t);
     if (!C.requirements(k).every(r => r[2])) return false;
     if (C.acct().gold < g) { C.toast('Not enough Coins'); return false; }
-    const cost = C.costOf(k, to); car.cash -= cost.cash; car.cp -= cost.cp; C.acct().gold -= g; car.b[k] = to; C.save(); return true;
+    const cost = C.costOf(k, to); car.cash -= cost.cash; car.cp -= cost.cp; C.acct().gold -= g; car.b[k] = to;
+    const q = { key: k, to, cp: to <= 1 ? 0 : C.upgradeReward(k, to) }; car.cp += q.cp; (C.lvlQueue = C.lvlQueue || []).push(q); C.save(); setTimeout(C.nextLevelUp, 300); return true;
   };
 
   // ================= careers (save slots, Q27) =================
@@ -282,9 +322,8 @@
       <div class="seg2" style="margin-top:8px"><button data-act="cheat" data-v="rep">+30 reputation</button><button data-act="cheat" data-v="prog">Program buildings +3</button></div>
       <div class="seg2" style="margin-top:8px"><button data-act="cheat" data-v="rest">Full Freshness</button><button data-act="cheat" data-v="season">Skip to season end</button></div>
       <button class="btn full sec2" data-act="cheat" data-v="portal" style="margin-top:8px">${C.car() && C.portalOpen() ? '🚪 Close the transfer window now' : '🚪 Open a transfer window'}</button>
-      <label class="fld">Building cap override (try higher levels)</label>
-      <div class="seg3">${[0, 12, 18].map(v => `<button class="${a.testCap === v ? 'on' : ''}" data-act="testcap" data-v="${v}">${v ? 'Lv ' + v : 'Off'}</button>`).join('')}</div>
-      <div class="seg2" style="margin-top:8px">${[24, 30].map(v => `<button class="${a.testCap === v ? 'on' : ''}" data-act="testcap" data-v="${v}">Lv ${v}</button>`).join('')}</div>
+      <label class="fld">Art check: show every building at render… (map only, nothing is changed)</label>
+      <div class="rgrid">${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<button class="${(a.testRender || 0) === v ? 'on' : ''}" data-act="testrender" data-v="${v}">${v || 'Off'}</button>`).join('')}</div>
       <p class="note">Testing tools are for this preview build only.</p>
       <p class="note">Version: ${C.BUILD}</p><button class="btn full sec2" data-act="checkupdate">🔄 Check for update</button>
       <button class="btn full danger" data-act="wipe">Delete all saved data…</button>`;

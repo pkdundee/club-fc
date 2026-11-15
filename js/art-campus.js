@@ -149,109 +149,136 @@ function decor(I,x,y,S,kind){let out='';
   out+=I.box(x+18,y+20,0,7,18,6,{base:C1})+I.winR(x+25,y+21,y+37,2.6,5,5,1,0)+I.box(x+18,y+20,6,7,18,.6,{base:'#e2e8f0'});}
  return out}
 
-// ---------------- painted building art (9p) ----------------
-// Each render is a 1536 x 1024 image whose tile has its top corner at (768,354) and is 1300 px wide; it is scaled onto the plot.
-const ART_MAX=7,PAINTED={hq:1,stadium:1,training:1,skills:1,gym:1,med:1,lab:1,recruit:1,video:1,media:1,dorms:1,academic:1,kitroom:1,booster:1};
-const STAD={};   // the Stadium recoloured to the school's main colour, cached as a data URL
+// ---------------- painted art (9p, 9q) ----------------
+// Each building render is a 1536 x 1024 image whose tile has its top corner at (768,354) and is 1300 px wide; it is scaled onto the plot.
+const ART_MAX={};
+const SCEN=()=>window.CFC_SCEN||{};
+// Every picture is test-loaded first. One that fails (missing from an upload, say) falls back to render 1, then to the old drawn
+// building, so the map never shows a broken-image box (iPhone draws those as a "?").
+const SEEN={};
+function probe(h){if(SEEN[h])return SEEN[h];SEEN[h]='wait';const im=new Image();im.onload=()=>{SEEN[h]='ok'};im.onerror=()=>{SEEN[h]='bad';window.CFC.redrawMap&&window.CFC.redrawMap()};im.src=h;return 'wait'}
+const STAD={};   // the Stadium recolored to the school's main color, cached as a data URL
 function stadiumHref(n){const C=window.CFC,key=n+C1,base=`img/campus/b_stadium_${n}.webp`;if(STAD[key])return STAD[key]==='busy'?base:STAD[key];
- if(!window.paintStadium)return base;STAD[key]='busy';const im=new Image();im.onload=()=>{try{STAD[key]=window.paintStadium(im,C1).toDataURL('image/webp',.86);C.redrawMap&&C.redrawMap()}catch(e){STAD[key]=base}};im.onerror=()=>STAD[key]=base;im.src=base;return base}
-function painted(I,k,x,y,sz,lvl,locked){const n=Math.min(ART_MAX,window.CFC.renderOf(lvl)),f=2*sz*I.K/1300,[tx,ty]=I.P(x,y,0);
- const href=k==='stadium'?stadiumHref(n):`img/campus/b_${k}_${n}.webp`;
- return `<image href="${href}" x="${(tx-768*f).toFixed(1)}" y="${(ty-354*f).toFixed(1)}" width="${(1536*f).toFixed(1)}" height="${(1024*f).toFixed(1)}"${locked?' filter="url(#lockg4)" opacity=".85"':''}/>`}
-// placeholder for buildings still waiting for their art (Transport, Nutrition): the painted empty plot with a simple drawn building
-function placeholder(I,k,x,y,sz,lvl,locked){const f=2*sz*I.K/1300,[tx,ty]=I.P(x,y,0);
- const o=Object.assign({},ART[k]||{wall:'brick'});o.extra=k==='transport'?(bx,by,w,d)=>I.box(bx+w*.08,by+d+2,0,w*.5,5,5.5,{top:'#f8fafc',L:'#eab308',R:'#facc15'}):(bx,by,w,d)=>I.box(bx+w*.62,by+d+2,0,w*.3,6,5,{top:'#dcfce7',L:'url(#glass4)',R:'url(#glassR4)'});
- return `<image href="img/campus/plot_empty.webp" x="${(tx-768*f).toFixed(1)}" y="${(ty-354*f).toFixed(1)}" width="${(1536*f).toFixed(1)}" height="${(1024*f).toFixed(1)}"/><g${locked?' filter="url(#lockg4)" opacity=".85"':''}>${brick(I,x+sz*.08,y+sz*.08,sz*.84,lvl,o)}</g>`}
-function lockPin(I,x,y,S){const [sx,sy]=I.P(x+S/2,y+S/2,0),k=I.K;return `<g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)}) scale(${k})"><circle r="8.5" fill="#475569" stroke="#fff" stroke-width="1.4"/><text y="3.4" text-anchor="middle" font-size="9">🔒</text></g>`}
+ if(!window.paintStadium)return base;STAD[key]='busy';const im=new Image();im.onload=()=>{try{const u=window.paintStadium(im,C1).toDataURL('image/png');STAD[key]=u&&u.length>100?u:base;C.redrawMap&&C.redrawMap()}catch(e){STAD[key]=base}};im.onerror=()=>STAD[key]=base;im.src=base;return base}
+const TOWER={};  // the water tower painted in school colors with the initials, cached as a data URL
+function towerHref(n,abbr){const C=window.CFC,key=n+C1+C2+abbr,base=`img/campus/tower_${n}.png`,m=SCEN()['tower_'+n];if(TOWER[key])return TOWER[key]==='busy'?base:TOWER[key];
+ if(!window.paintTower||!m)return base;TOWER[key]='busy';const im=new Image();im.onload=()=>{try{TOWER[key]=window.paintTower(im,n,C1,C2,abbr,{k:m.k,ox:m.ox,oy:m.oy}).toDataURL('image/png');C.redrawMap&&C.redrawMap()}catch(e){TOWER[key]=base}};im.onerror=()=>TOWER[key]=base;im.src=base;return base}
+function drawn(I,k,x,y,sz,lvl){if(k==='hq')return hq(I,x,y,sz,lvl);if(k==='stadium')return stadium(I,x,y,sz,lvl);if(k==='training')return training(I,x,y,sz,lvl);if(k==='skills')return skills(I,x,y,sz,lvl);
+ const o=Object.assign({},ART[k]||{wall:'brick'});if(k==='med')o.extra=medCross(I);return brick(I,x,y,sz,lvl,o)}
+// test mode (Settings, 9q): show every building at one render (1-10) to check the art
+const testRender=()=>{try{return window.CFC.acct().testRender||0}catch(e){return 0}};
+function tileImage(I,x,y,sz,href){const f=2*sz*I.K/1300,[tx,ty]=I.P(x,y,0);return `<image href="${href}" x="${(tx-768*f).toFixed(1)}" y="${(ty-354*f).toFixed(1)}" width="${(1536*f).toFixed(1)}" height="${(1024*f).toFixed(1)}"/>`}
+function painted(I,k,x,y,sz,lvl){let n=Math.min(ART_MAX[k]||10,testRender()||window.CFC.renderOf(lvl));
+ if(probe(`img/campus/b_${k}_${n}.webp`)==='bad')n=1;
+ if(probe(`img/campus/b_${k}_${n}.webp`)==='bad')return drawn(I,k,x,y,sz,lvl);
+ return tileImage(I,x,y,sz,k==='stadium'?stadiumHref(n):`img/campus/b_${k}_${n}.webp`)}
+function plotTile(I,x,y,sz,name,fallback){return probe(`img/campus/${name}.webp`)==='bad'?fallback():tileImage(I,x,y,sz,`img/campus/${name}.webp`)}
+// a painted sprite standing on the ground at world point (wx,wy); f = drawn height / file height of the object
+function sprite(I,href,wx,wy,m,f,bxKey='bx',byKey='by',wKey='w',hKey='h'){const [px,py]=I.P(wx,wy,0);return `<image href="${href}" x="${(px-m[bxKey]*f).toFixed(1)}" y="${(py-m[byKey]*f).toFixed(1)}" width="${(m[wKey]*f).toFixed(1)}" height="${(m[hKey]*f).toFixed(1)}"/>`}
+function tree(I,wx,wy,i,scale){i=Math.abs(Math.round(i));const n=i%8+1,m=SCEN()['tree_'+n],href=`img/campus/tree_${n}.webp`;
+ if(!m||probe(href)==='bad')return I.tree(wx,wy,1.1*scale,['#e8662a','#f59e0b','#c2410c','#65a30d'][i%4]);
+ return sprite(I,href,wx,wy,m,30*scale/230)}
 
 // ---------------- live campus ----------------
-const STEP=58,S=46,K4=1.7,W4=600,H4=900;
+// The map is drawn as two layers: the ground and buildings (rebuilt only when something on the campus changes, so taps never
+// make the pictures blink) and the markers on top (selection, buttons, timers, collect tokens), redrawn on every tap (FEEDBACK 73).
+const STEP=58,S=46,K4=1.7,W4=720,H4=900;   // 9q: wider, so buildings at the edges can scroll clear of the side buttons
 const cell=(s,d)=>{const i=(s+d)/2,j=(s-d)/2;return [i*STEP,j*STEP]};
-const ART={kitroom:{wall:'white',roof:'#be123c'},lab:{wall:'glass',roof:'#0f766e'},transport:{wall:'white',roof:'#ca8a04'},nutrition:{wall:'glass',roof:'#15803d'},video:{wall:'brick',roof:'#111827'},media:{wall:'white',roof:'#0369a1'},med:{wall:'white'},recruit:{wall:'brick',roof:'#7c2d12'},dorms:{wall:'brick',roof:'#334155'},gym:{wall:'glass'},booster:{wall:'white',roof:'#7c2d12'},academic:{wall:'brick',roof:'#1e3a5f'}};
-const TOP={hq:46,stadium:30,training:14,skills:10};
-const DROP={};   // buildings sit square in their zone
+const ART={kitroom:{wall:'white',roof:'#be123c'},lab:{wall:'glass',roof:'#0f766e'},transport:{wall:'white',roof:'#ca8a04'},nutrition:{wall:'glass',roof:'#15803d'},video:{wall:'brick',roof:'#111827'},media:{wall:'white',roof:'#0369a1'},med:{wall:'white'},recruit:{wall:'brick',roof:'#7c2d12'},dorms:{wall:'brick',roof:'#334155'},gym:{wall:'glass'},booster:{wall:'white',roof:'#7c2d12'},academic:{wall:'white',roof:'#1e3a8a'}};
 function medCross(I){return (bx,by,w,d,h)=>{const [cx,cy]=I.P(bx+w,by+d/2,h*.55);const k=I.K;return `<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) skewY(-26.565)"><rect x="${-3.5*k}" y="${-1.2*k}" width="${7*k}" height="${2.4*k}" fill="#ef4444"/><rect x="${-1.2*k}" y="${-3.5*k}" width="${2.4*k}" height="${7*k}" fill="#ef4444"/></g>`}}
-function drawBuilding(I,k,x,y,sz,lvl,locked){
- if(PAINTED[k])return painted(I,k,x,y,sz,lvl,locked);
- if(k==='transport'||k==='nutrition')return placeholder(I,k,x,y,sz,lvl,locked);
- if(k==='hq')return hq(I,x,y,sz,lvl);
- if(k==='stadium')return stadium(I,x,y,sz,lvl);
- if(k==='training')return training(I,x,y,sz,lvl);
- if(k==='skills')return skills(I,x,y,sz,lvl);
- const o=Object.assign({},ART[k]||{wall:'brick'});if(k==='med')o.extra=medCross(I);
- return brick(I,x,y,sz,lvl,o)}
+function drawBuilding(I,k,x,y,sz,lvl){return painted(I,k,x,y,sz,lvl)}
+const GDEFS=`<defs><pattern id="pgrass" patternUnits="userSpaceOnUse" width="72" height="72"><rect width="72" height="72" fill="#9fb36c"/><image href="img/campus/grass.webp" width="72" height="72"/></pattern></defs>`;
 
-function render(I,car,opts={}){const C=window.CFC;const col=C.college(car);C1=col.c1;C2=col.c2;
- const parts=[DEFS];const add=s=>parts.push(s);
- add(`<rect width="${W4}" height="${H4}" fill="url(#grass4)"/>`);
- for(let s=-3;s<=13;s++)for(const d of [-6,-5,-4,-3,3,4,5,6]){if((s+d)%2)continue;const [x,y]=cell(s,d);[[12,14],[32,10],[22,32],[40,38]].forEach(([a,b],i)=>add(I.tree(x+a,y+b,1.1,['#e8662a','#f59e0b','#c2410c','#65a30d'][(i+s+d+20)%4])))}
- for(const d of [-2,0,2,-1,1])for(const s of [-2,-1,11,12]){if((s+d)%2)continue;const [x,y]=cell(s,d);[[12,14],[32,10],[22,32],[40,38]].forEach(([a,b],i)=>add(I.tree(x+a,y+b,1.1,['#c2410c','#65a30d','#f59e0b','#e8662a'][(i+s+d+20)%4])))}
+// everything about the plots, shared by both layers
+function plotsOf(I,car){const C=window.CFC,tr=testRender(),out=[];
+ for(const p of C.PLOTS){const [x,y]=cell(p.s,p.d),sz=p.span?STEP+S:S;
+  const o={p,x,y,sz,corners:[I.P(x,y,0),I.P(x+sz,y,0),I.P(x+sz,y+sz,0),I.P(x,y+sz,0)],depth:I.P(x+sz/2,y+sz/2,0)[1]};
+  if(p.b){const k=p.b;Object.assign(o,{k,def:C.BUILDINGS[k],lvl:tr?Math.max(1,car.b[k]||0):car.b[k]||0,q:car.queue.find(z=>z.key===k),locked:!tr&&!!(C.BUILDINGS[k].needHQ&&car.b.hq<C.BUILDINGS[k].needHQ)})}
+  out.push(o)}
+ return out}
+
+function renderBase(I,car,opts){const C=window.CFC;const col=C.college(car);C1=col.c1;C2=col.c2;
+ const parts=[DEFS,GDEFS],add=s=>parts.push(s),items=[];
+ add(`<rect width="${W4}" height="${H4}" fill="url(#pgrass)"/>`);
+ const plots=plotsOf(I,car);
+ // roads round every plot
  const occ=[];for(const p of C.PLOTS){occ.push([p.s,p.d]);if(p.span)occ.push([p.s+1,p.d-1],[p.s+1,p.d+1],[p.s+2,p.d])}
  for(const [s,d] of occ){const [x,y]=cell(s,d);add(I.poly([[x-6,y-6,0],[x+S+6,y-6,0],[x+S+6,y+S+6,0],[x-6,y+S+6,0]],'#7b8494'))}
  for(const [s,d] of occ){const [x,y]=cell(s,d);for(let t=0;t<S+12;t+=8){add(I.poly([[x+S+5.6,y-6+t,0],[x+S+6.4,y-6+t,0],[x+S+6.4,y-2+t,0],[x+S+5.6,y-2+t,0]],'#fde68a'));add(I.poly([[x-6+t,y+S+5.6,0],[x-2+t,y+S+5.6,0],[x-2+t,y+S+6.4,0],[x-6+t,y+S+6.4,0]],'#fde68a'))}}
- const overlays=[];
- const order=[...C.PLOTS].sort((a,b)=>(a.s+(a.span?1:0))-(b.s+(b.span?1:0))||a.d-b.d);
- for(const p of order){const [x,y]=cell(p.s,p.d);const sz=p.span?STEP+S:S;
-  const hit=I.poly([[x,y,0],[x+sz,y,0],[x+sz,y+sz,0],[x,y+sz,0]],'#74cc6b');
+ // parkland round the campus: painted trees, fewer than before so the grass shows
+ const TP=[[12,14],[34,10],[22,32],[40,38]];let n=0;
+ for(let s=-3;s<=14;s++)for(let d=-8;d<=8;d++){if((s+d+40)%2)continue;if(occ.some(([a,b])=>a===s&&b===d))continue;
+  const [x,y]=cell(s,d);const cnt=(Math.abs(d)>=3||s<0||s>10)?2:1;for(let i=0;i<cnt;i++){const [a,b]=TP[(i*2+n)%4],sc=.9+((n*7+i*3)%5)*.06;items.push([I.P(x+a,y+b,0)[1],tree(I,x+a,y+b,n*3+i*5,sc)])}n++}
+ // plots: buildings, blank ground, pond, tower, spare land
+ const hqR=Math.min(10,testRender()||C.renderOf(car.b.hq||1));
+ for(const o of plots){const {p,x,y,sz}=o;
   if(!p.b){
-   if(p.k==='land'){add(`<g data-act="land" data-v="${p.tier}">${hit}${lockedPlot(I,x,y,S,'Tier '+p.tier+' land')}</g>`);continue}
-   add(hit+decor(I,x,y,S,p.k));continue}
-  const k=p.b,def=C.BUILDINGS[k],lvl=car.b[k],q=car.queue.find(z=>z.key===k);
-  let g='';
-  const isLocked=!!(def.needHQ&&car.b.hq<def.needHQ);
-  if(isLocked)g=drawBuilding(I,k,x,y,sz,Math.max(1,lvl),true)+lockPin(I,x,y,S);   // parity (9p): locked buildings show at Lv 1, greyed, with a lock
-  else if(lvl===0&&!q)g=emptyPlot(I,x,y,S,def.name.split(' ')[0]);
-  else{g=lvl>0?drawBuilding(I,k,x,y,sz,lvl):I.poly([[x+4,y+4,0],[x+S-4,y+4,0],[x+S-4,y+S-4,0],[x+4,y+S-4,0]],'url(#dirt4)');if(q)g+=construction(I,x,y,S,lvl?16:4)}
-  const drop=lvl&&!PAINTED[k]&&k!=='transport'&&k!=='nutrition'?(DROP[k]||5):0;
-  add(`<g data-act="bld" data-v="${k}">${hit}<g transform="translate(0,${drop})">${g}</g></g>`);
-  // badge sits at the roofline, but never above the back edge of its own plot
-  const [bx,by0]=I.P(x+sz/2,y+sz/2,lvl?(TOP[k]||22):4),back=I.P(x,y,0)[1],front=I.P(x+sz,y+sz,0);
-  overlays.push({k,bx,by:Math.max(by0+drop,back+14),lvl,q,def,fx:front[0],fy:front[1],corners:[I.P(x,y,0),I.P(x+sz,y,0),I.P(x+sz,y+sz,0),I.P(x,y+sz,0)]});
- }
- [[-3,40],[STEP-3,90],[150,STEP-3],[2*STEP-3,170],[90,2*STEP-3]].forEach(([a,b],i)=>add(I.person(a,b,i%2?C1:C2)));
- add(`<g class="clouds4" opacity=".8" filter="url(#blur4)" pointer-events="none"><ellipse cx="120" cy="120" rx="34" ry="9" fill="#fff"/><ellipse cx="142" cy="113" rx="20" ry="8" fill="#fff"/><ellipse cx="470" cy="420" rx="28" ry="8" fill="#fff"/><ellipse cx="160" cy="640" rx="30" ry="8" fill="#fff"/></g>`);
- // badges, timers and collect bubbles
- const sc=1.35;
- for(const o of overlays){const {k,bx,by,lvl,q,def,fx,fy}=o;
-  if(q&&C.selB!==k){const [tx,ty]=o.corners[0];add(`<g data-act="bld" data-v="${k}" transform="translate(${tx.toFixed(1)},${(ty-6).toFixed(1)}) scale(${sc})"><path d="M-27 -11 h54 a4 4 0 0 1 4 4 v9 a4 4 0 0 1 -4 4 h-24 l-3 4 l-3 -4 h-24 a4 4 0 0 1 -4 -4 v-9 a4 4 0 0 1 4 -4z" fill="#fff" stroke="#f59e0b" stroke-width="1.4"/>
-    <g transform="translate(-22,-2.5)"><circle r="5" fill="#f59e0b"/><path d="M0 -3 V0 L2.2 1.4" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>
-    <text x="27" y="0.8" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9.5" fill="#78350f" data-timer="${k}">${C.dur(C.remaining(q))}</text></g>`);continue}
-  const sel=!opts.preview&&C.selB===k, ready=!opts.preview&&C.readyArrow(k);
-  if(!lvl&&!sel)continue;
-  const amt=!opts.preview&&lvl&&C.PRODUCERS[k]?C.bubble(k):0;
+   if(p.k==='land')items.push([o.depth-999,plotTile(I,x,y,S,'plot_locked',()=>lockedPlot(I,x,y,S,''))]);
+   else if(p.k==='lake')items.push([o.depth-999,plotTile(I,x,y,S,'plot_pond_4',()=>decor(I,x,y,S,'lake'))]);
+   else if(p.k==='water'){const tn=hqR<=2?5:hqR<=4?4:hqR<=6?3:hqR<=8?2:1,m=SCEN()['tower_'+tn];
+    items.push([o.depth-999,plotTile(I,x,y,S,'plot_empty',()=>'')]);
+    if(m&&probe(`img/campus/tower_${tn}.png`)!=='bad'){const f=110/m.h,cx=x+S/2,cy=y+S/2;
+     items.push([o.depth-998,sprite(I,`img/campus/tower_${tn}_shadow.webp`,cx,cy,m,f,'sbx','sby','sw','sh')]);
+     items.push([o.depth,sprite(I,towerHref(tn,col.abbr),cx,cy,m,f)])}
+    else items.push([o.depth,decor(I,x,y,S,'water')])}
+   else{[[10,12],[30,8],[38,26],[14,32],[28,38]].forEach(([a,b],i)=>items.push([I.P(x+a,y+b,0)[1],tree(I,x+a,y+b,o.depth+i*5,1)]))}
+   continue}
+  let g;
+  if(o.lvl>0)g=drawBuilding(I,o.k,x,y,sz,o.lvl);
+  else g=plotTile(I,x,y,sz,'plot_empty',()=>emptyPlot(I,x,y,sz,''));   // blank ground until it's built (FEEDBACK 84, 88)
+  if(o.q)g+=construction(I,x,y,S,o.lvl?16:4);
+  items.push([o.depth,g])}
+ items.sort((a,b)=>a[0]-b[0]).forEach(a=>add(a[1]));
+ // tap areas, on top of everything: the plot plus the space its building rises into. Smaller plots go last so they win
+ // over the Stadium, whose own area is trimmed to its pitch and stands (FEEDBACK 73).
+ const hits=plots.filter(o=>o.p.b&&!o.locked).sort((a,b)=>(b.p.span?1:0)-(a.p.span?1:0)||a.depth-b.depth);
+ add('<g class="hits">'+hits.map(o=>{const {x,y,sz}=o,m=o.p.span?sz*.1:0,H=o.p.span?10:(o.lvl?Math.min(60,20+o.lvl*1.6):6);
+  const c=[I.P(x+m,y+m,0),I.P(x+sz-m,y+m,0),I.P(x+sz-m,y+sz-m,0),I.P(x+m,y+sz-m,0)];const up=H*I.K;
+  const pts=[c[3],[c[3][0],c[3][1]-up],[c[0][0],c[0][1]-up],[c[1][0],c[1][1]-up],c[1],c[2]].map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join(' ');
+  return `<polygon data-act="bld" data-v="${o.k}" points="${pts}" fill="#000" fill-opacity="0"/>`}).join('')+'</g>');
+ return parts.join('')}
+
+// markers: only where there's something to do (FEEDBACK 82, 88). Small and icon-led.
+function renderOver(I,car,opts){const C=window.CFC;if(opts.preview)return '';const parts=[],add=s=>parts.push(s);
+ const plots=plotsOf(I,car).filter(o=>o.p.b&&!o.locked);
+ const out=(t)=>`stroke="#0f172a" stroke-width="2.2" paint-order="stroke" stroke-linejoin="round"`;
+ for(const o of plots){const {k,lvl,q,def,corners}=o,top=corners[0],left=corners[3],front=corners[2];
+  const tcx=(corners[0][0]+corners[2][0])/2,tcy=(corners[0][1]+corners[2][1])/2;
+  const sel=C.selB===k;
   if(sel){
-   // selected (Last War style): outline the plot, name and level as outlined text, then a row of round action buttons
-   const pts=o.corners.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
-   add(`<polygon points="${pts}" fill="#7dd3fc" fill-opacity=".14" stroke="#7dd3fc" stroke-width="2.4" class="selring" pointer-events="none"/>`);
-   add(`<g pointer-events="none" transform="translate(${bx.toFixed(1)},${(by-12).toFixed(1)}) scale(${sc})" font-family="Nunito" font-weight="900" text-anchor="middle" stroke="#0f172a" stroke-width="2.4" paint-order="stroke" stroke-linejoin="round">
-    <text y="0" font-size="9" fill="#fff">${C.esc(def.name)}</text><text y="10" font-size="8" fill="#fde047">${lvl ? 'Lv.' + lvl : 'Not built'}</text></g>`);
-   // action buttons (round 6): set layouts for 1-4 buttons, centered under the building, the upgrade button always right-most.
-   // Offsets are screen pixels: the group is scaled by 1/zoom (see C.applyFixed), so they keep their size at any map zoom.
-   const acts=C.buildingActions(k), n=acts.length, R=21, G=52;
-   const LAY={1:[[0,0]],2:[[-G/2,0],[G/2,0]],3:[[-G,-26],[0,0],[G,-26]],4:[[-G*1.5,-26],[-G/2,0],[G/2,0],[G*1.5,-26]]}[n]||[[0,0]];
-   add(`<g class="fixz" data-x="${fx.toFixed(1)}" data-y="${fy.toFixed(1)}" transform="translate(${fx.toFixed(1)},${fy.toFixed(1)})">`+acts.map((a,i)=>{const [dx,dy]=LAY[i];
-    return `<g data-act="${a.act}" data-v="${a.v}" transform="translate(${dx},${dy+6})"><circle r="${R}" fill="${a.col||'#2563eb'}" stroke="#fff" stroke-width="3"/>${a.icon==='up'?`<path d="M0 ${-R*.62} L${R*.56} 0 H${R*.22} V${R*.58} H${-R*.22} V0 H${-R*.56}Z" fill="#fff"/>`:a.icon==='i'?`<circle cy="${-R*.42}" r="${R*.15}" fill="#fff"/><rect x="${-R*.13}" y="${-R*.18}" width="${R*.26}" height="${R*.72}" rx="${R*.1}" fill="#fff"/>`:`<text y="${R*.36}" text-anchor="middle" font-size="${R*1.05}">${a.icon}</text>`}</g>`}).join('')+`</g>`);
-  } else if(ready&&!(C.selB&&!opts.preview)){
-   // not selected: a small blue-and-white arrow on the building's left corner, like Last War
-   // inside the green tile: 28% of the way from the left corner towards the tile center
-   const [lx,ly]=o.corners[3], tcx=(o.corners[0][0]+o.corners[2][0])/2, tcy=(o.corners[0][1]+o.corners[2][1])/2;
-   add(`<g data-act="bld" data-v="${k}" transform="translate(${(lx+(tcx-lx)*.28).toFixed(1)},${(ly+(tcy-ly)*.28-4).toFixed(1)}) scale(${sc})"><g><path d="M0 -5.4 L4.8 .2 H1.9 V4.8 H-1.9 V.2 H-4.8Z" fill="#2563eb" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></g></g>`);
+   const pts=corners.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+   add(`<polygon points="${pts}" fill="#7dd3fc" fill-opacity=".14" stroke="#7dd3fc" stroke-width="2" class="selring" pointer-events="none"/>`);
+   add(`<g pointer-events="none" transform="translate(${tcx.toFixed(1)},${(top[1]-4).toFixed(1)})" font-family="Nunito" font-weight="900" text-anchor="middle" ${out()}>
+    <text y="0" font-size="10" fill="#fff">${C.esc(def.name)}</text><text y="11" font-size="9" fill="#fde047">${lvl?'Lv.'+lvl:'Ready to build'}</text></g>`);
+   const acts=C.buildingActions(k),nn=acts.length,R=19,G=48;
+   const LAY={1:[[0,0]],2:[[-G/2,0],[G/2,0]],3:[[-G,-22],[0,0],[G,-22]],4:[[-G*1.5,-22],[-G/2,0],[G/2,0],[G*1.5,-22]]}[nn]||[[0,0]];
+   add(`<g class="fixz" data-x="${front[0].toFixed(1)}" data-y="${front[1].toFixed(1)}" transform="translate(${front[0].toFixed(1)},${front[1].toFixed(1)})">`+acts.map((a,i)=>{const [dx,dy]=LAY[i];
+    return `<g data-act="${a.act}" data-v="${a.v}" transform="translate(${dx},${dy+6})"><circle r="${R}" fill="${a.col||'#2563eb'}" stroke="#0f172a" stroke-width="2.5"/><circle r="${R-2.5}" fill="none" stroke="#fff" stroke-width="1.5" opacity=".7"/>${a.icon==='up'?`<path d="M0 ${-R*.6} L${R*.55} 0 H${R*.2} V${R*.55} H${-R*.2} V0 H${-R*.55}Z" fill="#fff" stroke="#0f172a" stroke-width="1.2"/>`:a.icon==='i'?`<text y="${R*.35}" text-anchor="middle" font-size="${R}" font-weight="900" fill="#fff" font-family="Nunito">i</text>`:`<text y="${R*.32}" text-anchor="middle" font-size="${R*.9}">${a.icon}</text>`}<text y="${R+12}" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" font-family="Nunito" ${out()}>${C.esc(a.label)}</text></g>`}).join('')+`</g>`);
   }
-  // collect token: centered over the building at the road intersection behind it (just outside the tile)
-  if(amt){ const [tx,ty]=o.corners[0], cp=C.PRODUCERS[k]==='cp';
-   add(`<g data-act="collect" data-v="${k}" transform="translate(${tx.toFixed(1)},${(ty-(sel?30:6)).toFixed(1)}) scale(${sc})"><g><path d="M-14 -11 h28 a4 4 0 0 1 4 4 v9 a4 4 0 0 1 -4 4 h-11 l-3 4 l-3 -4 h-11 a4 4 0 0 1 -4 -4 v-9 a4 4 0 0 1 4 -4z" fill="#fff" stroke="${cp?'#0d9488':'#16a34a'}" stroke-width="1.4"/>
-    ${cp?'<g transform="translate(-9,-2.5)"><circle r="5" fill="#0d9488"/><path d="M-2.6 -1.6h4a.9.9 0 0 1 .9.9v.5h-3.7a2 2 0 1 1-1.2-1.4z" fill="#fff"/></g>':'<text x="-13" y="1" font-size="8">💵</text>'}
-    <text x="14" y="0.8" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="10" fill="#14532d">${cp?'':'$'}${C.short(amt)}</text></g></g>`); }
+  if(q&&!sel){ // compact build timer over the plot's back corner
+   add(`<g data-act="bld" data-v="${k}" transform="translate(${top[0].toFixed(1)},${(top[1]-2).toFixed(1)})"><rect x="-25" y="-8" width="50" height="13" rx="6.5" fill="#0f172a" fill-opacity=".78"/><circle cx="-18" cy="-1.5" r="5" fill="#f59e0b"/><path d="M-18 -4.5 V-1.5 L-16 0" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/><text x="22" y="2.3" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9.5" fill="#fff" data-timer="${k}">${C.dur(C.remaining(q))}</text></g>`);continue}
+  if(!lvl&&C.buildable(k)&&!sel){ // a newly unlocked building, ready for its free one-tap build (FEEDBACK 85)
+   add(`<g data-act="bld" data-v="${k}" class="bounce" transform="translate(${tcx.toFixed(1)},${(tcy-6).toFixed(1)})"><g class="bnc"><circle r="10" fill="#16a34a" stroke="#0f172a" stroke-width="2"/><path d="M-4.5 4.5 L2 -2 M0 -4.5 L4.5 0 L2 2.5 L-2.5 -2Z" stroke="#fff" stroke-width="2" fill="#fff" stroke-linejoin="round"/></g></g>`);continue}
+  if(C.readyArrow(k)&&!C.selB){ // upgrade available: a small green arrow badge on the plot's left corner
+   const ax=left[0]+(tcx-left[0])*.3,ay=left[1]+(tcy-left[1])*.3-3;
+   add(`<g data-act="bld" data-v="${k}" transform="translate(${ax.toFixed(1)},${ay.toFixed(1)})"><path d="M0 -6.5 L5.5 0 H2.3 V5.5 H-2.3 V0 H-5.5Z" fill="#22c55e" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round"/></g>`)}
+  const amt=lvl&&C.PRODUCERS[k]?C.bubble(k):0;
+  if(amt){const cp=C.PRODUCERS[k]==='cp',cx=tcx,cy=top[1]+(tcy-top[1])*.35-(sel?26:0);   // collect token: round, icon-led, amount underneath
+   add(`<g data-act="collect" data-v="${k}" transform="translate(${cx.toFixed(1)},${cy.toFixed(1)})"><g class="bnc"><circle r="9.5" fill="${cp?'#0d9488':'#16a34a'}" stroke="#0f172a" stroke-width="2"/><circle r="7" fill="${cp?'#14b8a6':'#22c55e'}"/>${cp?'<path d="M-3.4 -2h5a1.1 1.1 0 0 1 1.1 1.1v.7h-4.6a2.5 2.5 0 1 1-1.5-1.8z" fill="#fff"/>':'<text y="3.6" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" font-family="Nunito">$</text>'}</g><text y="19" text-anchor="middle" font-family="Teko,sans-serif" font-weight="600" font-size="9.5" fill="#fff" ${out()}>${cp?'':'$'}${C.short(amt)}</text></g>`)}
  }
  return parts.join('')}
 
+const view4=()=>iso(K4,W4/2,150);
+window.CFC.campusLayers=(car)=>{const I=view4(),C=window.CFC;
+ const key=JSON.stringify([car.college,car.b,car.queue.map(q=>q.key+q.to),testRender(),Object.keys(SEEN).filter(h=>SEEN[h]==='bad'),Object.keys(STAD).filter(k=>STAD[k]!=='busy'),Object.keys(TOWER).filter(k=>TOWER[k]!=='busy')]);
+ return {key,svg:`<svg viewBox="0 0 ${W4} ${H4}" width="${W4}" height="${H4}" xmlns="http://www.w3.org/2000/svg" style="display:block">${renderBase(I,car,{})}<g id="camOver"></g></svg>`,over:()=>renderOver(I,car,{})}};
 window.CFC.campusSVG=(car,opts={})=>opts.preview
- ?`<svg viewBox="40 60 520 560" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">${render(iso(K4,W4/2,150),car,opts)}</svg>`
- :`<svg viewBox="0 0 ${W4} ${H4}" width="${W4}" height="${H4}" xmlns="http://www.w3.org/2000/svg" style="display:block">${render(iso(K4,W4/2,150),car,opts)}</svg>`;
+ ?`<svg viewBox="100 60 520 560" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">${renderBase(view4(),car,opts)}</svg>`
+ :`<svg viewBox="0 0 ${W4} ${H4}" width="${W4}" height="${H4}" xmlns="http://www.w3.org/2000/svg" style="display:block">${renderBase(view4(),car,opts)}<g id="camOver">${renderOver(view4(),car,opts)}</g></svg>`;
 window.CFC.campusSize=[W4,H4];
-// A single building at a given level, for the upgrade card
-window.CFC.buildingThumb=function(k,lvl,car,w=200,h=150){const col=window.CFC.college(car);C1=col.c1;C2=col.c2;const sz=k==='stadium'?STEP+S:S;const tall=k==='stadium'?44:k==='hq'?78:62;
- const Kk=Math.min(w*.96/(2*sz),h/(sz+tall));const I=iso(Kk,w/2,(h-sz*Kk+tall*Kk)/2);
- const body=lvl>0?drawBuilding(I,k,0,0,sz,lvl,window.CFC.car()&&window.CFC.locked(k,car)):emptyPlot(I,0,0,S,window.CFC.BUILDINGS[k].name.split(' ')[0]);
- return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">${DEFS}${I.poly([[-30,-30,0],[sz+30,-30,0],[sz+30,sz+30,0],[-30,sz+30,0]],'url(#grass4)')}${body}</svg>`};
+// A single building at a given level, for cards and lists: cropped to the building and its own ground, no green backdrop (FEEDBACK 77)
+window.CFC.buildingThumb=function(k,lvl,car,w=200,h=150){const C=window.CFC,col=C.college(car);C1=col.c1;C2=col.c2;const sz=k==='stadium'?STEP+S:S;
+ const Kk=w/(2*sz)*.98,I=iso(Kk,w/2,h-sz*Kk-2);
+ const body=lvl>0?drawBuilding(I,k,0,0,sz,lvl):plotTile(I,0,0,sz,'plot_empty',()=>emptyPlot(I,0,0,sz,''));
+ return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;overflow:visible">${DEFS}${body}</svg>`};
 })();

@@ -4,10 +4,13 @@
 
   C.applyTheme = () => { const t = C.acct().theme; if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
     const col = C.car() ? C.college() : null; const r = document.documentElement.style;
-    if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', col.c2); } };
+    // white text must always read on the action color: a pale second color (cream, white, sky) is swapped for the main color,
+    // or a strong orange if both are pale (9q, FEEDBACK 80)
+    const lum = h => { const n = parseInt(h.slice(1), 16); return (.299 * (n >> 16) + .587 * (n >> 8 & 255) + .114 * (n & 255)) / 255; };
+    if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'phase-9p · 14 Nov 2026';
+  C.BUILD = 'phase-9q · 15 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -29,6 +32,7 @@
     if (a === 'buy' || a === 'buypack') return ['Confirm purchase', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><p class="note">${a === 'buypack' && C.PACKS[v] ? C.esc(C.PACKS[v].name) + ' · ' + C.PACKS[v].price : { vip: "Coach's Club · $4.99 / month", slot3: 'Extra build slot · $2.99', tslot3: 'Extra training slot · $2.99', pslot3: 'Extra research slot · $2.99', sslot3: 'Extra staff slot · $2.99', tokens: '3 Number Changes · $0.99', gold: '500 Coins · $4.99' }[v] || v}</p>`, 'Buy (test)'];
     return null;
   }
+  C.act = (a, v) => act(a, v);
   function act(a, v, el) {
     const car = C.car();
     if (NEEDS_OK[a] && !(el && el.dataset.ok)) { const pv = preview(a, v); if (pv) return C.confirm(pv[0], pv[1], pv[2], a, v); }
@@ -44,12 +48,13 @@
       case 'zoom': C.zoomBy(+v); break;
       // buildings
       // tap selects a building (name, level, big action button); tapping it again or the button opens the upgrade card
-      case 'bld': if (C.mapDragged()) return; if (C.selB === v) C.openBuilding(v); else { C.selB = v; C.redrawMap(); } break;
+      case 'bld': if (C.mapDragged()) return; if (C.selB === v || C.buildable(v)) { C.selB = null; C.openBuilding(v); C.redrawMap(); } else { C.selB = v; C.redrawMap(); } break;   // a blank plot ready to build opens its card straight away (one-tap build)
       case 'bldopen': if (C.mapDragged()) return; C.openBuilding(v); break;
       case 'land': break;   // locked land: nothing to explain on the map (round 5)
       case 'upgrade': if (C.startUpgrade(v)) { C.selB = null; C.fwEvent('upgrade'); C.toast(`🔨 ${LEVEL_NAMES(v)} upgrade started`); C.ui.closeAll(); C.render(); } break;
-      case 'instant': if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } break;
+      case 'instant': if (!C.ok2spend) { const lv0 = car.b[v]; return C.confirmCoins(C.coinsFor(C.timeOf(v, lv0 + 1)), () => C.act('instant', v)); } C.ok2spend = 0; if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } break;
       case 'speed': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
+        if (!free && !C.ok2spend) return C.confirmCoins(C.goldToFinish(q), () => C.act('speed', v)); C.ok2spend = 0;
         if (C.finishNow(q, !free)) { C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } else C.toast('Not enough Coins'); break; }
       case 'adspeed': { const q = C.inQueue(v); if (!q) break; C.toast('▶ Ad finished (test): −15 minutes'); C.adSpeedUp(q); C.fwEvent('speed');
         if (!C.inQueue(v)) { C.ui.closeAll(); C.render(); } else C.ui.refresh(); break; }
@@ -203,7 +208,7 @@
       case 'settings': C.openSettings(); break;
       case 'checkupdate': C.toast('Checking…'); (navigator.serviceWorker ? navigator.serviceWorker.getRegistration().then(r => r && r.update()) : Promise.resolve()).catch(() => {}).finally(() => setTimeout(() => location.reload(), 600)); break;
       case 'theme': C.acct().theme = v; C.save(); C.applyTheme(); C.ui.refresh(); break;
-      case 'testcap': C.acct().testCap = +v; C.save(); C.ui.refresh(); C.redrawMap(); break;
+      case 'testrender': C.acct().testRender = +v; C.save(); C.ui.refresh(); C.toast(+v ? `🧪 Map shows every building at render ${v}` : 'Map back to normal'); break;
       case 'cheat': if (v === 'gold') C.acct().gold += 500; if (v === 'cash') car.cash += 20000; if (v === 'cp') car.cp += 100;
         if (v === 'apps') C.appsNow();
         if (v === 'rest') car.squad.forEach(p => p.energy = 100);
@@ -215,7 +220,7 @@
         if (v === 'finish') { car.queue.forEach(q => q.end = C.now()); (car.devq || []).forEach(q => q.end = C.now()); (car.pbq || []).forEach(q => q.end = C.now()); C.tickDev(); C.tickPB(); }
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
       case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Coins and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
-      case 'wipeyes': try { localStorage.removeItem('clubfc2_p9f'); } catch (e) { } location.reload(); break;
+      case 'wipeyes': C.wipe(); location.reload(); break;
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();
         if (v === 'vip') a2.vipUntil = Math.max(a2.vipUntil, C.now()) + 30 * 864e5;
@@ -232,7 +237,7 @@
   function welcome() {
     const col = C.college();
     C.ui.open('Welcome', () => `<div class="scenebn">${C.artSlot('arrival', C.sceneArrival(col.c1, col.c2))}</div><div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(col.full)}</b><br><small style="color:var(--mute);font-weight:800">${C.esc(col.mascot)} · ${col.state} · Tier 5</small></div></div>
-      <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Coach ${C.esc(C.car().coach)}, welcome. ${C.esc(C.STORIES[C.car().job.story].title)}.<br><br>🔨 Tap a building to upgrade it, or an empty plot to build.<br>💵 Tap the bubbles to collect Booster $ and <i class="cpi"></i> Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
+      <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Coach ${C.esc(C.car().coach)}, welcome. ${C.esc(C.STORIES[C.car().job.story].title)}.<br><br>🏛 Start with your Coaches' Office: tap the green badge on its plot to build it. Then the rest of your campus follows, one tap each.<br>💵 Tap the bubbles to collect Booster $ and <i class="cpi"></i> Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
       <button class="btn full pri" data-act="close">Let's build</button>`);
   }
 
@@ -261,7 +266,7 @@
     C.$$('[data-until]').forEach(e => { e.textContent = C.dur((+e.dataset.until - C.now()) / 1000); });
     C.$$('[data-dtimer]').forEach(e => { const q = C.inDev(e.dataset.dtimer); if (q) e.textContent = C.dur(C.remaining(q)); });
     const done = C.tick();
-    if (done.length) { done.forEach(q => C.toast(`✨ ${LEVEL_NAMES(q.key)} reached Lv ${q.to}`)); C.render(); if (C.ui.isOpen()) C.ui.refresh(); return; }
+    if (done.length || (C.lvlQueue && C.lvlQueue.length)) { C.render(); if (C.ui.isOpen()) C.ui.refresh(); C.nextLevelUp(); if (done.length) return; }
     C.updateLive();
     if (C.ui.isOpen() && C.$('.uc [data-timer]')) C.ui.refresh();   // no flash: refreshes don't replay the open animation
     if (++n % 20 === 0 && !C.ui.isOpen()) C.redrawMap(); // let new collect bubbles appear

@@ -59,11 +59,12 @@
   // ================= Missions: main tasks (a guided path) and daily tasks with a points track =================
   // main tasks double as the tutorial: pre-season first (coach, campus, recruiting), then the season
   const MAIN = [
+    ['bhq', '🏛', "Build the Coaches' Office", c => c.b.hq >= 1, { gold: 10 }, 'tab', 'campus'],
+    ['bcamp', '🏗', 'Build your 7 starting buildings', c => ['stadium','training','med','lab','recruit','media','dorms'].every(k => c.b[k] >= 1), { cash: 2000 }, 'tab', 'campus'],
     ['coach', '🧢', 'Hire your first assistant coach', c => (C.staffState().list || []).length >= 1, { cash: 2000 }, 'tab', 'staff'],
     ['hq2', '🏛', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2, { gold: 20, sp15: 1 }, 'bldopen', 'hq'],
     ['offer', '✉️', 'Make a scholarship offer to a recruit', c => (meta().ms.offers || 0) >= 1, { cp: 30 }, 'tab', 'recruit'],
     ['sign', '✍️', 'Sign a recruit', c => (c.rec && c.rec.signed || 0) >= 1, { cash: 3000 }, 'tab', 'recruit'],
-    ['gym', '🏋️', 'Upgrade the Gym to Lv 2', c => c.b.gym >= 2, { sp15: 2 }, 'bldopen', 'gym'],
     ['collect', '💵', 'Collect income on campus', c => (meta().ms.collect || 0) >= 1, { crate: 1 }, 'tab', 'campus'],
     ['research', '📋', 'Start Playbook research', c => (meta().ms.research || 0) >= 1, { cp: 40 }, 'playbook', ''],
     ['roster', '👕', 'Fill the roster to 22 players', c => c.squad.length >= 22, { gold: 30 }, 'tab', 'recruit'],
@@ -75,6 +76,7 @@
     ['video', '🎞', 'Upgrade the Analysis Suite to Lv 2', c => c.b.video >= 2, { gold: 40 }, 'bldopen', 'video'],
     ['wins3', '🏆', 'Win 3 matches', c => (meta().ms.win || 0) >= 3, { gold: 60, books: 1, gear: 2 }, 'prematch', ''],
     ['hq5', '🏛', "Reach Coaches' Office Lv 5", c => c.b.hq >= 5, { gold: 80, sp180: 1 }, 'bldopen', 'hq'],
+    ['gym', '🏋️', 'Upgrade the Gym to Lv 2', c => c.b.gym >= 2, { sp15: 2 }, 'bldopen', 'gym'],
     ['top4', '📊', 'Finish a season in the top 4', c => (meta().ms.top4 || 0) >= 1, { gold: 150, rare: 1 }, 'tab', 'season']
   ];
   C.MAIN = MAIN;

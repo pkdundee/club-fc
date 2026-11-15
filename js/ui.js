@@ -4,7 +4,7 @@
   C.ui = {};
   // Round 6: every area is its own page (a Back arrow replaces the bottom menu). Small choices are popups, which sit
   // between the header and footer and leave both clear. Nothing slides up over the footer.
-  const POPUPS = new Set(['Use a speed-up', 'Building Queue', 'Buildings', 'Release player', 'Delete a career', 'Delete all data', 'Signed!', 'Research', 'Choose player', 'New job', 'Keep a player', 'Staff on duty']);
+  const POPUPS = new Set(['Use a speed-up', 'Building Queue', 'Release player', 'Delete a career', 'Delete all data', 'Signed!', 'Research', 'Choose player', 'New job', 'Keep a player', 'Staff on duty']);
   const modeOf = (title, opts) => { const pop = C.ui.asPopup; C.ui.asPopup = false; return opts.modal ? 'modal' : opts.popup || pop || POPUPS.has(title) ? 'popup' : 'page'; };
 
   // Open a page or popup. render() returns its body HTML and is re-run on refresh (live timers).
@@ -22,8 +22,10 @@
   C.ui.isOpen = () => stack.length > 0;
   C.ui.refresh = () => { if (stack.length) draw(true); };
 
-  const res = () => C.car && C.car() && C.resBar ? `<div class="res hres pgres">${C.resBar()}</div>` : '';
-  const pageHTML = e => `<div class="page"><div class="pghd"><b>${C.esc(e.title)}</b>${res()}</div><div class="pgbody sbody">${e.render()}</div>
+  // the economy bar only where something can be spent (9q, FEEDBACK 75, 89)
+  const SPEND = new Set(['Store', 'Playbook', 'Inventory', 'Medical Room', 'Kit Room', 'Staff', 'Buildings', 'Events', 'Research']);
+  const res = e => C.car && C.car() && C.resBar && SPEND.has(e.title) ? `<div class="res hres pgres">${C.resBar()}</div>` : '';
+  const pageHTML = e => `<div class="page"><div class="pghd"><b>${C.esc(e.title)}</b>${res(e)}</div><div class="pgbody sbody">${e.render()}</div>
     <div class="pgft"><button class="backarrow" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M11 4 3 12l8 8v-5h10V9H11z" fill="#fff"/></svg></button></div></div>`;
   const popHTML = e => e.mode === 'modal' ? `<div class="pop-bg" data-act="bgclose">${e.render()}</div>`
     : `<div class="pop-bg" data-act="bgclose"><div class="pop"><div class="pophd"><b>${C.esc(e.title)}</b><button class="xbtn2" data-act="back" aria-label="Close">✕</button></div><div class="popbody sbody">${e.render()}</div></div></div>`;

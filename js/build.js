@@ -25,18 +25,19 @@
   C.requirements = k => {
     const car = C.car(), lv = C.level(k), to = lv + 1, def = C.BUILDINGS[k], cost = C.costOf(k, to), rows = [];
     if (k !== 'hq') rows.push(['🏛', `Lv.${to} ${C.BUILDINGS.hq.name}`, C.level('hq') >= to, 'hq']);
-    else if (to > C.tierCap()) rows.push(['🎓', `${C.TIERS[car.tier].n} cap is Lv ${C.tierCap()}: move up a tier`, false]);
     else C.hqNeeds(to).forEach(([b, l]) => rows.push([C.BUILDINGS[b].icon, `Lv.${l} ${C.BUILDINGS[b].name}`, C.level(b) >= l, b]));
     if (C.locked(k)) rows.push(['🔒', `Unlocks at ${C.BUILDINGS.hq.name} Lv ${def.needHQ}`, C.level('hq') >= def.needHQ]);
-    if (k !== 'hq' && to > C.tierCap()) rows.push(['🎓', `${C.TIERS[car.tier].n} cap is Lv ${C.tierCap()}`, false]);
-    rows.push(['💵', `${C.short(car.cash)} / ${C.short(cost.cash)}`, car.cash >= cost.cash, 'cash']);
+    if (cost.cash) rows.push(['💵', `${C.short(car.cash)} / ${C.short(cost.cash)}`, car.cash >= cost.cash, 'cash']);
     if (cost.cp) rows.push(['<i class="cpi"></i>', `${C.short(car.cp)} / ${cost.cp} Coaching Points`, car.cp >= cost.cp]);
     return rows;
   };
-  C.canUpgrade = k => !C.inQueue(k) && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]) && C.freeSlot();
+  C.canUpgrade = k => !C.inQueue(k) && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]) && (C.level(k) === 0 || C.freeSlot());   // a first build doesn't need a builder
   // "Ready" arrow on the map: affordable and allowed, ignoring whether a slot is free
-  C.readyArrow = k => !C.inQueue(k) && !C.locked(k) && C.level(k) > 0 && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]);
+  C.readyArrow = k => !C.inQueue(k) && !C.locked(k) && C.level(k) > 0 && C.canAfford(k) && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]);
 
+  C.canAfford = k => C.car().cash >= C.costOf(k, C.level(k) + 1).cash;
+  // ready for its free first build: unlocked, still a blank plot, and the Coaches' Office already stands (it goes first)
+  C.buildable = k => C.level(k) === 0 && !C.locked(k) && !C.inQueue(k) && (k === 'hq' || C.level('hq') >= 1);
   C.startUpgrade = k => {
     const car = C.car(), to = C.level(k) + 1;
     if (!C.canUpgrade(k)) return false;
@@ -46,6 +47,7 @@
     C.save(); return true;
   };
 
+  C.upgradeReward = (k, to) => Math.round((k === 'hq' ? 20 : 5) * to);
   C.remaining = q => Math.max(0, (q.end - C.now()) / 1000);
   // Coins: 1 per minute left for the first hour, then 1 per 2 minutes (see ECONOMY.md)
   C.coinsFor = secs => { const m = Math.ceil(secs / 60); return m <= 60 ? Math.max(1, m) : 60 + Math.ceil((m - 60) / 2); };
@@ -63,7 +65,9 @@
     C.tickRealDay();
     const done = car.queue.filter(q => q.end <= C.now());
     if (done.length) {
-      for (const q of done) { car.b[q.key] = q.to; if (q.key in car.store) car.store[q.key] = Math.min(car.store[q.key], C.now()); }
+      for (const q of done) { car.b[q.key] = q.to; if (q.key in car.store) car.store[q.key] = Math.min(car.store[q.key], C.now());
+        // every finished upgrade gives Coaching Points, more for the Coaches' Office (FEEDBACK 76); first builds give nothing
+        q.cp = q.to <= 1 ? 0 : C.upgradeReward(q.key, q.to); car.cp += q.cp; (C.lvlQueue = C.lvlQueue || []).push(q); }
       car.queue = car.queue.filter(q => q.end > C.now()); C.save();
     }
     return done;

@@ -20,7 +20,13 @@
   // ================= squad list =================
   C.squadHTML = () => {
     const car = C.car(), sq = car.squad, roles = C.roles(), col = C.college();
-    const t = C.tac(), list = sq.filter(p => filter === 'all' || (filter === 'inj' ? p.inj : roles[p.id] === filter)).sort((a, b) => ({ xi: 0, bench: 1, res: 2 }[roles[a.id]] - { xi: 0, bench: 1, res: 2 }[roles[b.id]]) || ['gk', 'def', 'mid', 'fwd'].indexOf(C.POSGROUP(a.pos)) - ['gk', 'def', 'mid', 'fwd'].indexOf(C.POSGROUP(b.pos)) || b.rating - a.rating);
+    // 9q (FEEDBACK 89): your players by line, not a team sheet. A player is in every line their positions fit, ranked by
+    // ability there; All is ranked by rating. XI / bench / reserves now live in Matchday team selection.
+    const t = C.tac(), G = { gk: ['gk'], def: ['def'], mid: ['mid'], att: ['fwd'] };
+    const inLine = (p, ln) => [p.pos].concat(p.sec || []).some(x => G[ln].includes(C.POSGROUP(x)));
+    const lineScore = (p, ln) => p.rating - (G[ln].includes(C.POSGROUP(p.pos)) ? 0 : 4);
+    const f9 = ['all', 'gk', 'def', 'mid', 'att'].includes(filter) ? filter : 'all';
+    const list = sq.filter(p => f9 === 'all' || inLine(p, f9)).sort((a, b) => f9 === 'all' ? b.rating - a.rating : lineScore(b, f9) - lineScore(a, f9));
     // training slots: running plans first; locked slots carry their requirement inside the icon, active ones need no tag
     let qi = 0;
     const dev = C.DEVSLOTS.map(s => { if (C.devSlotOpen(s.id)) { const q = car.devq[qi++];
@@ -30,12 +36,9 @@
     const rare = car.items && car.items.rareRecruit ? `<button class="rarebn" data-act="rare">🎁 You have a Rare recruit from your First Week. <b>Sign them</b>${car.squad.length >= C.rosterCap() ? ' (roster full: upgrade the Dorms or release a player)' : ''}</button>` : '';
     // the header stays put; only the list scrolls (round 6)
     return `<div class="view sqv">
-      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 34)}<div style="flex:1"><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎟 ${car.tokens} number changes</small></div><button class="tacbn sm" data-act="tactics"><i class="xoi"></i> ${t.form}</button></div>
-        <div class="res hres">${C.resBar()}</div><div class="chips">${C.schChip()}</div>
-        <div class="dqrow"><span>Training</span>${dev}</div></div>
-      <div class="filters sqf">${[['all', 'All'], ['xi', 'XI'], ['bench', 'Bench'], ['res', 'Reserves'], ['inj', 'Injured']].map(([k, n]) => `<button class="f ${filter === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${k !== 'all' ? `<i style="background:${ROLE[k][1]}"></i>` : ''}${n}</button>`).join('')}</div>
-      <div class="sqscroll" id="sqscroll">${rare}<div style="padding:0 16px">${C.advice(sq.some(p => p.energy < 60) ? 'snc' : 'mot')}</div>
-      ${filter === 'inj' ? `<button class="btn full sec2" data-act="medical" style="margin:8px 16px;width:calc(100% - 32px)">🩺 Medical Room</button>${list.length ? '' : '<p class="note" style="text-align:center">Nobody injured. 🙌</p>'}` : ''}
+      <div class="phdr9"><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎟 ${car.tokens}</small></div>
+      <div class="ptabs9">${[['all', 'All'], ['gk', 'GK'], ['def', 'DEF'], ['mid', 'MID'], ['att', 'ATT']].map(([k, n]) => `<button class="${f9 === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${n}</button>`).join('')}</div>
+      <div class="sqscroll" id="sqscroll"><div class="slimadv">${C.advice(sq.some(p => p.energy < 60) ? 'snc' : 'mot')}</div>${rare}
       ${list.map(p => `<button class="prow" style="--mk:${p.inj ? '#dc2626' : ROLE[roles[p.id]][1]}" data-act="player" data-v="${p.id}">
         <div class="av plain"><div class="face">${C.faceOf(p)}</div><span class="num">${p.num}</span>${p.inj ? '<span class="injx"></span>' : ''}</div>
         <div class="pinfo"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(p.id) ? ' <span class="cap">C</span>' : ''}${p.want && p.want !== p.num ? ' <span title="Wants a different number">🎟</span>' : ''}${C.inDev(p.id) ? ' <span title="In training">🏋️</span>' : ''}${p.ban ? ' <span title="Suspended">🟥</span>' : ''}</b>
