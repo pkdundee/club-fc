@@ -109,7 +109,7 @@
     M.day = dayKey(); M.pts = 0; M.chests = [];
     const r = C.rng(new Date().getDate() * 131 + new Date().getMonth() * 17), pool = DAILY.slice();
     M.daily = [{ id: 'login', n: 1, goal: 1, claimed: false }].concat([0, 1, 2, 3, 4].map(() => { const t = pool.splice(Math.floor(r() * pool.length), 1)[0]; return { id: t[0], n: 0, goal: t[3], claimed: false }; })); }
-  C.daily = () => { rollDaily(); return meta().daily.map(t => Object.assign({}, t, { def: t.id === 'login' ? LOGIN : DAILY.find(x => x[0] === t.id) })); };
+  C.daily = () => { rollDaily(); const M = meta(); M.daily = M.daily.filter(t => t.id === 'login' || DAILY.some(x => x[0] === t.id)); return M.daily.map(t => Object.assign({}, t, { def: t.id === 'login' ? LOGIN : DAILY.find(x => x[0] === t.id) })); };
   C.loginClaimed = () => { rollDaily(); const t = meta().daily.find(x => x.id === 'login'); return !t || t.claimed; };
   C.giftClaimed = () => !C.car() || C.loginClaimed();
   C.dailyEvent = (id, n = 1) => { if (!C.car()) return; rollDaily(); meta().daily.forEach(t => { if (t.id === id) t.n = Math.min(t.goal, t.n + n); }); };

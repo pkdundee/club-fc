@@ -43,7 +43,7 @@
     const busy = car.queue.length, open = C.openSlots(), rc = C.readyCount();
     const sq = (act, icon, label, badge, bg) => `<button class="sqb" data-act="${act}"><span class="sqc" style="background:${bg}">${C.ico(icon, 26)}</span>${label ? `<b>${label}</b>` : ''}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
     const rnd = (act, icon, badge) => `<button class="rnd" data-act="${act}">${C.ico(icon, 24)}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
-    const t = C.mainNext && C.mainNext(), claim = t && t[3](car), task = t ? (claim ? `Claim: ${t[2]}` : t[2]) : '';
+    const st = C.stripTask(), claim = st && st.claim, task = st ? st.text : '';
     const newB = Object.keys(C.BUILDINGS).filter(C.buildable).length, readyB = car.queue.some(q => C.buildReady(q.key));
     return `<div class="view">
       <div class="map" id="map"><div id="mapin"></div></div>
@@ -68,6 +68,13 @@
       ${C.drawerOpen ? drawerHTML() : ''}
     </div>`;
   }
+  // screen measurements for checking phone layouts (FEEDBACK 100)
+  C.diagText = () => { const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom);top:env(safe-area-inset-top)'; document.body.appendChild(pr);
+    const cs = getComputedStyle(pr), sab = cs.height, sat = cs.top; pr.remove(); const app = C.$('#app'), r = app ? app.getBoundingClientRect() : { top: 0, bottom: 0, height: 0 }, tb = C.$('.tabs'), t = tb ? tb.getBoundingClientRect() : null;
+    const vv = window.visualViewport;
+    return [`screen ${screen.width}×${screen.height} · dpr ${devicePixelRatio}`, `window ${innerWidth}×${innerHeight}`, `visible ${vv ? Math.round(vv.width) + '×' + Math.round(vv.height) + ' · zoom ' + vv.scale.toFixed(2) : 'n/a'}`,
+      `home-bar space ${sab} · top inset ${sat}`, `app frame ${Math.round(r.top)}–${Math.round(r.bottom)} (h ${Math.round(r.height)})`, t ? `tab bar ${Math.round(t.top)}–${Math.round(t.bottom)}` : 'tab bar n/a',
+      `home-screen app ${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'yes' : 'no'}`].join('\n'); };
   // ---------- the one top bar (FEEDBACK 75, 97): college badge as the profile box, resources where you can spend, Store ----------
   C.topBar = (spend, cls = 'tbstatic') => { const car = C.car(), col = C.college(), a = C.acct();
     return `<div class="${cls} tb9">
@@ -232,9 +239,24 @@
   C.ACTS.bgo = v => C.goToBuilding(v);
   C.ACTS.rqueue = () => C.openResearchQueue();
   // the task strip (FEEDBACK 94): claims on the spot when done; otherwise takes you straight to the task
-  C.ACTS.taskgo = () => { const t = C.mainNext && C.mainNext(); if (!t) return; const car = C.car();
-    if (t[3](car)) { const strip = C.$('.taskstrip'), from = strip ? strip.getBoundingClientRect() : null, r = C.mainClaim(t[0]); if (r) { C.render(); C.flyRewards(r, from); } return; }
-    const [act, v] = [t[5], t[6]];
+  // what the strip shows (FEEDBACK 94, 101): a finished Mission to claim; otherwise the next Mission if you can act on it now;
+  // otherwise the most useful thing to do now. Long-term goals (a whole season, several wins) stay on the Missions screen.
+  const LONG = { top4: 1, wins3: 1, win: 1 };
+  C.stripTask = () => { const car = C.car(), t = C.mainNext && C.mainNext();
+    if (t && t[3](car) && t[0] !== 'recfill') return { claim: 1, text: `Claim: ${t[2]}`, t };
+    if (t && !LONG[t[0]] && !(t[5] === 'bldopen' && !C.readyArrow(t[6]) && !C.buildable(t[6]))) return { text: t[2], t };
+    const ks = Object.keys(C.BUILDINGS), done = car.queue.find(q => C.buildReady(q.key));
+    if (done) return { text: `Complete the ${C.BUILDINGS[done.key].name}`, go: () => C.goToBuilding(done.key) };
+    const nb = ks.find(C.buildable); if (nb) return { text: `Build the ${C.BUILDINGS[nb].name}`, go: () => C.goToBuilding(nb) };
+    if (C.freeSlot()) { const r = C.recommendBuilding(); if (r && C.readyArrow(r)) return { text: `Upgrade the ${C.BUILDINGS[r].name} to Lv ${C.level(r) + 1}`, go: () => C.goToBuilding(r) }; }
+    const pr = C.pbRecommend && C.pbRecommend(); if (pr && C.pbAffordable(pr) && C.pbRunning() < C.pbSlots()) return { text: `Research ${C.pbName(pr)}`, go: () => C.act('pbrec') };
+    const open = C.rosterCap(car) - car.squad.length; if (open > 0) return { text: `Fill ${open} open roster spot${open > 1 ? 's' : ''}`, go: () => { C.tab = 'recruit'; C.render(); } };
+    if (!car.pre && C.myFixture && C.myFixture()) return { text: 'Play your next match', go: () => C.act('prematch') };
+    return t ? { text: t[2], t } : null; };
+  C.ACTS.taskgo = () => { const st = C.stripTask(); if (!st) return;
+    if (st.claim) { const strip = C.$('.taskstrip'), from = strip ? strip.getBoundingClientRect() : null, r = C.mainClaim(st.t[0]); if (r) { C.render(); C.flyRewards(r, from); } return; }
+    if (st.go) return st.go();
+    const [act, v] = [st.t[5], st.t[6]];
     if (act === 'bldopen') return C.goToBuilding(v);
     if (act === 'tab') { C.tab = v; C.ui.closeAll(); return C.render(); }
     C.act(act, v); };
@@ -364,6 +386,7 @@
       <label class="fld">Art check: show every building at render… (map only, nothing is changed)</label>
       <div class="rgrid">${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<button class="${(a.testRender || 0) === v ? 'on' : ''}" data-act="testrender" data-v="${v}">${v || 'Off'}</button>`).join('')}</div>
       <p class="note">Testing tools are for this preview build only.</p>
+      <label class="fld">Screen check (send a screenshot of this if anything looks off)</label><div class="diag" id="diag">${C.diagText()}</div>
       <p class="note">Version: ${C.BUILD}</p><button class="btn full sec2" data-act="checkupdate">🔄 Check for update</button>
       <button class="btn full danger" data-act="wipe">Delete all saved data…</button>`;
   });

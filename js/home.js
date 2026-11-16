@@ -30,7 +30,7 @@
     const car = C.car(), d = daily(), inj = car.squad.filter(p => p.inj && p.injury && !p.injury.physio && p.injury.sev === 0 && !p.injury.conc && p.injury.k !== 'flu').length;
     const ready = Object.keys(C.BUILDINGS).filter(k => C.readyArrow(k) || (C.newBuildable().includes(k) && C.requirements(k).every(r => r[2])));
     if (!C.loginClaimed()) return ['🎁', 'Claim your login reward.', 'dailytasks', ''];
-    if (C.mainNext) { const t = C.mainNext(); if (t && (car.pre || C.meta().main.length < 10)) return t[3](car) ? ['🎯', `Claim your Mission reward: ${t[2]}.`, 'events', ''] : [t[1], t[2] + '.', t[5], t[6]]; }
+    if (C.stripTask) { const st = C.stripTask(); if (st && (car.pre || C.meta().main.length < 10 || st.go)) return [st.claim ? '🎯' : '👉', st.text + '.', 'taskgo', '']; }   // same as the campus task strip (9s)
     if (C.loClaimable()) return ['🎉', `You have ${C.loClaimable()} reward${C.loClaimable() > 1 ? 's' : ''} waiting in Events.`, 'events', ''];
     if (C.idleBuilders() && ready.length) return ['🔨', `A builder is free: upgrade the ${C.BUILDINGS[ready[0]].name}.`, 'bldopen', ready[0]];
     const coll = Object.keys(C.PRODUCERS).filter(k => C.bubble(k));

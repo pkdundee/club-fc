@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'phase-9r · 16 Nov 2026';
+  C.BUILD = 'phase-9s · 16 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -37,6 +37,7 @@
     const car = C.car();
     if (NEEDS_OK[a] && !(el && el.dataset.ok)) { const pv = preview(a, v); if (pv) return C.confirm(pv[0], pv[1], pv[2], a, v); }
     if (el && el.dataset.ok) C.ui.back();
+    if (C.drawerOpen && a !== 'drawer' && a !== 'drawertab') { C.drawerOpen = false; const d = C.$('.drawer'); if (d) d.remove(); }   // any action from the drawer closes it
     if (C.ACTS[a]) return C.ACTS[a](v, el);   // actions registered by later modules (meta.js)
     switch (a) {
       case 'tab': C.tab = v; C.selB = null; C.ui.closeAll(); C.render(); break;
@@ -241,9 +242,16 @@
       <button class="btn full pri" data-act="close">Let's build</button>`);
   }
 
+  // 9s (FEEDBACK 101): no page zoom anywhere. iPhone Safari ignores user-scalable=no, so pinches outside the map and
+  // its gesture events are stopped here; the map keeps its own pinch zoom (pointer events, touch-action: none).
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1 && !e.target.closest('#map')) e.preventDefault(); }, { passive: false });
+  let lastTouchEnd = 0; document.addEventListener('touchend', e => { const t = Date.now(); if (t - lastTouchEnd < 320 && !e.target.closest('#map, input, textarea')) e.preventDefault(); lastTouchEnd = t; }, { passive: false });
   // one tap handler for everything
   document.addEventListener('click', e => {
     const el = e.target.closest('[data-act]');
+    // the build drawer closes on any tap outside it (FEEDBACK 101)
+    if (C.drawerOpen && !e.target.closest('.drawer') && !(el && el.dataset.act === 'drawer')) { C.drawerOpen = false; C.render(); if (!el) return; }
     if (!el) { if (C.selB && e.target.closest('#map') && !C.mapDragged()) { C.selB = null; C.redrawMap(); } return; }
     if (el.dataset.act === 'bgclose' && e.target !== el) return;
     e2 = e; act(el.dataset.act, el.dataset.v, el);
