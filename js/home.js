@@ -53,8 +53,8 @@
     const tile = (icon, name, act, v, badge) => `<button class="htile" data-act="${act}" data-v="${v}"><span class="hi">${icon}</span><b>${name}</b>${badge ? `<em>${badge}</em>` : ''}</button>`;
     const S = car.staff || {};
     return `<div class="view scrolly home">
-      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<div style="flex:1"><b>Coach ${C.esc(car.coach)}</b><small>${C.esc(col.short)} · ${C.tierLabel()} · ⭐ ${C.rep()}</small></div><button class="hgear" data-act="collegemap" data-v="" aria-label="College Map">🗺</button><button class="hgear" data-act="ask" aria-label="Help">❓</button><button class="hgear" data-act="settings" aria-label="Settings">⚙️</button></div>
-        <div class="res hres">${C.resBar()}</div><div class="hpow">${C.powerBadge('lt')}</div></div>
+      ${C.topBar(true)}
+      <div class="hhead9" style="--c1:${col.c1}">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 52)}<div><b>${C.esc(col.short)} ${C.esc(col.mascot)}</b><small>${car.gender === 'w' ? "Women's" : "Men's"} soccer · ${C.tierLabel()} · ⭐ ${C.rep()}${C.sea && C.sea() && C.table && C.table().find(x => x.i === 0) && C.table().find(x => x.i === 0).p ? ' · ' + (t => t.w + 'W ' + t.d + 'D ' + t.l + 'L')(C.table().find(x => x.i === 0)) : ''}</small></div></div>
       ${C.nextStepHTML()}
       ${C.loginClaimed() ? '' : `<button class="gift" data-act="dailytasks"><span>🎁</span><div><b>Login reward</b><small>${C.rwText(C.GIFT)} · waiting in your Daily tasks</small></div><em>Go</em><i class="ldot"></i></button>`}
       <div class="homebn">${C.gamedayHTML()}</div>

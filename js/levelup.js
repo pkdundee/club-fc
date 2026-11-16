@@ -27,6 +27,12 @@
   }
   function next() { if (showing || !C.lvlQueue || !C.lvlQueue.length) return; show(C.lvlQueue.shift()); }
   C.nextLevelUp = next;
+  // a small reward list above a tapped chest; any tap elsewhere closes it
+  C.rewardPreview = (r, el) => { document.querySelectorAll('.chpop').forEach(x => x.remove()); if (!el) return C.toast('🧰 ' + C.rwText(r));
+    const b = el.getBoundingClientRect(), p = document.createElement('div'); p.className = 'chpop';
+    p.innerHTML = `<b>Rewards</b>${C.itemTiles ? C.itemTiles(r) : C.esc(C.rwText(r))}`; document.body.appendChild(p);
+    const w = p.offsetWidth, x = Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)); p.style.left = x + 'px'; p.style.top = Math.max(8, b.top - p.offsetHeight - 8) + 'px';
+    setTimeout(() => document.addEventListener('click', () => p.remove(), { once: true }), 0); };
 
   // Ask before spending Coins to finish something now (FEEDBACK 79, 81). "Don't show me today" skips it until tomorrow.
   C.confirmCoins = (n, go) => {

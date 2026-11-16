@@ -55,7 +55,7 @@
   C.isFreeFinish = q => C.remaining(q) <= FREE_FINISH;
   C.finishNow = (q, pay) => {
     if (pay) { const g = C.goldToFinish(q); if (C.acct().gold < g) return false; C.acct().gold -= g; }
-    q.end = C.now(); C.tick(); return true;
+    q.end = C.now(); return C.completeBuild(q.key);   // Finish Now completes straight away, once paid for
   };
   C.adSpeedUp = q => { if (C.adsLeft() <= 0) return false; C.acct().adsUsed++; q.end -= 15 * 60 * 1000; C.tick(); return true; };
 
@@ -63,14 +63,20 @@
   C.tick = () => {
     const car = C.car(); if (!car) return [];
     C.tickRealDay();
-    const done = car.queue.filter(q => q.end <= C.now());
-    if (done.length) {
-      for (const q of done) { car.b[q.key] = q.to; if (q.key in car.store) car.store[q.key] = Math.min(car.store[q.key], C.now());
-        // every finished upgrade gives Coaching Points, more for the Coaches' Office (FEEDBACK 76); first builds give nothing
-        q.cp = q.to <= 1 ? 0 : C.upgradeReward(q.key, q.to); car.cp += q.cp; (C.lvlQueue = C.lvlQueue || []).push(q); }
-      car.queue = car.queue.filter(q => q.end > C.now()); C.save();
-    }
-    return done;
+    // 9r (FEEDBACK 92): a finished build waits, marked ready, until the player taps it. Nothing completes on its own,
+    // so no message ever pops up in the middle of something else (a match, say).
+    const done = car.queue.filter(q => q.end <= C.now() && !q.ready);
+    if (done.length) { done.forEach(q => q.ready = 1); C.save(); }
+    return [];
+  };
+  C.buildReady = k => { const q = C.inQueue(k); return !!(q && (q.ready || q.end <= C.now())); };
+  // the player completes a finished build: the level goes up, the reward arrives and the level-up screen shows
+  C.completeBuild = k => {
+    const car = C.car(), q = C.inQueue(k); if (!q || q.end > C.now()) return false;
+    car.b[q.key] = q.to; if (q.key in car.store) car.store[q.key] = Math.min(car.store[q.key], C.now());
+    // every finished upgrade gives Coaching Points, more for the Coaches' Office (FEEDBACK 76); first builds give nothing
+    q.cp = q.to <= 1 ? 0 : C.upgradeReward(q.key, q.to); car.cp += q.cp; (C.lvlQueue = C.lvlQueue || []).push(q);
+    car.queue = car.queue.filter(x => x !== q); C.save(); C.nextLevelUp && C.nextLevelUp(); return true;
   };
 
   // ---- production (the Clubhouse makes Booster $, the Performance Lab makes Coaching Points) ----

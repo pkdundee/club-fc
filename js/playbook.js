@@ -15,7 +15,7 @@
     ['prog', '💵', 'Program', [['Fan Engagement', 'crowd', .01, 10, 'attendance'], ['Boosters', 'gate', .02, 10, 'gate income'], ['Campus Jobs', 'jobs', .2, 5, 'campus jobs']]],
     ['staff', '🧑‍🏫', 'Staff', [['Staff Room', 'cxp', .03, 10, 'coach XP'], ['Extra Queue Slot', 'slot', 1, 1, 'a free 4th research and training slot'], ['Headhunter', 'hunt', .1, 5, 'better coaches in the market']]]
   ];
-  C.PBSLOTS = [{ id: 'free', name: 'Free slot' }, { id: 'vip', name: "Coach's Club slot", why: "Join the Coach's Club" }, { id: 'iap', name: 'Extra research slot', why: 'One-off purchase' }, { id: 'prog', name: 'Earned slot', why: 'Playbook: Extra Queue Slot, or Film Room Lv 10' }];
+  C.PBSLOTS = [{ id: 'free', name: 'Free slot' }, { id: 'vip', name: "Coach's Club slot", why: "Join the Coach's Club" }, { id: 'iap', name: 'Extra research slot', why: 'One-off purchase' }, { id: 'prog', name: 'Earned slot', why: 'Playbook: Extra Queue Slot, or Performance Lab Lv 10' }];
   const pb = () => { const car = C.car(); if (!car.pb) car.pb = {}; if (!car.pbq) car.pbq = []; return car.pb; };
   const node = key => { const [b, t] = key.split('.'); const B = C.PB.find(x => x[0] === b); return { B, n: B[3][+t], t: +t }; };
   C.pbLv = key => pb()[key] || 0;

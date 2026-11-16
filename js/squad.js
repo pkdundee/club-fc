@@ -36,7 +36,7 @@
     const rare = car.items && car.items.rareRecruit ? `<button class="rarebn" data-act="rare">🎁 You have a Rare recruit from your First Week. <b>Sign them</b>${car.squad.length >= C.rosterCap() ? ' (roster full: upgrade the Dorms or release a player)' : ''}</button>` : '';
     // the header stays put; only the list scrolls (round 6)
     return `<div class="view sqv">
-      <div class="phdr9"><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎟 ${car.tokens}</small></div>
+      ${C.topBar(false)}<div class="phdr9"><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎟 ${car.tokens}</small></div>
       <div class="ptabs9">${[['all', 'All'], ['gk', 'GK'], ['def', 'DEF'], ['mid', 'MID'], ['att', 'ATT']].map(([k, n]) => `<button class="${f9 === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${n}</button>`).join('')}</div>
       <div class="sqscroll" id="sqscroll"><div class="slimadv">${C.advice(sq.some(p => p.energy < 60) ? 'snc' : 'mot')}</div>${rare}
       ${list.map(p => `<button class="prow" style="--mk:${p.inj ? '#dc2626' : ROLE[roles[p.id]][1]}" data-act="player" data-v="${p.id}">

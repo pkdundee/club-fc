@@ -41,19 +41,16 @@
     // small side buttons, the next task in a strip above the tabs, and the builders drawer along the bottom.
     const car = C.car(), col = C.college(), a = C.acct();
     const busy = car.queue.length, open = C.openSlots(), rc = C.readyCount();
-    const sq = (act, icon, label, badge, bg) => `<button class="sq" data-act="${act}"><span class="sqc" style="background:${bg}">${C.ico(icon, 26)}</span>${label ? `<b>${label}</b>` : ''}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
+    const sq = (act, icon, label, badge, bg) => `<button class="sqb" data-act="${act}"><span class="sqc" style="background:${bg}">${C.ico(icon, 26)}</span>${label ? `<b>${label}</b>` : ''}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
     const rnd = (act, icon, badge) => `<button class="rnd" data-act="${act}">${C.ico(icon, 24)}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
-    const t = C.mainNext && C.mainNext(), task = t ? (t[3](car) ? `🎯 Claim: ${t[2]}` : `${t[1]} ${t[2]}`) : '';
+    const t = C.mainNext && C.mainNext(), claim = t && t[3](car), task = t ? (claim ? `Claim: ${t[2]}` : t[2]) : '';
+    const newB = Object.keys(C.BUILDINGS).filter(C.buildable).length, readyB = car.queue.some(q => C.buildReady(q.key));
     return `<div class="view">
       <div class="map" id="map"><div id="mapin"></div></div>
-      <div class="hud top tb9">
-        <button class="pf" data-act="profile" aria-label="Profile">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<span class="pflv">${car.b.hq || 0}</span></button>
-        <div class="tbm"><div class="res">${C.resBar()}</div><div class="tbpow" data-act="proginfo"><i class="ppi"></i>${C.programPower().toLocaleString()}</div></div>
-        <button class="storeb" data-act="store">${C.ico('cart', 22)}<span><i class="coin"></i><b id="r-gold2">${C.short(a.gold)}</b></span></button>
-      </div>
+      ${C.topBar(true, 'hud top')}
       <div class="side tl9">
-        ${sq('drawer', 'hammer', busy + '/' + open, rc ? rc : 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
-        ${sq('playbook', 'book', C.pbRunning() + '/' + C.pbSlots(), 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
+        ${sq('queue', 'hammer', busy + '/' + open, readyB ? true : 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
+        ${sq('rqueue', 'book', C.pbRunning() + '/' + C.pbSlots(), 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
       </div>
       <div class="side tr9">
         ${C.fwActive() ? sq('firstweek', 'cal', 'Week 1', C.fwClaimable(), 'linear-gradient(160deg,#fb923c,#c2410c)') : ''}
@@ -61,22 +58,27 @@
         ${sq('events', 'gift', 'Events', C.loClaimable(), 'linear-gradient(160deg,#fbbf24,#d97706)')}
       </div>
       <div class="side bl9">
-        ${rnd('blist', 'list', 0)}
-        ${rnd('nexttask', 'radio', C.mainReady())}
-        ${rnd('ask', 'help', 0)}
+        ${rnd('drawer', 'hammer', newB)}
       </div>
       <div class="side br9">
-        ${sq('inventory', 'bag', 'Items', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
         ${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
+        ${sq('inventory', 'bag', 'Items', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
       </div>
-      ${task ? `<button class="taskstrip" data-act="nexttask"><span class="tsi">${C.ico('target', 20)}</span><span class="tst">${C.esc(task)}</span><span class="tsg">›</span></button>` : ''}
+      ${task ? `<button class="taskstrip ${claim ? 'claim' : ''}" data-act="taskgo"><span class="tsi">${C.ico('radio', 20)}</span><span class="tst">${C.esc(task)}</span>${claim ? `<span class="tsr">${C.itemTiles ? '' : ''}🎁</span>` : '<span class="tsg">›</span>'}</button>` : ''}
       ${C.drawerOpen ? drawerHTML() : ''}
     </div>`;
   }
+  // ---------- the one top bar (FEEDBACK 75, 97): college badge as the profile box, resources where you can spend, Store ----------
+  C.topBar = (spend, cls = 'tbstatic') => { const car = C.car(), col = C.college(), a = C.acct();
+    return `<div class="${cls} tb9">
+        <button class="pf" data-act="profile" aria-label="Profile">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<span class="pflv">${car.b.hq || 0}</span></button>
+        <div class="tbm">${spend ? `<div class="res">${C.resBar()}</div>` : `<b class="tbname">${C.esc(col.short)} ${C.esc(col.mascot)}</b>`}<div class="tbpow" data-act="proginfo"><i class="ppi"></i>${C.programPower().toLocaleString()}</div></div>
+        <button class="storeb" data-act="store">${C.ico('cart', 22)}<span><i class="coin"></i><b id="r-gold2">${C.short(a.gold)}</b></span></button>
+      </div>`; };
   // ---------- builders drawer (FEEDBACK 87): every building as a card, by type, in a scrolling strip along the bottom ----------
   C.drawerTab = 'economy';
   function drawerHTML() {
-    const car = C.car(), keys = Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === C.drawerTab);
+    const car = C.car(), keys = Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === C.drawerTab && C.level(k) === 0 && !C.inQueue(k));   // 9r: only buildings not built yet (FEEDBACK 93)
     const order = k => C.buildable(k) ? 0 : C.readyArrow(k) ? 1 : C.inQueue(k) ? 2 : C.locked(k) ? 4 : 3;
     const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), to = lv + 1, cost = C.costOf(k, to), lock = C.locked(k);
       const need = !lock && lv && C.level('hq') < to ? `Needs Coaches' Office Lv ${to}` : '';
@@ -85,8 +87,8 @@
       return `<button class="dcard ${lock ? 'off' : ''} ${C.buildable(k) ? 'new' : ''}" data-act="bldopen" data-v="${k}">${C.buildable(k) ? '<s>NEW</s>' : C.readyArrow(k) ? '<i class="bup"></i>' : ''}
         <div class="dpic">${C.buildingThumb(k, Math.max(1, lv), car, 120, 80)}</div><b>${C.esc(d.name)}</b><small>${C.esc(C.BJOB[k] || '')}</small><em>${lv ? 'Lv ' + lv + ' · ' : ''}${foot}</em></button>`; };
     const tb = (k, n) => `<button class="${C.drawerTab === k ? 'on' : ''}" data-act="drawertab" data-v="${k}">${n}</button>`;
-    return `<div class="drawer"><div class="dtabs">${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}<button disabled title="Coming later">Decoration</button><button class="dx" data-act="drawer">✕</button></div>
-      <div class="dstrip">${keys.sort((a, b) => order(a) - order(b) || C.level(a) - C.level(b)).map(card).join('')}</div></div>`;
+    return `<div class="drawer"><div class="dtabs">${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}<button disabled title="Coming later">Decoration</button><button class="dlist" data-act="blist" aria-label="All your buildings">${C.ico('list', 18)}</button><button class="dx" data-act="drawer">✕</button></div>
+      <div class="dstrip">${keys.length ? keys.sort((a, b) => order(a) - order(b)).map(card).join('') : `<p class="dnone">Everything here is built. Tap ${C.ico('list', 14)} to see all your buildings.</p>`}</div></div>`;
   }
   C.ACTS.drawer = () => { C.drawerOpen = !C.drawerOpen; C.selB = null; C.render(); };
   C.ACTS.drawertab = v => { C.drawerTab = v; C.render(); };
@@ -94,9 +96,9 @@
   // ---------- profile popup (FEEDBACK 75): coach, college, key stats, and the account buttons ----------
   C.openProfile = () => C.ui.open('Profile', () => { const car = C.car(), col = C.college();
     const b = (act, icon, n) => `<button class="pfb" data-act="${act}"><span>${icon}</span>${n}</button>`;
-    return `<div class="pfhead">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b>Coach ${C.esc(car.coach)}</b><small>${C.esc(col.full)} · ${car.gender === 'w' ? "Women's" : "Men's"} program</small></div></div>
+    return `<div class="pfhead">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b>${C.esc(col.full)} ${C.esc(col.mascot)}</b><small>${car.gender === 'w' ? "Women's" : "Men's"} soccer · ${C.esc(C.tierLabel())} · Coach</small></div></div>
       <div class="pfstats"><div><small>Program Power</small><b>${C.programPower().toLocaleString()}</b></div><div><small>Coaches' Office</small><b>Lv ${car.b.hq || 0}</b></div><div><small>Reputation</small><b>${C.rep()}</b></div><div><small>Tier</small><b>${C.esc(C.tierLabel())}</b></div></div>
-      <div class="pfbtns">${b('proginfo', '📊', 'Program')}${b('careers', '👤', 'Account')}${b('settings', '⚙️', 'Settings')}${b('collegemap', '🗺', 'Rankings')}</div>`; });
+      <div class="pfbtns">${b('proginfo', '📊', 'Program')}${b('careers', '👤', 'Account')}${b('settings', '⚙️', 'Settings')}${b('collegemap', '🗺', 'Rankings')}${b('ask', '❓', 'Help')}</div>`; });
 
   // the next match, front and center (Q13: play whenever you like; energy is the natural limit)
   C.gamedayHTML = gamedayHTML;
@@ -198,29 +200,64 @@
     return out;
   };
   // ---------- Building Queue (item 38): every builder, what they're doing, and how to get more ----------
+  // ---------- queues (FEEDBACK 93): every slot with its state; an idle slot takes you to the recommended next step ----------
+  C.recommendBuilding = () => { const ks = Object.keys(C.BUILDINGS);
+    return ks.find(C.buildable) || (C.readyArrow('hq') ? 'hq' : ks.filter(C.readyArrow).sort((a, b) => C.level(a) - C.level(b))[0]) || 'hq'; };
+  const slotRow = (i, state, title, sub, btn) => `<div class="bqrow ${state}"><div class="bq-f">${state === 'lock' ? '🔒' : state === 'busy' ? '👷' : '😴'}<i>${i + 1}</i></div><div class="bq-t"><b>${title}</b>${sub}</div>${btn || ''}</div>`;
   C.openQueue = () => C.ui.open('Building Queue', () => {
-    const car = C.car();
+    const car = C.car(), openS = C.SLOTS.filter(x => C.slotOpen(x.id)), rec = C.recommendBuilding();
     const rows = C.SLOTS.map((sl, i) => {
-      const open = C.slotOpen(sl.id), q = open ? car.queue[C.SLOTS.filter(x => C.slotOpen(x.id)).indexOf(sl)] : null;
-      const face = `<div class="bq-f">${open ? (q ? '👷' : '😴') : '🔒'}<i>${i + 1}</i></div>`;
-      if (!open) return `<div class="bqrow lock">${face}<div class="bq-t"><b>${C.esc(sl.name)}</b><small>${sl.id === 'prog' ? "Earned at Coaches' Office Lv 10" : C.esc(sl.why)}</small></div>${sl.id === 'prog' ? '' : '<button class="btn sm2" data-act="store">Get</button>'}</div>`;
-      if (q) { const d = C.BUILDINGS[q.key], f = 1 - C.remaining(q) / ((q.end - q.start) / 1000);
-        return `<div class="bqrow">${face}<div class="bq-t"><b>${d.icon} ${C.esc(d.name)} → Lv ${q.to}</b><div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><small data-timer="${q.key}">${C.dur(C.remaining(q))}</small></div><button class="btn sm2" data-act="bldopen" data-v="${q.key}">⏩ Speed up</button></div>`; }
-      return `<div class="bqrow">${face}<div class="bq-t"><b>Idle</b><small>Ready to build</small></div><button class="btn sm2 pri" data-act="blist">Construct</button></div>`;
+      if (!C.slotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), `<small>${sl.id === 'prog' ? "Available at Coaches' Office Lv 10" : sl.id === 'vip' ? "Available with the Coach's Club" : 'Buy the pack to unlock it for good'}</small>`, sl.id === 'prog' ? '' : '<button class="btn sm2" data-act="store">Get</button>');
+      const q = car.queue[openS.indexOf(sl)];
+      if (q) { const d = C.BUILDINGS[q.key], f = C.buildReady(q.key) ? 1 : 1 - C.remaining(q) / ((q.end - q.start) / 1000);
+        return slotRow(i, 'busy', `${C.esc(d.name)} → Lv ${q.to}`, `<div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><small ${C.buildReady(q.key) ? '' : `data-timer="${q.key}"`}>${C.buildReady(q.key) ? 'Finished' : C.dur(C.remaining(q))}</small>`,
+          C.buildReady(q.key) ? `<button class="btn sm2 pri" data-act="bdone" data-v="${q.key}">Complete</button>` : `<button class="btn sm2" data-act="bgo" data-v="${q.key}">Go</button>`); }
+      return slotRow(i, 'idle', 'Idle', `<small>Next: ${C.esc(C.BUILDINGS[rec].name)}</small>`, `<button class="btn sm2 pri" data-act="bgo" data-v="${rec}">Go</button>`);
     }).join('');
-    return `<p class="note" style="margin-top:0">Each builder works on one building at a time. More builders come from the Coach's Club, a one-off purchase and your Coaches' Office.</p>${rows}`;
+    return `<p class="note" style="margin-top:0">Each builder works on one building at a time. Tap Go on an idle builder for the recommended next upgrade.</p>${rows}`;
   });
+  C.openResearchQueue = () => C.ui.open('Research Queue', () => {
+    const car = C.car(), openS = C.PBSLOTS.filter(x => C.pbSlotOpen(x.id)), q = car.pbq || [];
+    const rows = C.PBSLOTS.map((sl, i) => {
+      if (!C.pbSlotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), `<small>${sl.id === 'prog' ? 'Available at Performance Lab Lv 10' : sl.id === 'vip' ? "Available with the Coach's Club" : 'Buy the pack to unlock it for good'}</small>`, sl.id === 'prog' ? '' : '<button class="btn sm2" data-act="store">Get</button>');
+      const r = q[openS.indexOf(sl)];
+      if (r) { const nm = C.pbName ? C.pbName(r.key) : r.key; return slotRow(i, 'busy', `${C.esc(nm)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))}</small>`, '<button class="btn sm2" data-act="playbook">Go</button>'); }
+      return slotRow(i, 'idle', 'Idle', '<small>Start the recommended research</small>', '<button class="btn sm2 pri" data-act="playbook">Go</button>');
+    }).join('');
+    return `<p class="note" style="margin-top:0">Research runs in the Performance Lab. Each slot researches one Playbook item at a time.</p>${rows}`;
+  }, { popup: true });
+  // take the player to a building on the campus map: pan to it and select it, ready to upgrade (FEEDBACK 93, 94)
+  C.goToBuilding = k => { C.ui.closeAll(); C.drawerOpen = false; C.tab = 'campus'; C.selB = k; C.render();
+    const m = C.$('#map'), pt = C.plotPoint(k); if (m && pt) { m.scrollLeft = pt[0] * zoom - m.clientWidth / 2; m.scrollTop = pt[1] * zoom - m.clientHeight / 2; view = { sl: m.scrollLeft, st: m.scrollTop }; } };
+  C.ACTS.bgo = v => C.goToBuilding(v);
+  C.ACTS.rqueue = () => C.openResearchQueue();
+  // the task strip (FEEDBACK 94): claims on the spot when done; otherwise takes you straight to the task
+  C.ACTS.taskgo = () => { const t = C.mainNext && C.mainNext(); if (!t) return; const car = C.car();
+    if (t[3](car)) { const strip = C.$('.taskstrip'), from = strip ? strip.getBoundingClientRect() : null, r = C.mainClaim(t[0]); if (r) { C.render(); C.flyRewards(r, from); } return; }
+    const [act, v] = [t[5], t[6]];
+    if (act === 'bldopen') return C.goToBuilding(v);
+    if (act === 'tab') { C.tab = v; C.ui.closeAll(); return C.render(); }
+    C.act(act, v); };
+  // reward icons burst from the strip and fly to their balances in the top bar
+  C.flyRewards = (r, from) => { if (!from) return; const map = { cash: ['💵', '#r-cash'], cp: ['<i class="cpi"></i>', '#r-cp'], gold: ['<i class="coin"></i>', '#r-gold2'] };
+    Object.keys(r).forEach((k, ki) => { const m = map[k] || ['🎁', '.pf']; const to = C.$(m[1]); if (!to) return; const tr = to.getBoundingClientRect();
+      for (let i = 0; i < 6; i++) { const el = document.createElement('div'); el.className = 'flyr'; el.innerHTML = m[0];
+        const x0 = from.left + from.width / 2 + (Math.random() - .5) * 80, y0 = from.top + from.height / 2 + (Math.random() - .5) * 20;
+        el.style.left = x0 + 'px'; el.style.top = y0 + 'px'; document.body.appendChild(el);
+        setTimeout(() => { el.style.transform = `translate(${(Math.random() - .5) * 60}px,${-30 - Math.random() * 40}px) scale(1.3)`; }, 20 + ki * 80);
+        setTimeout(() => { el.style.transition = 'transform .55s cubic-bezier(.5,0,.7,1), opacity .55s'; el.style.transform = `translate(${tr.left + tr.width / 2 - x0}px,${tr.top + tr.height / 2 - y0}px) scale(.6)`; el.style.opacity = '.4'; }, 300 + i * 40 + ki * 80);
+        setTimeout(() => { el.remove(); to.classList.remove('bump'); void to.offsetWidth; to.classList.add('bump'); }, 900 + i * 40 + ki * 80); } }); };
   // ---------- List of buildings (items 31, 44): everything on campus, what's ready, new builds first ----------
   // ---------- full list of buildings (FEEDBACK 77, 87): full screen, Economy / Soccer, 4 columns, each with its status ----------
   C.blistTab = 'economy';
   C.openBuildList = () => C.ui.open('Buildings', () => {
-    const car = C.car(), tab = C.blistTab === 'program' ? 'economy' : C.blistTab, keys = Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === tab);
+    const car = C.car(), tab = C.blistTab === 'program' ? 'economy' : C.blistTab, keys = Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === tab && C.level(k) > 0);   // 9r: built buildings; new ones are in the build drawer
     const rank = k => C.buildable(k) ? 0 : C.readyArrow(k) ? 1 : C.inQueue(k) ? 2 : C.locked(k) ? 4 : 3;
     const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), lock = C.locked(k), max = !lock && lv && (lv >= C.topLevel(k) || (k !== 'hq' && lv >= C.level('hq')));
       const flag = C.buildable(k) ? '<s class="bnew">NEW</s>' : C.readyArrow(k) ? '<i class="bup"></i>' : '';
       const lab = lock ? `🔒 HQ ${d.needHQ}` : q ? '🔨 ' + C.dur(C.remaining(q)) : !lv ? 'Build' : max ? 'Max Level' : 'Lv.' + lv;
-      return `<button class="bcard9 ${lock ? 'off' : ''}" data-act="bldopen" data-v="${k}">${flag}<div class="bpic">${C.buildingThumb(k, Math.max(1, lv), car, 110, 76)}<b class="blv">${lab}</b></div><span>${C.esc(d.name)}</span></button>`; };
-    const n = t => Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === t && (C.buildable(k) || C.readyArrow(k))).length;
+      return `<button class="bcard9 ${lock ? 'off' : ''}" data-act="bgo" data-v="${k}">${flag}<div class="bpic">${C.buildingThumb(k, Math.max(1, lv), car, 110, 76)}<b class="blv">${lab}</b></div><span>${C.esc(d.name)}</span></button>`; };
+    const n = t => Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === t && C.level(k) > 0 && C.readyArrow(k)).length;
     const tb = (k, nm) => `<button class="${tab === k ? 'on' : ''}" data-act="blisttab" data-v="${k}">${nm}${n(k) ? ` <em>${n(k)}</em>` : ''}</button>`;
     return `<div class="bigtabs">${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}</div>
       <div class="bgrid9">${keys.sort((a, b) => rank(a) - rank(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
@@ -232,7 +269,7 @@
       ['⚡', 'Program Power', C.programPower().toLocaleString()], ['🏗', ' · Campus', C.power().toLocaleString()], ['🧑‍🏫', ' · Staff', C.staffPower().toLocaleString()], ['👕', ' · Squad', C.squadPower().toLocaleString()], ['📋', 'Playbook levels', C.pbTotal()],
       ['🏆', 'Season ' + C.sea().n, C.sea().end ? 'Finished ' + C.ord(C.sea().end.pos) : t && t.p ? C.ord(C.myPos()) + ' · ' + t.w + 'W ' + t.d + 'D ' + t.l + 'L' : 'Not started'],
       ['🏛', 'Director confidence', ['😟', '🙁', '😐', '🙂', '😀'][Math.min(4, Math.floor((car.adConf ?? 50) / 20))]], ['👕', 'Roster', car.squad.length + ' / ' + C.rosterCap()], ['🎓', 'Scholarships left', '$' + C.short(C.poolLeft())]];
-    return `<div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 56)}<div><b style="font-family:Graduate,serif;font-size:18px">${C.esc(col.full)}</b><br><small class="mutey">Coach ${C.esc(car.coach)} · ${car.gender === 'w' ? "Women's" : "Men's"} program</small></div></div>
+    return `<div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 56)}<div><b style="font-family:Graduate,serif;font-size:18px">${C.esc(col.full)}</b><br><small class="mutey">${car.gender === 'w' ? "Women's" : "Men's"} program</small></div></div>
       <div class="card srows" style="margin-top:12px">${rows.map(r => `<div class="srow"><span>${r[0]} ${r[1]}</span><b>${r[2]}</b></div>`).join('')}</div>`;
   });
 
@@ -265,11 +302,13 @@
       <div class="ttl"><b>${C.esc(def.name)}</b><div class="lv">${lvTxt}</div><div class="xp">${def.owner === 'program' ? '🧳 Your program' : '🏛 School building'}</div></div>
       <button class="xbtn" data-act="close" aria-label="Close">✕</button></div><div class="desc">${def.desc}</div>`;
 
+    if (q && C.buildReady(k)) return head(`Lv.${lv} <span class="ar">▶</span> ${q.to}`) + `<div class="tbl">${statRows(k, lv)}</div>
+        <div class="orig"><span>✅ Finished: tap Complete</span><span></span></div><div class="bt"><button class="upg" data-act="bdone" data-v="${k}">Complete</button></div></div>`;
     if (q) {
       const rem = C.remaining(q), free = C.isFreeFinish(q), g = C.goldToFinish(q), gems = C.acct().gold;
       return head(`Lv.${lv} <span class="ar">▶</span> ${q.to}`) + `<div class="tbl">${statRows(k, lv)}</div>
         <div class="orig"><span>Under construction · <b data-timer="${k}">${C.dur(rem)}</b> left</span><span>${C.GEM} ${C.short(gems)}</span></div>
-        <div class="bt"><button class="fin" data-act="speed" data-v="${k}">${free ? 'Finish<br><em style="color:#15803d">Free</em>' : `Finish Now<br><em class="${gems < g ? 'short' : ''}">${C.GEM} ${g}</em>`}</button>
+        <div class="bt"><button class="fin" data-act="speed" data-v="${k}">${!free && C.speedPlan && C.speedPlan('b', rem) ? 'Finish Now<br><em>⏩ Speed-ups</em>' : free ? 'Finish<br><em style="color:#15803d">Free</em>' : `Finish Now<br><em class="${gems < g ? 'short' : ''}">${C.GEM} ${g}</em>`}</button>
         <button class="upg" data-act="inventory">⏩ Speed-ups<br>in Inventory</button></div>${speedItems(k)}</div>`;
     }
     if (lv >= C.topLevel(k)) return head(`Lv.30 <span class="ar">★</span>`) + `<div class="tbl">${statRows(k, lv)}</div><div class="maxed">✨ Fully upgraded</div></div>`;
@@ -298,7 +337,7 @@
   function careersHTML() {
     const rows = C.db.careers.map((car, i) => { const col = C.COLLEGES[car.college];
       return `<button class="lrow" data-act="switchcar" data-v="${i}">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 46)}
-        <span class="lt"><b>${C.esc(car.coach)} · ${C.esc(col.short)}</b><small>${car.gender === 'w' ? "Women's" : "Men's"} · ${C.TIERS[car.tier].n} · ⚡ ${(() => { let p = 0; for (const k in car.b) p += car.b[k] * (k === 'hq' ? 300 : k === 'stadium' ? 200 : 120); return p.toLocaleString(); })()}</small></span>
+        <span class="lt"><b>${C.esc(col.short)} ${C.esc(col.mascot)}</b><small>${car.gender === 'w' ? "Women's" : "Men's"} · ${C.TIERS[car.tier].n} · ⚡ ${(() => { let p = 0; for (const k in car.b) p += car.b[k] * (k === 'hq' ? 300 : k === 'stadium' ? 200 : 120); return p.toLocaleString(); })()}</small></span>
         <span class="lr">${i === C.db.active ? '<span class="pill">Playing</span>' : '›'}</span></button>`; }).join('');
     const free = C.careerSlots() - C.db.careers.length;
     const add = free > 0 ? `<button class="lrow" data-act="newcar"><span class="li">➕</span><span class="lt"><b>New career</b><small>${free} free slot${free > 1 ? 's' : ''}</small></span><span class="lr">›</span></button>`

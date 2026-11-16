@@ -81,13 +81,18 @@
   ];
   C.MAIN = MAIN;
   C.mainDone = id => meta().main.includes(id);
-  C.mainNext = () => { const car = C.car(); return MAIN.find(t => !meta().main.includes(t[0])) || null; };
+  // recruiting is a main task only while there are roster spots to fill (FEEDBACK 95), after the opening build tasks
+  C.mainNext = () => { const car = C.car(), t = MAIN.find(t => !meta().main.includes(t[0])) || null;
+    if (t && (t[0] === 'bhq' || t[0] === 'bcamp')) return t;
+    const open = C.rosterCap(car) - car.squad.length;
+    if (open > 0 && !(t && t[3](car))) return ['recfill', '✉️', `Fill ${open} open roster spot${open > 1 ? 's' : ''}`, () => false, {}, 'tab', 'recruit'];
+    return t; };
   C.mainReady = () => { const car = C.car(); return MAIN.filter(t => !meta().main.includes(t[0]) && t[3](car)).length; };
   C.mainClaim = id => { const t = MAIN.find(x => x[0] === id), M = meta(); if (!t || M.main.includes(id) || !t[3](C.car())) return null; M.main.push(id); C.giveReward(t[4]); C.save(); return t[4]; };
 
   // daily tasks: 6 a day, 20 points each, chests at 20/40/60/90/120
   const DAILY = [['match', '⚽', 'Play a match', 1, 'prematch', ''], ['win', '🏆', 'Win a match', 1, 'prematch', ''], ['collect', '💵', 'Collect income 3 times', 3, 'tab', 'campus'], ['upgrade', '🔨', 'Start an upgrade', 1, 'blist', ''],
-    ['train', '🏋️', 'Start a training plan', 1, 'tab', 'squad'], ['research', '📋', 'Start Playbook research', 1, 'playbook', ''], ['offer', '✉️', 'Make a recruiting offer', 1, 'tab', 'recruit'],
+    ['train', '🏋️', 'Start a training plan', 1, 'tab', 'squad'], ['research', '📋', 'Start Playbook research', 1, 'playbook', ''],
     ['speed', '⏩', 'Use a speed-up', 1, 'inventory', ''], ['medical', '🩺', 'Use a physio or recovery item', 1, 'medical', '']];
   const LOGIN = ['login', '🎁', 'Claim login reward', 1, 'dailytasks', ''];
   const DREW = { login: C.GIFT, match: { cash: 1500 }, win: { gold: 10 }, collect: { cp: 15 }, upgrade: { spb15: 1 }, train: { spt15: 1 }, research: { spr15: 1 }, offer: { cash: 1000 }, speed: { sp5: 1 }, medical: { kit: 1 } };
@@ -164,7 +169,7 @@
       return bigTabs() + sub + `<p class="note" style="margin-top:0">${M.main.length} of ${MAIN.length} done. Each one teaches a part of running your program.</p>${rows || '<p class="note">All main tasks done. 🎉</p>'}`;
     }
     const M = meta(), list = C.daily(), max = CHESTS[CHESTS.length - 1][0];
-    const track = `<div class="ptrack"><div class="pstar"><i>★</i><b>${M.pts}</b></div><div class="pline"><div class="pfill" style="width:${Math.min(100, M.pts / max * 100)}%"></div>${CHESTS.map(([p], i) => `<button class="pchest ${M.chests.includes(i) ? 'got' : M.pts >= p ? 'ready' : ''}" style="left:${p / max * 100}%" data-act="chestopen" data-v="${i}" title="${C.esc(C.rwText(CHESTS[i][1]))}">🧰<small>${p}</small></button>`).join('')}</div></div>`;
+    const track = `<div class="ptrack"><div class="pstar"><i>★</i><b>${M.pts}</b></div><div class="pline"><div class="pfill" style="width:${Math.min(100, M.pts / max * 100)}%"></div>${CHESTS.map(([p], i) => `<button class="pchest ${M.chests.includes(i) ? 'got' : M.pts >= p ? 'ready' : ''}" style="left:${p / max * 100}%" data-act="chestopen" data-v="${i}">🧰<small>${p}</small></button>`).join('')}</div></div>`;
     const rows = list.map((t, i) => `<div class="mrow2 ${t.claimed ? 'done' : ''} ${t.id === 'login' && !t.claimed ? 'alert' : ''}"><div class="mh"><span>${t.def[1]}</span><b>${C.esc(t.def[2])}${t.id === 'login' ? '' : ` <small>(${t.n}/${t.goal})</small>`}</b>${t.id === 'login' && !t.claimed ? '<i class="ldot"></i>' : ''}</div><div class="mb">${C.itemTiles(Object.assign({ pts: 20 }, DREW[t.id]))}
       ${t.claimed ? '<span class="donechk">✔</span>' : t.n >= t.goal ? `<button class="btn sm2 claim" data-act="dailyclaim" data-v="${i}">Claim</button>` : `<button class="btn sm2 go" data-act="${t.def[4]}" data-v="${t.def[5]}">Go</button>`}</div></div>`).join('');
     return bigTabs() + sub + `<div class="nextref">⏱ New tasks in ${C.dur((new Date().setHours(24, 0, 0, 0) - Date.now()) / 1000)}</div>${track}${rows}`;
@@ -192,7 +197,8 @@
   }
   A.mainclaim = v => { const r = C.mainClaim(v); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
   A.dailyclaim = v => { const r = C.dailyClaim(+v); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
-  A.chestopen = v => { const r = C.chestOpen(+v); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); } else C.toast('🧰 ' + C.rwText(CHESTS[+v][1])); };
+  // an unearned chest shows one preview, straight away, just above the chest that was tapped (FEEDBACK 78, 95)
+  A.chestopen = (v, el) => { const r = C.chestOpen(+v); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); return; } C.rewardPreview(CHESTS[+v][1], el); };
   A.evclaim = v => { const [t, i] = v.split('|'), r = C.evClaim(t, +i); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
   A.evall = () => { const r = C.evClaimAll(); C.toast(r ? '✔ ' + C.rwText(r) : 'Nothing to claim yet'); C.ui.refresh(); C.render(); };
   A.evbuy = (v, el) => { const n = +v, X = C.evx(); if (n === 2 && !X.has1) return C.toast('Buy the $4.99 pack first');

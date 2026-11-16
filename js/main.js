@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'phase-9q · 15 Nov 2026';
+  C.BUILD = 'phase-9r · 16 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -48,13 +48,14 @@
       case 'zoom': C.zoomBy(+v); break;
       // buildings
       // tap selects a building (name, level, big action button); tapping it again or the button opens the upgrade card
-      case 'bld': if (C.mapDragged()) return; if (C.selB === v || C.buildable(v)) { C.selB = null; C.openBuilding(v); C.redrawMap(); } else { C.selB = v; C.redrawMap(); } break;   // a blank plot ready to build opens its card straight away (one-tap build)
+      case 'bdone': C.selB = null; if (C.completeBuild(v)) { C.render(); if (C.ui.isOpen()) C.ui.closeAll(); } break;
+      case 'bld': if (C.mapDragged()) return; if (C.buildReady(v)) return act('bdone', v); if (C.selB === v || C.buildable(v)) { C.selB = null; C.openBuilding(v); C.redrawMap(); } else { C.selB = v; C.redrawMap(); } break;   // a blank plot ready to build opens its card straight away (one-tap build)
       case 'bldopen': if (C.mapDragged()) return; C.openBuilding(v); break;
       case 'land': break;   // locked land: nothing to explain on the map (round 5)
       case 'upgrade': if (C.startUpgrade(v)) { C.selB = null; C.fwEvent('upgrade'); C.toast(`🔨 ${LEVEL_NAMES(v)} upgrade started`); C.ui.closeAll(); C.render(); } break;
       case 'instant': if (!C.ok2spend) { const lv0 = car.b[v]; return C.confirmCoins(C.coinsFor(C.timeOf(v, lv0 + 1)), () => C.act('instant', v)); } C.ok2spend = 0; if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } break;
-      case 'speed': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
-        if (!free && !C.ok2spend) return C.confirmCoins(C.goldToFinish(q), () => C.act('speed', v)); C.ok2spend = 0;
+      case 'speed': { const q = C.inQueue(v); if (!q) break; return C.finishRunning('b', v, () => { if (C.completeBuild(v)) { C.fwEvent('speed'); C.ui.closeAll(); C.render(); } }); }
+      case 'speedold': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
         if (C.finishNow(q, !free)) { C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } else C.toast('Not enough Coins'); break; }
       case 'adspeed': { const q = C.inQueue(v); if (!q) break; C.toast('▶ Ad finished (test): −15 minutes'); C.adSpeedUp(q); C.fwEvent('speed');
         if (!C.inQueue(v)) { C.ui.closeAll(); C.render(); } else C.ui.refresh(); break; }
@@ -78,14 +79,13 @@
       case 'shortlist': C.toggleShort(+v); break;
       case 'jpage': C.jobPage(+v); break;
       case 'jshort': C.market().onlyShort = v === '1'; C.ui.refresh(); break;
-      case 'signjob': C.openIdentity(); break;
+      case 'signjob': act('startjob'); break;   // 9r (FEEDBACK 98): no name or pronoun step; you're simply Coach
       case 'pron': C.market().coach = (C.$('#coachName') || {}).value || ''; C.market().pron = v; C.ui.refresh(); break;
-      case 'startjob': { const M = C.market(); const coach = ((C.$('#coachName') || {}).value || '').trim() || 'Rookie';
-        C.newCareer({ coach, pron: M.pron, job: M.jobs[M.pick] }); C.ui.closeAll(); C.tab = 'campus'; C.applyTheme(); C.render(); C.openFirstCoach(welcome); break; }
+      case 'startjob': { const M = C.market(); C.newCareer({ coach: 'Coach', pron: 'they', job: M.jobs[M.pick] }); C.ui.closeAll(); C.tab = 'campus'; C.applyTheme(); C.render(); C.openFirstCoach(welcome); break; }
       case 'firstcoach': C.pickFirstCoach(v); C.render(); break;
       case 'sguide': C.car().seen.staffGuide = 1; C.save(); C.render(); break;
       case 'switchcar': C.db.active = +v; C.save(); C.ui.closeAll(); C.tab = 'home'; C.applyTheme(); C.render(); break;
-      case 'delcar': C.ui.open('Delete a career', () => C.db.careers.map((c, i) => `<button class="lrow" data-act="delone" data-v="${i}"><span class="li">🗑</span><span class="lt"><b>${C.esc(c.coach)} · ${C.esc(C.COLLEGES[c.college].short)}</b><small>Tap to delete. This can't be undone.</small></span></button>`).join('')); break;
+      case 'delcar': C.ui.open('Delete a career', () => C.db.careers.map((c, i) => `<button class="lrow" data-act="delone" data-v="${i}"><span class="li">🗑</span><span class="lt"><b>${C.esc(C.COLLEGES[c.college].short)}</b><small>Tap to delete. This can't be undone.</small></span></button>`).join('')); break;
       case 'delone': C.deleteCareer(+v); C.ui.closeAll(); C.applyTheme(); C.render(); C.toast('Career deleted'); break;
       // settings + store
       // squad (Phase 3)
@@ -171,8 +171,8 @@
       case 'sslotinfo': { const s2 = C.STAFFSLOTS.find(x => x.id === v); C.toast(`🔒 ${s2.name}: ${s2.why}`); if (v !== 'prog') C.openStore(); break; }
       case 'playbook': C.openPlaybook(); break;
       case 'pbnode': C.openPBNode(v); break;
-      case 'pbgo': { const r = C.pbStart(v); if (r === true) { C.toast('📋 Research started'); C.ui.back(); C.ui.refresh(); } else C.toast({ max: 'Fully researched', locked: 'Locked', busy: 'Already researching', slots: 'All research slots are busy', cp: 'Not enough Coaching Points', cash: 'Not enough Booster $' }[r]); break; }
-      case 'pbspeed': { const q = C.pbInQueue(v); if (!q) break; if (!C.isFreeFinish(q)) { const g = C.goldToFinish(q); if (C.acct().gold < g) { C.toast('Not enough Coins'); break; } C.acct().gold -= g; } q.end = C.now(); C.tickPB().forEach(m => C.toast(m)); C.ui.refresh(); break; }
+      case 'pbgo': { const r = C.pbStart(v); if (r === true) { C.toast('📋 Research started'); C.ui.back(); C.ui.refresh(); C.render(); } else C.toast({ max: 'Fully researched', locked: 'Locked', busy: 'Already researching', slots: 'All research slots are busy', cp: 'Not enough Coaching Points', cash: 'Not enough Booster $' }[r]); break; }
+      // 'pbspeed' and Finish Now for research are in research.js (9r)
       case 'pbslot': { const s2 = C.PBSLOTS.find(x => x.id === v); C.toast(`🔒 ${s2.name}: ${s2.why}`); if (v !== 'prog') C.openStore(); break; }
       // career (Phase 7)
       case 'offers': C.openOffers(); break;
@@ -237,7 +237,7 @@
   function welcome() {
     const col = C.college();
     C.ui.open('Welcome', () => `<div class="scenebn">${C.artSlot('arrival', C.sceneArrival(col.c1, col.c2))}</div><div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(col.full)}</b><br><small style="color:var(--mute);font-weight:800">${C.esc(col.mascot)} · ${col.state} · Tier 5</small></div></div>
-      <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Coach ${C.esc(C.car().coach)}, welcome. ${C.esc(C.STORIES[C.car().job.story].title)}.<br><br>🏛 Start with your Coaches' Office: tap the green badge on its plot to build it. Then the rest of your campus follows, one tap each.<br>💵 Tap the bubbles to collect Booster $ and <i class="cpi"></i> Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
+      <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Welcome, Coach. ${C.esc(C.STORIES[C.car().job.story].title)}.<br><br>🏛 Start with your Coaches' Office: tap the green badge on its plot to build it. Then the rest of your campus follows, one tap each.<br>💵 Tap the bubbles to collect Booster $ and <i class="cpi"></i> Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
       <button class="btn full pri" data-act="close">Let's build</button>`);
   }
 

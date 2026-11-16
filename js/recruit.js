@@ -273,7 +273,7 @@
         <div class="rate"><b class="${x.scouted ? '' : 'fz'}">${ratingTxt(x)}</b><small>${x.scouted ? 'Rating' : '🔍 Range'}</small></div></button>`).join('');
     const empty = route !== 'portal' || P ? `<p class="note" style="padding:0 16px;text-align:center">${{ inbox: 'No applications right now. New ones arrive through the day.', camp: 'Run a camp to see new players.', jc: 'No transfers listed.', agency: 'Hire a scout to find an international player.', portal: 'Nobody left in the portal.' }[route]}</p>` : '';
     return `<div class="view scrolly">
-      <div class="phdr sq"><div class="row1">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 38)}<div><b>Recruiting</b><small>👕 ${car.squad.length}/${C.rosterCap()} roster · 💼 ${C.jobsLeft()} campus jobs</small></div><button class="hlink" style="margin-left:auto" data-act="help" data-v="offers">?</button></div>
+      ${C.topBar(true)}<div class="phdr9 tall"><div class="row1"><div><b>Recruiting</b><small>👕 ${car.squad.length}/${C.rosterCap()} roster · 💼 ${C.jobsLeft()} campus jobs</small></div><button class="hlink" style="margin-left:auto" data-act="help" data-v="offers">?</button></div>
         <div class="res hres">${C.resBar()}</div><div class="chips">${C.schChip()}</div></div>
       <div style="padding:0 16px">${C.advice('rec')}</div><div class="rtiles">${tiles}</div>${body}${cards || empty}</div>`;
   };

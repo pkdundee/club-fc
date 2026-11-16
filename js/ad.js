@@ -7,7 +7,7 @@
   // ---------- AD office ----------
   C.adMessages = car => {
     const st = C.STORIES[car.job.story], col = C.college(car), m = [];
-    m.push({ id: 'welcome' + car.college, icon: '✍️', title: 'Welcome to ' + col.short, body: `Coach ${C.esc(car.coach)}, glad to have you. You know the situation: <b>${C.esc(st.title.toLowerCase())}</b>. This season I'd like you to <b>${GOAL[car.job.stars].toLowerCase()}</b>. Longer term: ${C.esc(st.ambition.toLowerCase())}.` });
+    m.push({ id: 'welcome' + car.college, icon: '✍️', title: 'Welcome to ' + col.short, body: `Coach, glad to have you. You know the situation: <b>${C.esc(st.title.toLowerCase())}</b>. This season I'd like you to <b>${GOAL[car.job.stars].toLowerCase()}</b>. Longer term: ${C.esc(st.ambition.toLowerCase())}.` });
     m.push({ id: 'campus', icon: '🏗', title: 'About the campus', body: "The facilities budget is yours to spend. Start with the Coaches' Office: nothing else can be higher than it." });
     if (car.b.hq >= 3) m.push({ id: 'hq3', icon: '👏', title: 'Good progress', body: "The Coaches' Office is coming along. Boosters noticed. Keep building." });
     if (car.rec && car.rec.signed) m.push({ id: 'signed1', icon: '✍️', title: 'First signing', body: 'Saw the paperwork for your first recruit. Keep the scholarship budget honest: whatever you promise comes off the pool every year they stay.' });
