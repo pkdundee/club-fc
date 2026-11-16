@@ -112,6 +112,10 @@
     return `<div class="advice"><div class="advf">${C.coachFace(c)}</div><p><b>${C.esc(c.fn)} ${C.esc(c.ln)} · ${C.SPECS[c.spec][1]}</b>${C.esc(line)}${tone}</p></div>`;
   };
 
+  // every distinct coaching note, most urgent first (fitness, morale, development, recruiting, keeper, tactics)
+  C.allAdvice = () => { const seen = new Set(), out = [];
+    ['snc', 'mot', 'dev', 'rec', 'gk', 'tac'].forEach(sp => { const h = C.advice(sp); if (!h) return; const t = h.replace(/<[^>]+>/g, ''); if (seen.has(t)) return; seen.add(t); out.push(h); }); return out; };
+  C.ACTS.advall = () => C.ui.open('Coaching notes', () => C.allAdvice().join('') || '<p class="note">Nothing to report.</p>', { popup: true });
   C.coachFace = (c, vb = '24 12 72 72') => { const col = C.college(); return `<svg viewBox="${vb}" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">${window.faceV4(Object.assign({}, c.look, { role: 'coach', age: c.age, k1: col.c1, k2: col.c2 }))}</svg>`; };
 
   // ================= Staff tab =================

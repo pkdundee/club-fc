@@ -81,14 +81,19 @@
   ];
   C.MAIN = MAIN;
   C.mainDone = id => meta().main.includes(id);
-  // recruiting is a main task only while there are roster spots to fill (FEEDBACK 95), after the opening build tasks
-  C.mainNext = () => { const car = C.car(), t = MAIN.find(t => !meta().main.includes(t[0])) || null;
-    if (t && (t[0] === 'bhq' || t[0] === 'bcamp')) return t;
-    const open = C.rosterCap(car) - car.squad.length;
-    if (open > 0 && !(t && t[3](car))) return ['recfill', '✉️', `Fill ${open} open roster spot${open > 1 ? 's' : ''}`, () => false, {}, 'tab', 'recruit'];
-    return t; };
-  C.mainReady = () => { const car = C.car(); return MAIN.filter(t => !meta().main.includes(t[0]) && t[3](car)).length; };
-  C.mainClaim = id => { const t = MAIN.find(x => x[0] === id), M = meta(); if (!t || M.main.includes(id) || !t[3](C.car())) return null; M.main.push(id); C.giveReward(t[4]); C.save(); return t[4]; };
+  // Recruiting Missions, one step at a time (9t, FEEDBACK 103): while roster spots are open, "Sign 1 recruit", then 2, then 3,
+  // up to the spots that were open. They live on the Missions screen, not the task strip. A new series starts whenever spots open again.
+  const recState = () => { const M = meta(), car = C.car(), signed = (car.rec && car.rec.signed) || 0, open = C.rosterCap(car) - car.squad.length;
+    if (!M.rq || (M.rq.done && open > 0)) M.rq = { base: signed, step: 0, goal: Math.max(0, open), done: open <= 0 };
+    return Object.assign({ signed, open }, M.rq); };
+  C.recMission = () => { const r = recState(); if (r.done || r.step >= r.goal) return null; const k = r.step + 1;
+    return ['rec' + k, '✍️', `Sign ${k} recruit${k > 1 ? 's' : ''}`, () => r.signed - r.base >= k, { cash: 500 * k, pts: 0 }, 'tab', 'recruit']; };
+  const allMain = () => { const m = C.recMission(); return (m ? [m] : []).concat(MAIN); };
+  C.mainNext = () => MAIN.find(t => !meta().main.includes(t[0])) || null;
+  C.mainReady = () => { const car = C.car(), m = C.recMission(); return MAIN.filter(t => !meta().main.includes(t[0]) && t[3](car)).length + (m && m[3](car) ? 1 : 0); };
+  C.mainClaim = id => { const M = meta(), car = C.car();
+    if (/^rec\d+$/.test(id)) { const m = C.recMission(); if (!m || m[0] !== id || !m[3](car)) return null; delete m[4].pts; M.rq.step++; if (M.rq.step >= M.rq.goal) M.rq.done = true; C.giveReward(m[4]); C.save(); return m[4]; }
+    const t = MAIN.find(x => x[0] === id); if (!t || M.main.includes(id) || !t[3](car)) return null; M.main.push(id); C.giveReward(t[4]); C.save(); return t[4]; };
 
   // daily tasks: 6 a day, 20 points each, chests at 20/40/60/90/120
   const DAILY = [['match', '⚽', 'Play a match', 1, 'prematch', ''], ['win', '🏆', 'Win a match', 1, 'prematch', ''], ['collect', '💵', 'Collect income 3 times', 3, 'tab', 'campus'], ['upgrade', '🔨', 'Start an upgrade', 1, 'blist', ''],
@@ -164,13 +169,13 @@
     const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length;
     const sub = `<div class="subtabs">${[['daily', 'Daily tasks', dd], ['main', 'Main tasks', C.mainReady()]].map(([k, n, d]) => `<button class="${msTab === k ? 'on' : ''}" data-act="mstab" data-v="${k}">${n}${d ? ` <em>${d}</em>` : ''}</button>`).join('')}</div>`;
     if (msTab === 'main') {
-      const car = C.car(), M = meta(), open = MAIN.filter(t => !M.main.includes(t[0])).slice(0, 5);
+      const car = C.car(), M = meta(), open = allMain().filter(t => !M.main.includes(t[0])).sort((a, b) => b[3](car) - a[3](car)).slice(0, 6);   // ready to claim first (9t)
       const rows = open.map(t => { const ok = t[3](car); return `<div class="mrow2"><div class="mh"><span>${t[1]}</span><b>${C.esc(t[2])}</b></div><div class="mb">${C.itemTiles(t[4])}${ok ? `<button class="btn sm2 claim" data-act="mainclaim" data-v="${t[0]}">Claim</button>` : `<button class="btn sm2 go" data-act="${t[5]}" data-v="${t[6]}">Go</button>`}</div></div>`; }).join('');
       return bigTabs() + sub + `<p class="note" style="margin-top:0">${M.main.length} of ${MAIN.length} done. Each one teaches a part of running your program.</p>${rows || '<p class="note">All main tasks done. 🎉</p>'}`;
     }
     const M = meta(), list = C.daily(), max = CHESTS[CHESTS.length - 1][0];
     const track = `<div class="ptrack"><div class="pstar"><i>★</i><b>${M.pts}</b></div><div class="pline"><div class="pfill" style="width:${Math.min(100, M.pts / max * 100)}%"></div>${CHESTS.map(([p], i) => `<button class="pchest ${M.chests.includes(i) ? 'got' : M.pts >= p ? 'ready' : ''}" style="left:${p / max * 100}%" data-act="chestopen" data-v="${i}">🧰<small>${p}</small></button>`).join('')}</div></div>`;
-    const rows = list.map((t, i) => `<div class="mrow2 ${t.claimed ? 'done' : ''} ${t.id === 'login' && !t.claimed ? 'alert' : ''}"><div class="mh"><span>${t.def[1]}</span><b>${C.esc(t.def[2])}${t.id === 'login' ? '' : ` <small>(${t.n}/${t.goal})</small>`}</b>${t.id === 'login' && !t.claimed ? '<i class="ldot"></i>' : ''}</div><div class="mb">${C.itemTiles(Object.assign({ pts: 20 }, DREW[t.id]))}
+    const rows = list.map((t, i) => [t, i]).sort((a, b) => ((b[0].n >= b[0].goal && !b[0].claimed) - (a[0].n >= a[0].goal && !a[0].claimed)) || (a[0].claimed - b[0].claimed)).map(([t, i]) => `<div class="mrow2 ${t.claimed ? 'done' : ''} ${t.id === 'login' && !t.claimed ? 'alert' : ''}"><div class="mh"><span>${t.def[1]}</span><b>${C.esc(t.def[2])}${t.id === 'login' ? '' : ` <small>(${t.n}/${t.goal})</small>`}</b>${t.id === 'login' && !t.claimed ? '<i class="ldot"></i>' : ''}</div><div class="mb">${C.itemTiles(Object.assign({ pts: 20 }, DREW[t.id]))}
       ${t.claimed ? '<span class="donechk">✔</span>' : t.n >= t.goal ? `<button class="btn sm2 claim" data-act="dailyclaim" data-v="${i}">Claim</button>` : `<button class="btn sm2 go" data-act="${t.def[4]}" data-v="${t.def[5]}">Go</button>`}</div></div>`).join('');
     return bigTabs() + sub + `<div class="nextref">⏱ New tasks in ${C.dur((new Date().setHours(24, 0, 0, 0) - Date.now()) / 1000)}</div>${track}${rows}`;
   }
@@ -206,7 +211,7 @@
     if (C.evBuy(n) === true) { C.toast('✅ Test purchase complete'); C.ui.refresh(); C.render(); } };
   A.inventory = () => C.openInventory();
   // the comms button: "this is what to do next", straight to Main Tasks
-  A.nexttask = () => { evTab = 'missions'; msTab = 'main'; C.ui.closeAll(); C.openEvents(); };
+  A.nexttask = () => { evTab = 'missions'; const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length; msTab = dd || !C.mainReady() ? 'daily' : 'main'; if (!dd && !C.mainReady() && C.evClaimable && C.evClaimable()) evTab = 'event'; C.ui.closeAll(); C.openEvents(); };
   // building action buttons open popups over the map
   A.bpop = v => { C.ui.asPopup = true; if (v === 'proginfo') C.openProgramInfo(); else if (v === 'playbook') C.openPlaybook(); else if (v === 'medical') C.openMedical(); else if (v === 'hqstaff') C.openStaffPop(); else if (v === 'kitroom') C.openKitRoom(); else if (v === 'academic') C.openAcademic(); };
   C.openStaffPop = () => C.ui.open('Staff on duty', () => { const S = C.staffState();

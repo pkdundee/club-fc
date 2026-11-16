@@ -61,10 +61,11 @@
         ${rnd('drawer', 'hammer', newB)}
       </div>
       <div class="side br9">
-        ${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
+        <div class="mailrow">${C.adWaiting && C.adWaiting() ? `<button class="adport" data-act="inbox" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}</div>
         ${sq('inventory', 'bag', 'Items', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
       </div>
-      ${task ? `<button class="taskstrip ${claim ? 'claim' : ''}" data-act="taskgo"><span class="tsi">${C.ico('radio', 20)}</span><span class="tst">${C.esc(task)}</span>${claim ? `<span class="tsr">${C.itemTiles ? '' : ''}🎁</span>` : '<span class="tsg">›</span>'}</button>` : ''}
+      <div class="tstrip9"><button class="tsradio" data-act="nexttask" aria-label="Missions">${C.ico('radio', 34)}${C.loClaimable() ? `<i class="rd">${C.loClaimable()}</i>` : ''}</button>
+        ${task ? `<button class="taskstrip ${claim ? 'claim' : ''}" data-act="taskgo"><span class="tst">${C.esc(task)}</span>${claim ? '<span class="tsr">🎁</span>' : '<span class="tsg">›</span>'}</button>` : ''}</div>
       ${C.drawerOpen ? drawerHTML() : ''}
     </div>`;
   }
@@ -84,18 +85,19 @@
       </div>`; };
   // ---------- builders drawer (FEEDBACK 87): every building as a card, by type, in a scrolling strip along the bottom ----------
   C.drawerTab = 'economy';
+  // 9t (FEEDBACK 103): every building stays in the drawer. Ready to build first, then still locked (ghosted), then built
+  // (ghosted, "Building is active"). The tab bar sits under the cards, which overlap it by half their height.
   function drawerHTML() {
-    const car = C.car(), keys = Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === C.drawerTab && C.level(k) === 0 && !C.inQueue(k));   // 9r: only buildings not built yet (FEEDBACK 93)
-    const order = k => C.buildable(k) ? 0 : C.readyArrow(k) ? 1 : C.inQueue(k) ? 2 : C.locked(k) ? 4 : 3;
-    const card = k => { const d = C.BUILDINGS[k], lv = C.level(k), q = C.inQueue(k), to = lv + 1, cost = C.costOf(k, to), lock = C.locked(k);
-      const need = !lock && lv && C.level('hq') < to ? `Needs Coaches' Office Lv ${to}` : '';
-      const foot = lock ? `Unlocks when the Coaches' Office reaches Lv ${d.needHQ}` : q ? `🔨 <span data-timer="${k}">${C.dur(C.remaining(q))}</span>`
-        : C.buildable(k) ? 'Build · Free' : lv >= C.topLevel(k) ? 'Max level' : need || `⏱ ${C.dur(C.timeOf(k, to))} · 💵 ${C.short(cost.cash)}`;
-      return `<button class="dcard ${lock ? 'off' : ''} ${C.buildable(k) ? 'new' : ''}" data-act="bldopen" data-v="${k}">${C.buildable(k) ? '<s>NEW</s>' : C.readyArrow(k) ? '<i class="bup"></i>' : ''}
-        <div class="dpic">${C.buildingThumb(k, Math.max(1, lv), car, 120, 80)}</div><b>${C.esc(d.name)}</b><small>${C.esc(C.BJOB[k] || '')}</small><em>${lv ? 'Lv ' + lv + ' · ' : ''}${foot}</em></button>`; };
+    const car = C.car(), keys = Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === C.drawerTab);
+    const built = k => C.level(k) > 0 || !!C.inQueue(k), order = k => C.buildable(k) ? 0 : built(k) ? 2 : 1;
+    const card = k => { const d = C.BUILDINGS[k], lock = C.locked(k), act = built(k), ready = C.buildable(k);
+      const foot = ready ? 'Build · Free' : act ? 'Building is active' : lock ? `Unlocks at Coaches' Office Lv ${d.needHQ}` : "Needs the Coaches' Office first";
+      return `<button class="dcard ${ready ? 'new' : 'ghost'}" data-act="${act ? 'bgo' : 'bldopen'}" data-v="${k}">${ready ? '<s>NEW</s>' : ''}
+        <div class="dpic">${C.buildingThumb(k, Math.max(1, C.level(k)), car, 120, 80)}</div><b>${C.esc(d.name)}</b><small>${C.esc(C.BJOB[k] || '')}</small><em>${foot}</em></button>`; };
     const tb = (k, n) => `<button class="${C.drawerTab === k ? 'on' : ''}" data-act="drawertab" data-v="${k}">${n}</button>`;
-    return `<div class="drawer"><div class="dtabs">${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}<button disabled title="Coming later">Decoration</button><button class="dlist" data-act="blist" aria-label="All your buildings">${C.ico('list', 18)}</button><button class="dx" data-act="drawer">✕</button></div>
-      <div class="dstrip">${keys.length ? keys.sort((a, b) => order(a) - order(b)).map(card).join('') : `<p class="dnone">Everything here is built. Tap ${C.ico('list', 14)} to see all your buildings.</p>`}</div></div>`;
+    return `<div class="drawer d9"><div class="dstrip">${keys.sort((a, b) => order(a) - order(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
+      <div class="dtabs"><button class="dx" data-act="drawer" aria-label="Close">✕</button><button class="dlist" data-act="blist" aria-label="All your buildings">${C.ico('list', 18)}</button>
+        <span class="dsp"></span>${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}<button disabled title="Coming later">Decoration</button></div></div>`;
   }
   C.ACTS.drawer = () => { C.drawerOpen = !C.drawerOpen; C.selB = null; C.render(); };
   C.ACTS.drawertab = v => { C.drawerTab = v; C.render(); };
@@ -241,20 +243,25 @@
   // the task strip (FEEDBACK 94): claims on the spot when done; otherwise takes you straight to the task
   // what the strip shows (FEEDBACK 94, 101): a finished Mission to claim; otherwise the next Mission if you can act on it now;
   // otherwise the most useful thing to do now. Long-term goals (a whole season, several wins) stay on the Missions screen.
-  const LONG = { top4: 1, wins3: 1, win: 1 };
-  C.stripTask = () => { const car = C.car(), t = C.mainNext && C.mainNext();
-    if (t && t[3](car) && t[0] !== 'recfill') return { claim: 1, text: `Claim: ${t[2]}`, t };
-    if (t && !LONG[t[0]] && !(t[5] === 'bldopen' && !C.readyArrow(t[6]) && !C.buildable(t[6]))) return { text: t[2], t };
-    const ks = Object.keys(C.BUILDINGS), done = car.queue.find(q => C.buildReady(q.key));
-    if (done) return { text: `Complete the ${C.BUILDINGS[done.key].name}`, go: () => C.goToBuilding(done.key) };
+  // the strip (9t, FEEDBACK 103): rewards to claim first (one at a time), then buildings and research. Recruiting, matches and
+  // long-term goals stay on the Missions screen.
+  C.stripTask = () => { const car = C.car(), ks = Object.keys(C.BUILDINGS);
+    const mt = [C.recMission && C.recMission(), ...C.MAIN.filter(t => !C.mainDone(t[0]))].find(t => t && t[3](car));
+    if (mt) return { claim: 1, text: `Claim: ${mt[2]}`, t: mt };
+    const di = C.daily().findIndex(t => t.n >= t.goal && !t.claimed); if (di >= 0) { const d = C.daily()[di]; return { claim: 1, text: `Claim: ${d.def[2]}`, daily: di }; }
+    if (C.loClaimable() > 0) return { claim: 1, text: 'Collect your rewards', go: () => C.act('nexttask') };
+    const done = car.queue.find(q => C.buildReady(q.key)); if (done) return { text: `Complete the ${C.BUILDINGS[done.key].name}`, go: () => C.goToBuilding(done.key) };
     const nb = ks.find(C.buildable); if (nb) return { text: `Build the ${C.BUILDINGS[nb].name}`, go: () => C.goToBuilding(nb) };
-    if (C.freeSlot()) { const r = C.recommendBuilding(); if (r && C.readyArrow(r)) return { text: `Upgrade the ${C.BUILDINGS[r].name} to Lv ${C.level(r) + 1}`, go: () => C.goToBuilding(r) }; }
-    const pr = C.pbRecommend && C.pbRecommend(); if (pr && C.pbAffordable(pr) && C.pbRunning() < C.pbSlots()) return { text: `Research ${C.pbName(pr)}`, go: () => C.act('pbrec') };
-    const open = C.rosterCap(car) - car.squad.length; if (open > 0) return { text: `Fill ${open} open roster spot${open > 1 ? 's' : ''}`, go: () => { C.tab = 'recruit'; C.render(); } };
-    if (!car.pre && C.myFixture && C.myFixture()) return { text: 'Play your next match', go: () => C.act('prematch') };
-    return t ? { text: t[2], t } : null; };
+    const r = C.recommendBuilding(), pr = C.pbRecommend && C.pbRecommend();
+    if (r && C.readyArrow(r) && C.freeSlot()) return { text: `Upgrade the ${C.BUILDINGS[r].name} to Lv ${C.level(r) + 1}`, go: () => C.goToBuilding(r) };
+    if (pr && C.pbAffordable(pr) && C.pbRunning() < C.pbSlots()) return { text: `Research ${C.pbName(pr)}`, go: () => C.act('pbrec') };
+    if (car.queue.length < C.openSlots()) { const n = ks.filter(k => C.level(k) > 0 && C.level(k) < C.topLevel(k) && (k === 'hq' || C.level(k) < C.level('hq'))).sort((a, b) => (a === 'hq' ? -1 : 0) || C.level(a) - C.level(b))[0];
+      if (n) return { text: `Upgrade the ${C.BUILDINGS[n].name} to Lv ${C.level(n) + 1}`, go: () => C.goToBuilding(n) }; }
+    if (pr) return { text: `Research ${C.pbName(pr)}`, go: () => C.act('pbrec') };
+    const q = car.queue[0]; return q ? { text: `${C.BUILDINGS[q.key].name} upgrading · ${C.dur(C.remaining(q))}`, go: () => C.goToBuilding(q.key) } : null; };
   C.ACTS.taskgo = () => { const st = C.stripTask(); if (!st) return;
-    if (st.claim) { const strip = C.$('.taskstrip'), from = strip ? strip.getBoundingClientRect() : null, r = C.mainClaim(st.t[0]); if (r) { C.render(); C.flyRewards(r, from); } return; }
+    if (st.go) return st.go();
+    if (st.claim) { const strip = C.$('.taskstrip'), from = strip ? strip.getBoundingClientRect() : null, r = st.daily != null ? C.dailyClaim(st.daily) : C.mainClaim(st.t[0]); if (r) { C.render(); C.flyRewards(r, from); } return; }
     if (st.go) return st.go();
     const [act, v] = [st.t[5], st.t[6]];
     if (act === 'bldopen') return C.goToBuilding(v);
@@ -272,6 +279,8 @@
   // ---------- List of buildings (items 31, 44): everything on campus, what's ready, new builds first ----------
   // ---------- full list of buildings (FEEDBACK 77, 87): full screen, Economy / Soccer, 4 columns, each with its status ----------
   C.blistTab = 'economy';
+  C.blistSort = 'status';
+  C.ACTS.blistsort = () => { C.blistSort = { status: 'level', level: 'name', name: 'status' }[C.blistSort]; C.ui.refresh(); };
   C.openBuildList = () => C.ui.open('Buildings', () => {
     const car = C.car(), tab = C.blistTab === 'program' ? 'economy' : C.blistTab, keys = Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === tab && C.level(k) > 0);   // 9r: built buildings; new ones are in the build drawer
     const rank = k => C.buildable(k) ? 0 : C.readyArrow(k) ? 1 : C.inQueue(k) ? 2 : C.locked(k) ? 4 : 3;
@@ -282,8 +291,8 @@
     const n = t => Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === t && C.level(k) > 0 && C.readyArrow(k)).length;
     const tb = (k, nm) => `<button class="${tab === k ? 'on' : ''}" data-act="blisttab" data-v="${k}">${nm}${n(k) ? ` <em>${n(k)}</em>` : ''}</button>`;
     return `<div class="bigtabs">${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}</div>
-      <div class="bgrid9">${keys.sort((a, b) => rank(a) - rank(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
-      <div class="bfoot">👷 Building Queue: ${car.queue.length}/${C.openSlots()}</div>`;
+      <div class="bgrid9">${keys.sort((a, b) => C.blistSort === 'level' ? C.level(b) - C.level(a) : C.blistSort === 'name' ? C.BUILDINGS[a].name.localeCompare(C.BUILDINGS[b].name) : rank(a) - rank(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
+      <div class="bfoot bfoot9"><span>👷 Building Queue: ${car.queue.length}/${C.openSlots()}</span><button class="bsort" data-act="blistsort">⇅ ${{ status: 'Ready first', level: 'Highest level', name: 'A–Z' }[C.blistSort || 'status']}</button></div>`;
   });
   C.openProgramInfo = () => C.ui.open('Program', () => {
     const car = C.car(), col = C.college(), t = C.table().find(x => x.i === 0);

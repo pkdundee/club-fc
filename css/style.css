@@ -1346,3 +1346,32 @@ html,body{background:var(--card)}
 #errbar{position:fixed;left:6px;right:6px;top:calc(6px + env(safe-area-inset-top));z-index:999;background:#b91c1c;color:#fff;font:700 12px/1.35 system-ui,sans-serif;border:2px solid #0f172a;border-radius:8px;padding:6px 8px;max-height:40vh;overflow:auto}
 #errbar div+div{margin-top:4px;border-top:1px solid #fff4;padding-top:4px}
 .diag{font:12px/1.5 ui-monospace,Menlo,monospace;background:var(--bg);border-radius:8px;padding:8px;white-space:pre-wrap}
+
+/* 9t task strip (FEEDBACK 103): big radio icon overhanging a thinner bar */
+.tstrip9{position:absolute;left:6px;right:8px;bottom:calc(74px + var(--sab));z-index:3;display:flex;align-items:center;pointer-events:none}
+.tstrip9>*{pointer-events:auto}
+.tsradio{position:relative;z-index:2;flex:none;width:54px;height:54px;border-radius:12px;border:2px solid #0f172a;background:linear-gradient(160deg,#fde047,#f59e0b);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 #0f172a;margin-right:-10px;cursor:pointer}
+.tsradio .rd{top:-6px;right:-6px;min-width:18px;height:18px;font-size:11px;line-height:15px}
+.tstrip9 .taskstrip{position:static;flex:1;min-width:0;padding:3px 10px 3px 16px;min-height:28px;border-radius:0 8px 8px 0;font-size:12.5px}
+
+/* 9t drawer: cards above, overlapping the dark bar by half; bar below with close and list on the left, tabs on the right */
+.drawer.d9{background:none;border:0;padding:0;pointer-events:none}
+.drawer.d9>*{pointer-events:auto}
+.d9 .dstrip{position:relative;z-index:2;padding:4px 8px 0;margin-bottom:-60px}
+.d9 .dtabs{position:relative;z-index:1;background:rgba(15,23,42,.95);border-top:2px solid #0f172a;padding:66px 8px 8px;margin:0;align-items:center}
+.d9 .dtabs .dsp{flex:1}
+.d9 .dtabs .dx{position:static;margin:0}.d9 .dtabs .dlist{margin-left:0}
+.dcard.ghost{background:linear-gradient(#e2e8f0,#cbd5e1);filter:grayscale(.65);opacity:.8}
+.dcard.ghost em{color:#475569}
+.side.bl9,.side.br9{bottom:calc(138px + var(--sab))}
+
+.mailrow{display:flex;align-items:flex-start;gap:6px}
+.adport{position:relative;width:46px;height:52px;padding:0;border:2px solid #0f172a;border-radius:8px;background:linear-gradient(#fde68a,#f59e0b);overflow:hidden;cursor:pointer;margin-top:2px}
+.adport i{position:absolute;right:-1px;top:50%;width:0;height:0;border:6px solid transparent;border-left-color:#0f172a;transform:translate(100%,-50%)}
+
+.slimadv{position:relative;cursor:pointer}.advn{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-style:normal;background:#2563eb;color:#fff;font:900 11px Nunito;padding:2px 7px;border-radius:9px;border:1.5px solid #0f172a}
+.slimadv .advice p{padding-right:34px}
+.bfoot9{display:flex;align-items:center;justify-content:space-between;gap:8px}.bsort{border:1.5px solid #0f172a;border-radius:8px;background:#334155;color:#fff;font:900 12px Nunito;padding:5px 10px}
+/* your row in the league table stands out (FEEDBACK 97) */
+.tr2.me{background:var(--school);color:#fff;font-weight:900;border-radius:8px;box-shadow:none}
+.tr2.me em{font-weight:900}

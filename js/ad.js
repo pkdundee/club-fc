@@ -3,6 +3,9 @@
   const AD = { name: 'Linda Haynes', title: 'Athletic Director' };
   const GOAL = { 3: 'Top 4 and reach the conference final', 2: 'Finish in the top half', 1: 'Stay out of the bottom 2' };
   C.AD = AD;
+  // the athletic director's portrait, shown beside the Mail button when she has something for you (FEEDBACK 75)
+  C.adFace = () => { const col = C.college(); return window.faceV4 ? `<svg viewBox="24 12 72 72" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">${window.faceV4({ skin: '#e8b796', hair: '#5a3b24', eyes: '#3b6e9e', style: 'bob', female: 1, role: 'coach', age: 52, k1: col.c1, k2: col.c2 })}</svg>` : '🏛'; };
+  C.adWaiting = () => { const car = C.car(); if (!car) return 0; return C.adUnread() + ((C.meta().inbox || []).filter(x => x.f === 'director' && !x.read).length); };
 
   // ---------- AD office ----------
   C.adMessages = car => {

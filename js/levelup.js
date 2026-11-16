@@ -23,7 +23,11 @@
           ${reward ? `<div class="lu-tiles">${reward}</div>` : ''}<p class="lu-tap">Tap to continue</p></div>`;
     document.body.appendChild(el); showing = true;
     requestAnimationFrame(() => el.classList.add('on'));
-    el.addEventListener('click', () => { el.remove(); showing = false; if (unlocked.length) C.toast(`🏗 New: ${unlocked.map(b => C.BUILDINGS[b].name).join(', ')}. Tap the green badge on the map to build.`); next(); });
+    el.addEventListener('click', () => { el.remove(); showing = false;
+      // a new building (FEEDBACK 85, 86): the athletic director explains it in Mail, and the map pans to its plot
+      if (unlocked.length) { unlocked.forEach(b => C.mail('director', '🏗', `New building: ${C.BUILDINGS[b].name}`, `Coach, the Coaches' Office upgrade means we can now build the <b>${C.esc(C.BUILDINGS[b].name)}</b>. ${C.esc(C.BUILDINGS[b].desc)} Its plot is ready: tap the green badge on the campus map. The first build is free.`));
+        C.goToBuilding(unlocked[0]); C.toast(`🏗 New: ${unlocked.map(b => C.BUILDINGS[b].name).join(', ')}`); }
+      next(); });
   }
   function next() { if (showing || !C.lvlQueue || !C.lvlQueue.length) return; show(C.lvlQueue.shift()); }
   C.nextLevelUp = next;

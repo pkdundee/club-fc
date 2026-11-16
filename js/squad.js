@@ -38,7 +38,7 @@
     return `<div class="view sqv">
       ${C.topBar(false)}<div class="phdr9"><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎟 ${car.tokens}</small></div>
       <div class="ptabs9">${[['all', 'All'], ['gk', 'GK'], ['def', 'DEF'], ['mid', 'MID'], ['att', 'ATT']].map(([k, n]) => `<button class="${f9 === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${n}</button>`).join('')}</div>
-      <div class="sqscroll" id="sqscroll"><div class="slimadv">${C.advice(sq.some(p => p.energy < 60) ? 'snc' : 'mot')}</div>${rare}
+      <div class="sqscroll" id="sqscroll">${(n => n.length ? `<div class="slimadv" data-act="advall">${n[0]}${n.length > 1 ? `<em class="advn">+${n.length - 1}</em>` : ''}</div>` : '')(C.allAdvice())}${rare}
       ${list.map(p => `<button class="prow" style="--mk:${p.inj ? '#dc2626' : ROLE[roles[p.id]][1]}" data-act="player" data-v="${p.id}">
         <div class="av plain"><div class="face">${C.faceOf(p)}</div><span class="num">${p.num}</span>${p.inj ? '<span class="injx"></span>' : ''}</div>
         <div class="pinfo"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(p.id) ? ' <span class="cap">C</span>' : ''}${p.want && p.want !== p.num ? ' <span title="Wants a different number">🎟</span>' : ''}${C.inDev(p.id) ? ' <span title="In training">🏋️</span>' : ''}${p.ban ? ' <span title="Suspended">🟥</span>' : ''}</b>
