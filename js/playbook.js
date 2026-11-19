@@ -26,8 +26,8 @@
   C.pbSlots = () => C.PBSLOTS.filter(s => C.pbSlotOpen(s.id)).length;
   C.pbRunning = () => { pb(); return C.car().pbq.length; };
   C.pbUnlocked = key => { const { B, t } = node(key); return t === 0 || C.pbLv(B[0] + '.' + (t - 1)) >= 5; };
-  C.pbCost = (key, to) => { const t = node(key).t; return { cp: Math.round(8 * Math.pow(1.32, to + t * 4) / 5) * 5, cash: t ? Math.round(1500 * Math.pow(1.3, to + t * 3) / 100) * 100 : to > 4 ? Math.round(600 * Math.pow(1.3, to) / 100) * 100 : 0 }; };
-  C.pbTime = (key, to) => Math.min(86400, Math.round(60 * Math.pow(1.55, to + node(key).t * 3) * (1 - C.eff('lab') * .01)));
+  C.pbCost = (key, to) => { const t = node(key).t, E = C.ECON.research; return { cp: Math.round(E.cpBase * Math.pow(E.cpGrowth, to + t * E.cpTierStep) / 5) * 5, cash: t ? Math.round(E.cashBase * Math.pow(E.cashGrowth, to + t * E.cashTierStep) / 100) * 100 : to >= E.cashT0FromLv ? Math.round(E.cashT0Base * Math.pow(E.cashGrowth, to) / 100) * 100 : 0 }; };
+  C.pbTime = (key, to) => { const E = C.ECON.research; return Math.min(E.timeCap, Math.round(E.timeBase * Math.pow(E.timeGrowth, to + node(key).t * E.timeTierStep) * (1 - C.eff('lab') * .01))); };
   C.pbInQueue = key => C.car().pbq.find(q => q.key === key);
   C.pbStart = key => {
     const car = C.car(), { n } = node(key), to = C.pbLv(key) + 1; pb();

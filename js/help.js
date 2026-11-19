@@ -12,7 +12,7 @@
         ['🏗', 'You build the program', 'Upgrade your campus and staff. Bigger colleges will want you, or your own college can move up a division.']]
         .map(([e, t, d]) => `<div class="ibox"><span>${e}</span><div><b>${t}</b><p>${d}</p></div></div>`).join('')}`,
     () => `<h2 class="ih">Your career ladder</h2><p class="ip">Start at the bottom. Each tier lifts your building cap and brings bigger budgets and tougher opponents.</p>
-      ${[5, 4, 3, 2, 1].map(t => { const T = C.TIERS[t]; return `<div class="ibox ${t === 5 ? 'here' : ''}"><span>${['', '🏟', '⭐', '📈', '🎓', '📍'][t]}</span><div><b>${T.n} · ${T.name}</b><p>Buildings up to Lv ${T.cap}${t === 5 ? '. You start here.' : ''}</p></div></div>`; }).join('')}`
+      ${[5, 4, 3, 2, 1].map(t => { const T = C.TIERS[t]; return `<div class="ibox ${t === 5 ? 'here' : ''}"><span>${['', '🏟', '⭐', '📈', '🎓', '📍'][t]}</span><div><b>${T.n} · ${T.name}</b>${t === 5 ? '<p>You start here.</p>' : ''}</div></div>`; }).join('')}`
   ];
   let step = 0, after = null;
   C.openIntro = (then) => { step = 0; after = then || null; C.ui.open('Welcome', introHTML); };
@@ -22,8 +22,8 @@
       ${step < INTRO.length - 1 ? '<button class="btn full sec2" data-act="introskip" style="margin-top:8px">Skip</button>' : ''}`;
   }
   C.introNext = () => { if (step < INTRO.length - 1) { step++; C.ui.refresh(); } else C.introDone(); };
-  C.introDone = () => { try { localStorage.setItem('clubfc2_p9f_intro', '1'); } catch (e) { } if (after) { const f = after; after = null; f(); } else C.ui.back(); };
-  C.introSeen = () => { try { return !!localStorage.getItem('clubfc2_p9f_intro'); } catch (e) { return true; } };
+  C.introDone = () => { try { localStorage.setItem('clubfc_v101_intro', '1'); } catch (e) { } if (after) { const f = after; after = null; f(); } else C.ui.back(); };
+  C.introSeen = () => { try { return !!localStorage.getItem('clubfc_v101_intro'); } catch (e) { return true; } };
 
   // ---------- Coach's Handbook ----------
   C.HANDBOOK = [

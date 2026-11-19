@@ -5,7 +5,11 @@
   C.AD = AD;
   // the athletic director's portrait, shown beside the Mail button when she has something for you (FEEDBACK 75)
   C.adFace = () => { const col = C.college(); return window.faceV4 ? `<svg viewBox="24 12 72 72" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">${window.faceV4({ skin: '#e8b796', hair: '#5a3b24', eyes: '#3b6e9e', style: 'bob', female: 1, role: 'coach', age: 52, k1: col.c1, k2: col.c2 })}</svg>` : '🏛'; };
-  C.adWaiting = () => { const car = C.car(); if (!car) return 0; return C.adUnread() + ((C.meta().inbox || []).filter(x => x.f === 'director' && !x.read).length); };
+  // 1.01 (FEEDBACK 131): the campus avatar only for unread mail in Director or News & updates
+  C.adWaiting = () => { const car = C.car(); if (!car) return 0; return (C.meta().inbox || []).filter(x => (x.f === 'director' || x.f === 'system') && !x.read).length; };
+  // 1.01 (FEEDBACK 131, 133): the Director's notes also arrive as Director mail (a note already seen in the Office arrives as read)
+  C.syncADMail = car => { if (!car || !car.squad) return; car.seen = car.seen || {}; const M = C.meta();
+    C.adMessages(car).forEach(x => { if (car.seen['adm_' + x.id]) return; C.mail('director', x.icon, x.title, x.body); const m = M.inbox[0]; m.ad = x.id; if (car.seen['ad_' + x.id]) m.read = true; car.seen['adm_' + x.id] = 1; }); };
 
   // ---------- AD office ----------
   C.adMessages = car => {
@@ -22,7 +26,7 @@
   };
   C.adUnread = () => { const car = C.car(); return C.adMessages(car).filter(x => !car.seen['ad_' + x.id]).length; };
   C.openAD = () => {
-    const car = C.car(); C.adMessages(car).forEach(x => car.seen['ad_' + x.id] = 1); C.save();
+    const car = C.car(); C.adMessages(car).forEach(x => car.seen['ad_' + x.id] = 1); (C.meta().inbox || []).forEach(m => { if (m.ad) m.read = true; }); C.save();
     C.ui.open("Director's Office", () => {
       const st = C.STORIES[car.job.story];
       return `<div class="adhead"><div class="adface">🏛</div><div><b>${AD.name}</b><small>${AD.title} · ${C.esc(C.college(car).short)}</small></div></div>

@@ -50,7 +50,7 @@
 
   // ---------- treatments ----------
   const minorOrMod = p => p.injury && p.injury.sev < 2 && !p.injury.conc && p.injury.k !== 'flu';
-  C.TREAT = { spec: 40, rush: 20, kit: 15, team: 30 };
+  C.TREAT = C.ECON.treat;
   C.treat = (pid, kind) => {
     const car = C.car(), p = C.P(pid), M = C.medState(), a = C.acct(); if (!p) return 'gone';
     if (kind === 'physio') { if (!p.inj || !p.injury || p.injury.sev !== 0 || p.injury.conc || p.injury.physio) return 'no'; if (M.physio < 1) return 'none'; M.physio--; p.injury.physio = true; p.inj = Math.max(0, p.inj - 1); }
@@ -64,8 +64,14 @@
     if (M.team > 0) { if (a.gold < C.TREAT.team) return 'coins'; a.gold -= C.TREAT.team; } else M.team = C.teamEvery();
     car.squad.forEach(p => p.energy = Math.min(100, p.energy + 12)); C.save(); return true; };
   C.buyRecoveryKit = () => { const a = C.acct(), car = C.car(); if (a.gold < C.TREAT.kit) return 'coins'; a.gold -= C.TREAT.kit; car.items = car.items || {}; car.items.kit = (car.items.kit || 0) + 1; C.save(); return true; };
-  C.adPhysio = () => { const M = C.medState(); if (M.adDay === C.todayKey()) return 'used'; if (C.adsLeft() <= 0) return 'ads'; C.acct().adsUsed++; M.adDay = C.todayKey(); M.physio = Math.min(3, M.physio + 1); C.save(); return true; };
 
+  // the treatment buttons for one injured player: the Medical Room and (1.01, D7.7) the player's own card use the same ones
+  C.injButtons = p => { const M = C.medState(), j = p.injury || { icon: '🩹', name: 'Injury', sev: 0 };
+    const btn = (on, act, v, label) => `<button class="btn sm2 ${on ? '' : 'off'}" data-act="${act}" data-v="${v}" ${on ? '' : 'disabled'}>${label}</button>`;
+    return `${j.sev === 0 && !j.conc && j.k !== 'flu' ? btn(!j.physio && M.physio > 0, 'treat', p.id + '|physio', '🩺 Physio') : ''}
+        ${minorOrMod(p) ? btn(!j.spec, 'treatc', p.id + '|spec', `${C.GEM} ${C.TREAT.spec}`) : ''}
+        ${minorOrMod(p) && p.inj === 1 ? btn(true, 'treatc', p.id + '|rush', 'Rush back') : ''}
+        ${j.conc ? '<small class="mutey">Protocol: can\'t be rushed</small>' : ''}`; };
   // ================= Medical Room =================
   C.openMedical = () => C.ui.open('Medical Room', () => {
     const car = C.car(), M = C.medState(), kits = (car.items && car.items.kit) || 0;
@@ -73,10 +79,7 @@
     const btn = (on, act, v, label) => `<button class="btn sm2 ${on ? '' : 'off'}" data-act="${act}" data-v="${v}" ${on ? '' : 'disabled'}>${label}</button>`;
     const row = p => { const j = p.injury || { icon: '🩹', name: 'Injury', sev: 0 }, sev = C.INJURY_SEV[j.sev];
       return `<div class="medrow"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn[0] + '. ' + p.ln)} <span class="sevt s${j.sev}">${sev}</span></b><small>${j.icon} ${C.esc(j.name)} · ${j.season ? 'out for the season (medical redshirt)' : 'out ' + p.inj + ' more match' + (p.inj > 1 ? 'es' : '')}</small></div>
-        <div class="medbt">${j.sev === 0 && !j.conc && j.k !== 'flu' ? btn(!j.physio && M.physio > 0, 'treat', p.id + '|physio', '🩺 Physio') : ''}
-        ${minorOrMod(p) ? btn(!j.spec, 'treatc', p.id + '|spec', `${C.GEM} ${C.TREAT.spec}`) : ''}
-        ${minorOrMod(p) && p.inj === 1 ? btn(true, 'treatc', p.id + '|rush', 'Rush back') : ''}
-        ${j.conc ? '<small class="mutey">Protocol: can\'t be rushed</small>' : ''}</div></div>`; };
+        <div class="medbt">${C.injButtons(p)}</div></div>`; };
     return `<div class="medtop"><div><b>${M.physio}</b><small>🩺 Physio sessions</small><em>+1 every ${C.physioEvery()} match${C.physioEvery() > 1 ? 'es' : ''}</em></div>
         <div><b>${kits}</b><small>🧴 Recovery kits</small><em>+25 Freshness</em></div><div><b>${M.team ? M.team : '✔'}</b><small>👥 Team session</small><em>${M.team ? 'free in ' + M.team + ' match' + (M.team > 1 ? 'es' : '') : 'ready, free'}</em></div></div>
       <div class="jbtns" style="margin-top:8px"><button class="btn sec2" data-act="teamsess">${M.team ? `👥 Team session · ${C.GEM} ${C.TREAT.team}` : '👥 Team session · free'}</button><button class="btn sec2" data-act="buykitc">🧴 Buy kit · ${C.GEM} ${C.TREAT.kit}</button></div>

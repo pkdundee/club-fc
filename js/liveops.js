@@ -58,14 +58,13 @@
     { id: 'rivalry', icon: '⚔️', name: 'Rivalry Week', desc: 'Wins earn double Coaching Points and extra Pass XP.' },
     { id: 'drive', icon: '✉️', name: 'Recruiting Drive', desc: 'ID Camps cost half. Recruiting offers earn Pass XP.' },
     { id: 'camp', icon: '🏋️', name: 'Training Camp', desc: 'Training plans take 25% less time.' },
-    { id: 'boost', icon: '💵', name: 'Booster Weekend', desc: 'Clubhouse and Performance Lab income +50%.' }
+    { id: 'boost', icon: '💵', name: 'Booster Weekend', desc: 'Clubhouse income +50%.' }
   ];
   C.event = () => C.EVENTS[weekNo() % C.EVENTS.length];
   C.eventEnds = () => new Date(weekKey()).getTime() + 7 * D;
 
   // ---------- Coach's Club perks, rewarded ads, free coach ----------
   C.vipDaily = () => { const L = lo(); if (!C.isVip() || L.vipDay === dayKey()) return null; L.vipDay = dayKey(); const r = { gold: 25 }; C.giveReward(r); return r; };
-  C.adReward = () => { if (C.adsLeft() <= 0) return null; C.acct().adsUsed++; const r = [{ gold: 10 }, { cash: 2000 }, { cp: 15 }, { manual: 1 }][Math.floor(Math.random() * 4)]; C.giveReward(r); C.loEvent('ad'); passXP(20); return r; };
   C.freeCoach = rar => { const S = C.staffState(), r = C.rng(C.now() & 0xffffff); C.refreshMarket(true); const c = S.market.shift(); c.rar = rar; c.level = 1 + rar * 2; S.list.push(c); if (S.on.length < C.staffSlots()) S.on.push(c.id); C.save(); return c; };
 
   // ---------- packs and cosmetics (test store) ----------
@@ -88,7 +87,6 @@
   wrap('pbStart', (o, ...a) => { const r = o(...a); if (r === true) C.loEvent('research'); return r; });
   wrap('startUpgrade', (o, ...a) => { const r = o(...a); if (r) C.loEvent('upgrade'); return r; });
   wrap('sendOffer', (o, ...a) => { C.loEvent('offer'); if (C.event().id === 'drive') passXP(30); return o(...a); });
-  wrap('adSpeedUp', (o, ...a) => { const r = o(...a); if (r) { C.loEvent('ad'); C.loEvent('speed'); passXP(20); } return r; });
   wrap('finishNow', (o, ...a) => { const r = o(...a); if (r) C.loEvent('speed'); return r; });
   wrap('collect', (o, k) => { let amt = o(k); if (amt) { C.loEvent('collect'); if (C.event().id === 'boost' && C.PRODUCERS[k] === 'cash') { const b = Math.round(amt * .5); C.car().cash += b; amt += b; C.save(); } } return amt; });
   wrap('campCost', (o) => C.event().id === 'drive' ? Math.round(o() / 2 / 100) * 100 : o());
@@ -116,15 +114,14 @@
         ${C.isVip() ? `<button class="btn full ${L.vipDay !== dayKey() ? 'pri' : 'sec2'}" data-act="vipdaily" style="margin-top:8px" ${L.vipDay !== dayKey() ? '' : 'disabled'}>👑 Coach's Club daily: <i class="coin"></i> 25</button>` : ''}
         <h3 class="jh">Today's tasks <small class="devp"><i class="coin"></i> 20 · <i class="cpi"></i> 20 each</small></h3>${tasks}
         <div class="card chest"><span>🧰</span><div><b>Weekly chest</b><small>${Math.min(L.weekDone, C.CHEST_GOAL)} / ${C.CHEST_GOAL} tasks · ${C.rwText(C.CHEST)}</small><div class="hbar"><i style="width:${Math.min(100, L.weekDone / C.CHEST_GOAL * 100)}%;background:var(--gold)"></i></div></div>
-          <button class="btn sm2" data-act="chest" ${!L.chest && L.weekDone >= C.CHEST_GOAL ? '' : 'disabled'}>${L.chest ? '✔' : 'Open'}</button></div>
-        <h3 class="jh">Rewarded ads <small class="devp">${C.adsLeft()} left today</small></h3><button class="btn full sec2" data-act="adreward" ${C.adsLeft() > 0 ? '' : 'disabled'}>▶ ${C.isVip() ? 'Claim (Coach\'s Club skips the ad)' : 'Watch an ad (test)'} for a random reward</button>`;
+          <button class="btn sm2" data-act="chest" ${!L.chest && L.weekDone >= C.CHEST_GOAL ? '' : 'disabled'}>${L.chest ? '✔' : 'Open'}</button></div>`;
     }
     if (tab === 'pass') {
       const P = passCheck(), T = C.passTier(), left = 30 * D - (C.now() - P.start);
       const rows = Array.from({ length: PASS_TIERS }, (_, i) => { const fr = FREE(i), pr = PREM(i), un = i < T;
         return `<div class="ptier ${un ? 'un' : ''}"><b>${i + 1}</b><button class="prw ${P.f.includes(i) ? 'got' : ''}" data-act="passclaim" data-v="f|${i}" ${un && !P.f.includes(i) ? '' : 'disabled'}>${C.rwText(fr)}</button><button class="prw prem ${P.p.includes(i) ? 'got' : ''} ${P.prem ? '' : 'lockd'}" data-act="passclaim" data-v="p|${i}" ${un && !P.p.includes(i) ? '' : 'disabled'}>${P.prem ? '' : '🔒 '}${C.rwText(pr)}</button></div>`; }).join('');
       return `${tabs}<div class="card passhd"><b>Season Pass · tier ${T} / ${PASS_TIERS}</b><small>${P.xp % PASS_XP} / ${PASS_XP} XP to the next tier · ends in ${C.dur(left / 1000)}</small><div class="hbar"><i style="width:${(P.xp % PASS_XP) / PASS_XP * 100}%;background:var(--school2)"></i></div>
-        <p class="note" style="margin:6px 0 0">XP from matches, tasks, the calendar and ads.</p>${P.prem ? '<p class="note" style="margin:4px 0 0">✔ Premium track unlocked</p>' : `<button class="btn full pri" data-act="buypack" data-v="pass" style="margin-top:8px">Unlock premium · $9.99 (test)</button>`}</div>
+        <p class="note" style="margin:6px 0 0">XP from matches, tasks and the calendar.</p>${P.prem ? '<p class="note" style="margin:4px 0 0">✔ Premium track unlocked</p>' : `<button class="btn full pri" data-act="buypack" data-v="pass" style="margin-top:8px">Unlock premium · $9.99 (test)</button>`}</div>
         <div class="ptier head"><b>#</b><span>Free</span><span>Premium</span></div>${rows}`;
     }
     return `${tabs}<div class="card evcard"><span>${ev.icon}</span><div><b>${ev.name}</b><p>${ev.desc}</p><small>Ends in ${C.dur((C.eventEnds() - C.now()) / 1000)}</small></div></div>

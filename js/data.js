@@ -53,14 +53,14 @@
 
   // ---- buildings (Q25c, Q27): owner 'program' moves with the coach, 'school' stays ----
   const pct = v => (Math.round(v * 10) / 10) + '%';
-  const seats = l => Math.round(200 + 50 * l + 5 * l * l);
+  const seats = l => { const S = C.ECON.seats; return Math.round(S.base + S.perLv * l + S.perLv2 * l * l); };
   C.prod = {
-    booster: l => l ? Math.round(150 + 100 * l * Math.pow(1.06, l)) : 0, // Booster $ per hour (Clubhouse fundraising)
-    lab: l => 4 + 2 * l                                        // Coaching Points per hour
+    booster: l => { const P = C.ECON.prod; return l ? Math.round(P.clubBase + P.clubPerLv * l * Math.pow(P.clubGrowth, l)) : 0; }, // Booster $ per hour (Clubhouse fundraising)
+    lab: l => C.ECON.prod.labBase + C.ECON.prod.labPerLv * l                                        // Coaching Points per hour
   };
   // Media Center (9p, FEEDBACK 67): exposure, not hourly income. Broadcast money after each home match, more for a win and at higher tiers,
   // and extra Reputation from every win.
-  C.broadcastPay = (l, win, tier) => l ? Math.round((300 + 120 * l) * (win ? 1.5 : 1) * (1 + (5 - tier) * .25) / 10) * 10 : 0;
+  C.broadcastPay = (l, win, tier) => { const W = C.ECON.broadcast; return l ? Math.round((W.base + W.perLv * l) * (win ? W.winMult : 1) * (1 + (5 - tier) * W.perTierUp) / 10) * 10 : 0; };
   C.mediaRep = l => Math.min(30, l);   // % extra Reputation from wins
   C.WIN_REP = .5;                      // Reputation for a league or cup win, before the Media Center bonus
   // Transport and Nutrition (9p, FEEDBACK 69; numbers to tune)
@@ -134,8 +134,8 @@
 
   // Cost to reach level `to` (Booster $, Coaching Points) and build time in seconds.
   C.costOf = (key, to) => { const m = C.BUILDINGS[key].mult; if (to <= 1) return { cash: 0, cp: 0 };   // first build is free (FEEDBACK 85)
-    return { cash: Math.round(1200 * m * Math.pow(1.33, to - 1) / 50) * 50, cp: 0 }; };  // buildings cost Booster $ only (Coaching Points are for the Playbook)
-  C.timeOf = (key, to) => to <= 1 ? 3 : Math.round(40 * Math.pow(1.38, to) * C.BUILDINGS[key].mult);   // first build: a few seconds
+    const B = C.ECON.build; return { cash: Math.round(B.base * m * Math.pow(B.growth, to - 1) / B.round) * B.round, cp: 0 }; };  // buildings cost Booster $ only (Coaching Points are for the Playbook)
+  C.timeOf = (key, to) => to <= 1 ? C.ECON.build.firstBuildSecs : Math.round(C.ECON.build.timeBase * Math.pow(C.ECON.build.timeGrowth, to) * C.BUILDINGS[key].mult);   // first build: a few seconds
 
   // Painted art (9p): one render per band of levels. Renders 8 to 10 are for later levels.
   C.renderOf = l => l >= 50 ? 10 : l >= 45 ? 9 : l >= 40 ? 8 : l >= 30 ? 7 : Math.max(1, Math.min(6, Math.floor(l / 5) + 1));

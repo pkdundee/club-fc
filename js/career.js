@@ -3,7 +3,7 @@
 // reclassification (the stay route with a transition season), and a homecoming fixture against your old college.
 (function (C) {
   C.BANDS = ['Low', 'Mid', 'High'];
-  const TIER_RATING = { 5: 40, 4: 48, 3: 55, 2: 62, 1: 69 };
+  const TIER_RATING = C.ECON.tierRating;
   const PROGRAM = Object.keys(C.BUILDINGS).filter(k => C.BUILDINGS[k].owner === 'program');
   const SCHOOL = Object.keys(C.BUILDINGS).filter(k => C.BUILDINGS[k].owner === 'school');
   C.PROGRAM_B = PROGRAM; C.SCHOOL_B = SCHOOL;

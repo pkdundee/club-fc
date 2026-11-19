@@ -50,7 +50,7 @@
       ${C.topBar(true, 'hud top')}
       <div class="side tl9">
         ${sq('queue', 'hammer', busy + '/' + open, readyB ? true : 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
-        ${sq('rqueue', 'book', C.pbRunning() + '/' + C.pbSlots(), 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
+        ${sq('rqueue', 'book', C.pbRunning() + '/' + C.pbSlots(), (car.pbq || []).some(q => q.end <= C.now()) ? true : 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
       </div>
       <div class="side tr9">
         ${C.fwActive() ? sq('firstweek', 'cal', 'Week 1', C.fwClaimable(), 'linear-gradient(160deg,#fb923c,#c2410c)') : ''}
@@ -61,7 +61,7 @@
         ${rnd('drawer', 'hammer', newB)}
       </div>
       <div class="side br9">
-        <div class="mailrow">${C.adWaiting && C.adWaiting() ? `<button class="adport" data-act="inbox" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}</div>
+        <div class="mailrow">${C.adWaiting && C.adWaiting() && !C.drawerOpen ? `<button class="adport" data-act="inbox" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}</div>
         ${sq('inventory', 'bag', 'Items', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
       </div>
       <div class="tstrip9"><button class="tsradio" data-act="nexttask" aria-label="Missions">${C.ico('radio', 34)}${C.loClaimable() ? `<i class="rd">${C.loClaimable()}</i>` : ''}</button>
@@ -92,7 +92,7 @@
     const built = k => C.level(k) > 0 || !!C.inQueue(k), order = k => C.buildable(k) ? 0 : built(k) ? 2 : 1;
     const card = k => { const d = C.BUILDINGS[k], lock = C.locked(k), act = built(k), ready = C.buildable(k);
       const foot = ready ? 'Build · Free' : act ? 'Building is active' : lock ? `Unlocks at Coaches' Office Lv ${d.needHQ}` : "Needs the Coaches' Office first";
-      return `<button class="dcard ${ready ? 'new' : 'ghost'}" data-act="${act ? 'bgo' : 'bldopen'}" data-v="${k}">${ready ? '<s>NEW</s>' : ''}
+      return `<button class="dcard ${ready ? 'new' : 'ghost'}" data-act="dgo" data-v="${k}">${ready ? '<s>NEW</s>' : ''}
         <div class="dpic">${C.buildingThumb(k, Math.max(1, C.level(k)), car, 120, 80)}</div><b>${C.esc(d.name)}</b><small>${C.esc(C.BJOB[k] || '')}</small><em>${foot}</em></button>`; };
     const tb = (k, n) => `<button class="${C.drawerTab === k ? 'on' : ''}" data-act="drawertab" data-v="${k}">${n}</button>`;
     return `<div class="drawer d9"><div class="dstrip">${keys.sort((a, b) => order(a) - order(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
@@ -239,6 +239,7 @@
   C.goToBuilding = k => { C.ui.closeAll(); C.drawerOpen = false; C.tab = 'campus'; C.selB = k; C.render();
     const m = C.$('#map'), pt = C.plotPoint(k); if (m && pt) { m.scrollLeft = pt[0] * zoom - m.clientWidth / 2; m.scrollTop = pt[1] * zoom - m.clientHeight / 2; view = { sl: m.scrollLeft, st: m.scrollTop }; } };
   C.ACTS.bgo = v => C.goToBuilding(v);
+  C.ACTS.dgo = v => { C.goToBuilding(v); C.openBuilding(v); };   // 1.01 (FEEDBACK 132a): drawer card -> its plot, popup in front
   C.ACTS.rqueue = () => C.openResearchQueue();
   // the task strip (FEEDBACK 94): claims on the spot when done; otherwise takes you straight to the task
   // what the strip shows (FEEDBACK 94, 101): a finished Mission to claim; otherwise the next Mission if you can act on it now;
@@ -251,6 +252,7 @@
     const di = C.daily().findIndex(t => t.n >= t.goal && !t.claimed); if (di >= 0) { const d = C.daily()[di]; return { claim: 1, text: `Claim: ${d.def[2]}`, daily: di }; }
     if (C.loClaimable() > 0) return { claim: 1, text: 'Collect your rewards', go: () => C.act('nexttask') };
     const done = car.queue.find(q => C.buildReady(q.key)); if (done) return { text: `Complete the ${C.BUILDINGS[done.key].name}`, go: () => C.goToBuilding(done.key) };
+    const pd = (car.pbq || []).find(q => q.end <= C.now()); if (pd) return { text: `Complete the research: ${C.pbName(pd.key)}`, go: () => C.act('pbready') };   // 1.01 (FEEDBACK 140)
     const nb = ks.find(C.buildable); if (nb) return { text: `Build the ${C.BUILDINGS[nb].name}`, go: () => C.goToBuilding(nb) };
     const r = C.recommendBuilding(), pr = C.pbRecommend && C.pbRecommend();
     if (r && C.readyArrow(r) && C.freeSlot()) return { text: `Upgrade the ${C.BUILDINGS[r].name} to Lv ${C.level(r) + 1}`, go: () => C.goToBuilding(r) };
@@ -300,7 +302,7 @@
       ['⚡', 'Program Power', C.programPower().toLocaleString()], ['🏗', ' · Campus', C.power().toLocaleString()], ['🧑‍🏫', ' · Staff', C.staffPower().toLocaleString()], ['👕', ' · Squad', C.squadPower().toLocaleString()], ['📋', 'Playbook levels', C.pbTotal()],
       ['🏆', 'Season ' + C.sea().n, C.sea().end ? 'Finished ' + C.ord(C.sea().end.pos) : t && t.p ? C.ord(C.myPos()) + ' · ' + t.w + 'W ' + t.d + 'D ' + t.l + 'L' : 'Not started'],
       ['🏛', 'Director confidence', ['😟', '🙁', '😐', '🙂', '😀'][Math.min(4, Math.floor((car.adConf ?? 50) / 20))]], ['👕', 'Roster', car.squad.length + ' / ' + C.rosterCap()], ['🎓', 'Scholarships left', '$' + C.short(C.poolLeft())]];
-    return `<div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 56)}<div><b style="font-family:Graduate,serif;font-size:18px">${C.esc(col.full)}</b><br><small class="mutey">${car.gender === 'w' ? "Women's" : "Men's"} program</small></div></div>
+    return `<div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 56)}<div><b style="font-family:Graduate,serif;font-size:18px">${C.esc(col.full)}</b><br><small class="mutey">${car.gender === 'w' ? "Women's" : "Men's"} program</small></div></div><button class="btn full sec2" data-act="yourcollege" style="margin-top:10px">📜 Your college and contract</button>
       <div class="card srows" style="margin-top:12px">${rows.map(r => `<div class="srow"><span>${r[0]} ${r[1]}</span><b>${r[2]}</b></div>`).join('')}</div>`;
   });
 
@@ -397,6 +399,7 @@
       <p class="note">Testing tools are for this preview build only.</p>
       <label class="fld">Screen check (send a screenshot of this if anything looks off)</label><div class="diag" id="diag">${C.diagText()}</div>
       <p class="note">Version: ${C.BUILD}</p><button class="btn full sec2" data-act="checkupdate">🔄 Check for update</button>
+      ${C.has9tSave() && !C.imported9t() ? '<button class="btn full sec2" data-act="imp9t">Import phase-9t save (testing)…</button>' : ''}
       <button class="btn full danger" data-act="wipe">Delete all saved data…</button>`;
   });
 
@@ -404,7 +407,7 @@
   C.openStore = () => C.ui.open('Store', () => {
     const a = C.acct(), vip = C.isVip(), L = C.lo(), row = (act, v, icon, name, sub, price, owned) => `<button class="lrow ${owned ? 'lock' : ''}" data-act="${act}" data-v="${v}"><span class="li">${icon}</span><span class="lt"><b>${name}</b><small>${sub}</small></span><span class="lr">${owned ? '✔' : price}</span></button>`;
     return `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store. Purchases are simulated and no money is charged.</div>
-      <div class="vipcard"><b>👑 Coach's Club</b><p>+1 slot in every queue (build, training, research, staff) · +1 career slot · <i class="coin"></i> 25 every day · rewarded ads without the ad</p>
+      <div class="vipcard"><b>👑 Coach's Club</b><p>+1 slot in every queue (build, training, research, staff) · +1 career slot</p>
         <button class="btn full ${vip ? 'sec2' : 'pri'}" data-act="buy" data-v="vip">${vip ? 'Active · ' + Math.ceil((a.vipUntil - C.now()) / 864e5) + ' days left (extend +30)' : 'Join · $4.99 / month'}</button></div>
       <h3 class="jh">Packs</h3>${row('buypack', 'starter', '🎒', 'Starter Pack', C.rwText(C.PACKS.starter.r) + ' · once only', '$1.99', L.cos.includes('starter'))}
       ${row('buypack', 'pass', '🎟', 'Season Pass premium', 'Premium rewards for this 30-day pass', '$9.99', C.pass().prem)}
@@ -421,7 +424,7 @@
   function splashHTML() {
     return `<div class="splash"><div class="splashart">${C.artSlot('title', C.sceneTitle('#1e3a8a', '#f97316', 390, 844))}</div><h1>CLUB FC</h1><p>Build your college soccer program from a rundown field to national champions.</p>
       <button class="btn pri" style="padding:16px 30px" data-act="newcar">Start a career</button>
-      <button class="btn" style="margin-top:12px;background:rgba(255,255,255,.15);color:#fff" data-act="help" data-v="">📖 Coach's Handbook</button></div>`;
+      <button class="btn" style="margin-top:12px;background:rgba(255,255,255,.15);color:#fff" data-act="help" data-v="">📖 Coach's Handbook</button>${C.has9tSave() && !C.imported9t() ? `<button class="btn" style="margin-top:12px;background:rgba(255,255,255,.08);color:#fff;font-size:13px" data-act="imp9t">Import phase-9t save (testing)…</button>` : ''}</div>`;
   }
   const SOON = {
     squad: ['👕', 'Squad', 'Your players, faces, numbers, training plans and the new player cards.', 'Phase 3'],

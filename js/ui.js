@@ -4,7 +4,7 @@
   C.ui = {};
   // Round 6: every area is its own page (a Back arrow replaces the bottom menu). Small choices are popups, which sit
   // between the header and footer and leave both clear. Nothing slides up over the footer.
-  const POPUPS = new Set(['Use a speed-up', 'Building Queue', 'Release player', 'Delete a career', 'Delete all data', 'Signed!', 'Research', 'Choose player', 'New job', 'Keep a player', 'Staff on duty']);
+  const POPUPS = new Set(['Use a speed-up', 'Building Queue', 'Release player', 'Delete a career', 'Delete all data', 'Import 9t save', 'Signed!', 'Research', 'Choose player', 'New job', 'Keep a player', 'Staff on duty']);
   const modeOf = (title, opts) => { const pop = C.ui.asPopup; C.ui.asPopup = false; return opts.modal ? 'modal' : opts.popup || pop || POPUPS.has(title) ? 'popup' : 'page'; };
 
   // Open a page or popup. render() returns its body HTML and is re-run on refresh (live timers).
@@ -15,8 +15,8 @@
   };
   // Replace the top one (used when one step leads to the next without a back step)
   C.ui.replace = (title, render, opts = {}) => { stack.pop(); stack.push({ title, render, mode: modeOf(title, opts) }); draw(); };
-  C.ui.back = () => { if (!stack.length) return; stack.pop(); draw(true); };
-  C.ui.closeAll = () => { stack.length = 0; draw(); };
+  C.ui.back = () => { if (!stack.length) return; stack.pop(); draw(true); if (!stack.length && C.onUiClosed) C.onUiClosed(); };
+  C.ui.closeAll = () => { const had = stack.length; stack.length = 0; draw(); if (had && C.onUiClosed) C.onUiClosed(); };   // 1.01: the screen behind refreshes (badges, map)
   // close everything above the named page
   C.ui.popTo = title => { while (stack.length > 1 && stack[stack.length - 1].title !== title) stack.pop(); draw(true); };
   C.ui.isOpen = () => stack.length > 0;

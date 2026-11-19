@@ -5,7 +5,7 @@
   const CONF = ['Prairie', 'Gulf Coast', 'Heartland', 'Frontier', 'Great Lakes', 'Sun Belt', 'Big Sky', 'Tidewater'];
   const GOALS = { 3: ['Top 4 and reach the conference final', s => s.pos <= 4 && s.final], 2: ['Finish in the top half', s => s.pos <= 4], 1: ['Stay out of the bottom 2', s => s.pos <= 6] };
   C.SEASON_GOAL = GOALS;
-  C.SEASON_BUDGET = { 5: 8000, 4: 20000, 3: 45000, 2: 90000, 1: 160000 };  // the Director's budget each new season (ECONOMY.md)
+  C.SEASON_BUDGET = C.ECON.seasonBudget;  // the Director's budget each new season (ECONOMY.md)
   const pois = (r, l) => { let k = 0, p = Math.exp(-l), s = p, u = r(); while (u > s && k < 9) { k++; p *= l / k; s += p; } return k; };
 
   // ---------- setup ----------

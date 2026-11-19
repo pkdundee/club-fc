@@ -108,6 +108,8 @@
   // ---------- actions ----------
   A.pbtree = v => C.openPBTree(v);
   A.pbrec = () => { const r = C.pbRecommend(); if (!r) return C.toast('Everything open is being researched'); C.openPBTree(r.split('.')[0]); C.openPBNode(r); };
+  // 1.01 (FEEDBACK 140): the research badge on the Performance Lab / Next Step: one finished -> complete it; several -> the queue
+  A.pbready = () => { const r = (C.car().pbq || []).filter(q => q.end <= C.now()); if (r.length === 1) { if (C.pbComplete(r[0].key)) { C.ui.closeAll(); C.render(); } } else if (r.length) C.openResearchQueue(); };
   A.pbdone = v => { if (C.pbComplete(v)) { if (C.ui.isOpen()) C.ui.refresh(); C.render(); } };
   A.pbinstant = v => { const to = C.pbLv(v) + 1, tm = C.pbTime(v, to), g = C.coinsFor(tm);
     C.confirmCoins(g, () => { const car = C.car(), k = C.pbCost(v, to); if (C.acct().gold < g) return C.toast('Not enough Coins'); if (car.cp < k.cp || car.cash < k.cash) return C.toast('Not enough resources');

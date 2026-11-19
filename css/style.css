@@ -1365,8 +1365,8 @@ html,body{background:var(--card)}
 .dcard.ghost em{color:#475569}
 .side.bl9,.side.br9{bottom:calc(138px + var(--sab))}
 
-.mailrow{display:flex;align-items:flex-start;gap:6px}
-.adport{position:relative;width:46px;height:52px;padding:0;border:2px solid #0f172a;border-radius:8px;background:linear-gradient(#fde68a,#f59e0b);overflow:hidden;cursor:pointer;margin-top:2px}
+.mailrow{display:flex;align-items:flex-start;gap:6px;position:relative}
+.adport{position:absolute;right:calc(100% + 8px);top:0;width:46px;height:52px;padding:0;border:2px solid #0f172a;border-radius:8px;background:linear-gradient(#fde68a,#f59e0b);overflow:hidden;cursor:pointer;margin-top:2px}
 .adport i{position:absolute;right:-1px;top:50%;width:0;height:0;border:6px solid transparent;border-left-color:#0f172a;transform:translate(100%,-50%)}
 
 .slimadv{position:relative;cursor:pointer}.advn{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-style:normal;background:#2563eb;color:#fff;font:900 11px Nunito;padding:2px 7px;border-radius:9px;border:1.5px solid #0f172a}

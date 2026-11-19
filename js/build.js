@@ -1,6 +1,6 @@
 // Club FC: base building (Phase 1). Upgrade rules, the build queue, speed-ups and production.
 (function (C) {
-  const FREE_FINISH = 120; // builds with 2 minutes or less left can be finished free
+  const E = C.ECON, FREE_FINISH = E.finish.freeSecs; // builds with 2 minutes or less left can be finished free
 
   C.level = k => C.car().b[k];
   // Locked buildings (9p, FEEDBACK 65): every building starts at Lv 1, but some stay locked until the Coaches' Office reaches their level.
@@ -50,14 +50,13 @@
   C.upgradeReward = (k, to) => Math.round((k === 'hq' ? 20 : 5) * to);
   C.remaining = q => Math.max(0, (q.end - C.now()) / 1000);
   // Coins: 1 per minute left for the first hour, then 1 per 2 minutes (see ECONOMY.md)
-  C.coinsFor = secs => { const m = Math.ceil(secs / 60); return m <= 60 ? Math.max(1, m) : 60 + Math.ceil((m - 60) / 2); };
+  C.coinsFor = secs => { const F = E.finish, m = Math.ceil(secs / 60); return m <= F.firstHourMins ? Math.max(1, m * F.perMinute) : F.firstHourMins * F.perMinute + Math.ceil((m - F.firstHourMins) / F.afterHourMinsPerCoin); };
   C.goldToFinish = q => C.coinsFor(C.remaining(q));
   C.isFreeFinish = q => C.remaining(q) <= FREE_FINISH;
   C.finishNow = (q, pay) => {
     if (pay) { const g = C.goldToFinish(q); if (C.acct().gold < g) return false; C.acct().gold -= g; }
     q.end = C.now(); return C.completeBuild(q.key);   // Finish Now completes straight away, once paid for
   };
-  C.adSpeedUp = q => { if (C.adsLeft() <= 0) return false; C.acct().adsUsed++; q.end -= 15 * 60 * 1000; C.tick(); return true; };
 
   // Complete finished builds. Returns the list of buildings that levelled up.
   C.tick = () => {

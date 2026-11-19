@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'phase-9t · 16 Nov 2026';
+  C.BUILD = 'CLUB FC 1.01 · 18 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -58,8 +58,6 @@
       case 'speed': { const q = C.inQueue(v); if (!q) break; return C.finishRunning('b', v, () => { if (C.completeBuild(v)) { C.fwEvent('speed'); C.ui.closeAll(); C.render(); } }); }
       case 'speedold': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
         if (C.finishNow(q, !free)) { C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } else C.toast('Not enough Coins'); break; }
-      case 'adspeed': { const q = C.inQueue(v); if (!q) break; C.toast('▶ Ad finished (test): −15 minutes'); C.adSpeedUp(q); C.fwEvent('speed');
-        if (!C.inQueue(v)) { C.ui.closeAll(); C.render(); } else C.ui.refresh(); break; }
       case 'collect': { const amt = C.collect(v); if (amt) C.fwEvent(C.PRODUCERS[v] === 'cp' ? 'collect_cp' : 'collect_cash'); if (amt) C.toast(`${C.PRODUCERS[v] === 'cp' ? '<i class="cpi"></i>' : '💵'} +${C.short(amt)} collected`); if (C.ui.isOpen()) C.ui.refresh(); C.redrawMap(); C.updateLive(); break; }
       case 'queue': C.openQueue(); break;
       case 'blist': C.openBuildList(); break;
@@ -144,7 +142,7 @@
       case 'mauto': C.matchAuto(); break;
       case 'report': C.openReport(+v); break;
       case 'seav': C.setSeasonView(v); break;
-      case 'nextseason': { const r = C.startNextSeason(); C.render(); C.toast(r.up ? `🎉 ${C.college().short} moved up to ${C.TIERS[car.tier].n}! Building caps raised.` : `🎓 ${r.left.length} seniors graduated${r.walk.length ? ` · ${r.walk.length} walk-ons joined` : ''} · 💵 Director's budget +${C.short(r.budget)}`); break; }
+      case 'nextseason': { const r = C.startNextSeason(); C.render(); C.toast(r.up ? `🎉 ${C.college().short} moved up to ${C.TIERS[car.tier].n}!` : `🎓 ${r.left.length} seniors graduated${r.walk.length ? ` · ${r.walk.length} walk-ons joined` : ''} · 💵 Director's budget +${C.short(r.budget)}`); break; }
       case 'tactics': C.openTactics(); break;
       case 'form': C.setForm(v); C.ui.refresh(); break;
       case 'ment': C.tac().ment = +v; C.save(); C.ui.refresh(); break;
@@ -192,7 +190,6 @@
       case 'taskclaim': { const r = C.taskClaim(+v); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
       case 'chest': { const r = C.chestClaim(); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
       case 'vipdaily': { const r = C.vipDaily(); if (r) { C.toast('👑 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
-      case 'adreward': { const r = C.adReward(); if (r) { C.toast((C.isVip() ? '👑 ' : '▶ Ad finished (test): ') + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
       case 'passclaim': { const [t, i] = v.split('|'); const r = C.passClaim(t, +i); if (r === 'prem') C.toast('Unlock the premium track first'); else if (r) { C.toast('🎟 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
       case 'buypack': { const r = C.buyPack(v); C.toast(r === 'owned' ? 'Already bought' : '✅ Test purchase complete'); C.ui.refresh(); C.render(); break; }
       case 'kit': C.buyKit(v); C.toast(`${C.KITS[v][0]} ${C.KITS[v][1]}`); C.ui.refresh(); C.render(); break;
@@ -202,7 +199,6 @@
         C.toast(r === true ? { physio: '🩺 Physio done: one match off', spec: '🩺 Treated: one match off', rush: '⚡ Rushed back for the next match', kit: '🧴 +25 Freshness' }[kind] : { coins: 'Not enough Coins', none: 'No physio sessions left', nokit: 'No recovery kits', no: "Can't do that for this injury" }[r] || 'Not possible'); C.ui.refresh(); C.render(); break; }
       case 'teamsess': { const r = C.teamSession(); C.toast(r === true ? '👥 Team recovery session: +12 Freshness' : 'Not enough Coins'); C.ui.refresh(); C.render(); break; }
       case 'buykitc': { const r = C.buyRecoveryKit(); C.toast(r === true ? '🧴 Recovery kit bought' : 'Not enough Coins'); C.ui.refresh(); break; }
-      case 'adphysio': { const r = C.adPhysio(); C.toast(r === true ? '▶ Ad finished (test): +1 physio session' : r === 'used' ? 'Used today' : 'No ads left today'); C.ui.refresh(); break; }
       // Home (phase-9d)
       case 'dailygift': { const r = C.claimGift(); if (r) { C.toast('🎁 ' + C.rwText(r)); C.render(); } break; }
       case 'buydeal': { const r = C.buyDeal(); C.toast(r === true ? '✅ Test purchase complete' : 'Already bought today'); C.render(); break; }
@@ -222,6 +218,8 @@
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
       case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Coins and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
       case 'wipeyes': C.wipe(); location.reload(); break;
+      case 'imp9t': C.ui.open('Import 9t save', () => `<p class="note" style="font-size:14px">Copies your phase-9t save into CLUB FC 1.01 for testing. <b>Your 9t save is not changed.</b> It replaces everything currently saved in 1.01, and can be done once (again only after Delete all data).</p><button class="btn full pri" data-act="imp9tyes">Import the 9t save</button>`, { popup: true }); break;
+      case 'imp9tyes': { const r = C.import9t(); if (r === true) location.reload(); else C.toast(r === 'none' ? 'No phase-9t save on this device' : r === 'done' ? 'Already imported' : 'Import failed'); break; }
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();
         if (v === 'vip') a2.vipUntil = Math.max(a2.vipUntil, C.now()) + 30 * 864e5;
@@ -263,6 +261,11 @@
   document.addEventListener('touchend', e => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) C.jobPage(dx < 0 ? 1 : -1); }, { passive: true });
 
+  // 1.01 (FEEDBACK 131, 138): when the last popup closes, redraw the screen behind it (Inbox badge, arrows, map markers)
+  C.onUiClosed = () => { if (C.car() && !C.booting && (C.tab === 'campus' || C.tab === 'home')) { mapSig = campusSig(); C.render(); } };
+  // and redraw the campus as soon as what it shows changes (money, levels, queues, mail), not only every 20 seconds
+  const campusSig = () => { const car = C.car(); if (!car) return ''; return [car.cash, car.cp, C.acct().gold, JSON.stringify(car.b), car.queue.map(q => q.key + (C.buildReady(q.key) ? '!' : '')).join(), (car.pbq || []).map(q => q.key + (q.end <= C.now() ? '!' : '')).join(), C.inboxUnread ? C.inboxUnread() : 0].join('|'); };
+  let mapSig = '';
   // one-second clock: finish builds, update timers, refresh live pop-ups
   let n = 0;
   setInterval(() => {
@@ -277,6 +280,7 @@
     if (done.length || (C.lvlQueue && C.lvlQueue.length)) { C.render(); if (C.ui.isOpen()) C.ui.refresh(); C.nextLevelUp(); if (done.length) return; }
     C.updateLive();
     if (C.ui.isOpen() && C.$('.uc [data-timer]')) C.ui.refresh();   // no flash: refreshes don't replay the open animation
+    if (C.tab === 'campus' && !C.ui.isOpen()) { const s = campusSig(); if (s !== mapSig) { mapSig = s; C.render(); } }
     if (++n % 20 === 0 && !C.ui.isOpen()) C.redrawMap(); // let new collect bubbles appear
   }, 1000);
 

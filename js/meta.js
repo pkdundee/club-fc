@@ -44,7 +44,7 @@
     if (invTab === 'res') body = cell('📦', inv.crate || 0, '$5K crate', 'invcrate', '', 't2') + cell('🏅', inv.badge || 0, 'Coaching Badges', 'tab', 'staff', 't3') + cell('📗', S.items.manual, 'Manuals', 'tab', 'staff') + cell('📕', S.items.books, 'Trait Books', 'tab', 'staff', 't3') + cell('🎫', S.items.credits, 'Clinic Credits', 'tab', 'staff');
     if (invTab === 'special') body = cell('🧴', it.kit || 0, 'Recovery kits', 'medical', '') + cell('🎁', it.rareRecruit || 0, 'Rare recruit', 'rare', '', 't4') + cell('🎟', car.tokens || 0, 'Number Changes', 'tab', 'squad', 't2');
     return `<div class="res hres inv">${C.resBar()}</div><div class="bigtabs">${tabs.map(([k, n]) => `<button class="${invTab === k ? 'on' : ''}" data-act="invtab" data-v="${k}">${n}</button>`).join('')}</div>
-      <div class="invg">${body}</div><p class="note">${invTab === 'speed' ? 'Tap a speed-up, then pick a building that is being built. Speed-ups come from Missions, the Pass and the Store.' : 'Tap an item to use it or go to where it is used.'}</p>`;
+      <div class="invg">${body}</div><p class="note">${invTab === 'speed' ? 'Tap a speed-up, then pick a building that is being built. Speed-ups come from Missions, events and the Store.' : 'Tap an item to use it or go to where it is used.'}</p>`;
   });
   A.invtab = v => { invTab = v; C.ui.refresh(); };
   A.invcrate = () => { if (C.openCrate()) { C.toast('📦 +$5K Booster $'); C.ui.refresh(); C.render(); } };
@@ -227,19 +227,20 @@
   C.mail = (f, icon, title, body, r) => { const M = meta(); M.inbox.unshift({ id: 'm' + C.now() + Math.floor(Math.random() * 1e4), f, icon, title, body, r: r || null, claimed: false, read: false, t: C.now() }); M.inbox = M.inbox.filter(x => C.now() - x.t < 30 * D || x.fav).slice(0, 120); C.save(); };
   function receipt(name, r) { C.mail('purchases', '🧾', 'Purchase: ' + name, `Thanks for your purchase. ${r ? 'Received: ' + C.rwText(r) + '.' : ''}<br><small>Test store: nothing was charged.</small>`, null); }
   const FOLDERS = [['match', '📋', 'Match reports'], ['director', '🏛', 'Director'], ['rewards', '🎁', 'Rewards'], ['purchases', '🧾', 'Purchases'], ['system', '⚙️', 'News & updates'], ['fav', '⭐', 'Favourites']];
-  C.inboxUnread = () => { const car = C.car(); if (!car) return 0; sysMail(); return meta().inbox.filter(x => !x.read || (x.r && !x.claimed)).length + C.adUnread(); };
-  function sysMail() { const M = meta(); if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `Ray here. A few changes around the office:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
+  C.inboxUnread = () => { const car = C.car(); if (!car) return 0; sysMail(); return meta().inbox.filter(x => !x.read || (x.r && !x.claimed)).length; };   // 1.01: mail only (the Director's notes are mail now)
+  function sysMail() { C.syncADMail && C.syncADMail(C.car()); const M = meta(); if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `Ray here. A few changes around the office:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
   let folder = null;
   C.openInbox = () => { folder = null; C.ui.open('Inbox', inboxHTML); };
   function inboxHTML() {
     sysMail(); const M = meta();
-    if (!folder) return FOLDERS.map(([k, ic, n]) => { const list = k === 'fav' ? M.inbox.filter(x => x.fav) : M.inbox.filter(x => x.f === k), un = k === 'director' ? C.adUnread() : list.filter(x => !x.read || (x.r && !x.claimed)).length, gift = list.some(x => x.r && !x.claimed);
+    if (!folder) return FOLDERS.map(([k, ic, n]) => { const list = k === 'fav' ? M.inbox.filter(x => x.fav) : M.inbox.filter(x => x.f === k), un = list.filter(x => !x.read || (x.r && !x.claimed)).length, gift = list.some(x => x.r && !x.claimed);
       return `<button class="mfold" data-act="mfold" data-v="${k}"><span class="mfi">${ic}</span><b>${n}</b>${gift ? '<span class="mgift">🎁</span>' : ''}${un ? `<i class="mdot">${un}</i>` : ''}<em>›</em></button>`; }).join('') + '<p class="note">Messages older than 30 days are removed, unless you favourite them.</p>';
     const list = folder === 'fav' ? M.inbox.filter(x => x.fav) : M.inbox.filter(x => x.f === folder);
-    return `<button class="btn sm2 sec2" data-act="mfold" data-v="">‹ All folders</button>${list.length ? list.map(x => `<div class="mail ${x.read ? '' : 'new'}"><div class="mh"><span>${x.icon}</span><div><b>${C.esc(x.title)}</b><small>${new Date(x.t).toLocaleString()}</small></div><button class="mfav" data-act="mfav" data-v="${x.id}">${x.fav ? '⭐' : '☆'}</button></div>
+    return `<button class="btn sm2 sec2" data-act="mfold" data-v="">‹ All folders</button>${folder === 'director' ? '<button class="btn full sec2" data-act="ad" style="margin:8px 0">🏛 Director\'s Office: goals and confidence</button>' : ''}${list.length ? list.map(x => `<div class="mail ${x.read ? '' : 'new'}"><div class="mh"><span>${x.icon}</span><div><b>${C.esc(x.title)}</b><small>${new Date(x.t).toLocaleString()}</small></div><button class="mfav" data-act="mfav" data-v="${x.id}">${x.fav ? '⭐' : '☆'}</button></div>
       <div class="mbody">${x.body}</div>${x.md != null ? `<button class="btn sm2 sec2" data-act="report" data-v="${x.md}">Full report</button>` : ''}${x.r ? `<div class="mrw">${C.itemTiles(x.r)}${x.claimed ? '<span class="donechk">✔ Claimed</span>' : `<button class="btn sm2 claim" data-act="mclaim" data-v="${x.id}">Claim</button>`}</div>` : ''}</div>`).join('') : '<p class="note">Nothing here yet.</p>'}`;
   }
-  A.mfold = v => { if (v === 'director') return C.openAD(); folder = v || null; if (folder) meta().inbox.forEach(x => { if ((folder === 'fav' ? x.fav : x.f === folder) && !x.r) x.read = true; }); C.save(); C.ui.refresh(); C.render(); };
+  // 1.01 (FEEDBACK 133): Director is a message folder; the Office has its own button inside
+  A.mfold = v => { folder = v || null; if (folder) meta().inbox.forEach(x => { if ((folder === 'fav' ? x.fav : x.f === folder) && !x.r) x.read = true; }); C.save(); C.ui.refresh(); C.render(); };
   A.mfav = v => { const x = meta().inbox.find(m => m.id === v); if (x) { x.fav = !x.fav; C.save(); C.ui.refresh(); } };
   A.mclaim = v => { const x = meta().inbox.find(m => m.id === v); if (x && x.r && !x.claimed) { x.claimed = true; x.read = true; C.giveReward(x.r); C.toast('🎁 ' + C.rwText(x.r)); C.ui.refresh(); C.render(); } };
   A.inbox = () => C.openInbox();
@@ -273,7 +274,7 @@
         ${C.piggyHTML ? C.piggyHTML() : ''}<h3 class="jh">Weekly deals <small class="devp">${fmt(new Date(weekKey()))} – ${fmt(wkEnd() - 1)}</small></h3>
         ${WEEKLY.map(w => { const n = M.wbuy[w.id] || 0, left = w.lim - n; return `<div class="pack"><div class="pkh"><b>${w.icon} ${w.name}</b><span class="ptag t-${w.tag.toLowerCase()}">${w.tag}</span></div>${C.itemTiles(w.r)}<div class="packft"><small>${left} of ${w.lim} purchase${w.lim > 1 ? 's' : ''} left</small><button class="btn sm2 ${left ? 'pri' : 'sec2'}" data-act="buyweekly" data-v="${w.id}" ${left ? '' : 'disabled'}>${left ? w.price : 'Sold out'}</button></div></div>`; }).join('')}
         ${row('buypack', 'starter', '🎒', 'Starter Pack', C.rwText(C.PACKS.starter.r) + ' · once only', '$1.99', L.cos.includes('starter'))}`; }
-    if (stTab === 'passes') body = `<div class="vipcard"><b>👑 Coach's Club</b><p>+1 slot in every queue (build, training, research, staff) · +1 career slot · <i class="coin"></i> 25 every day · rewarded ads without the ad</p>
+    if (stTab === 'passes') body = `<div class="vipcard"><b>👑 Coach's Club</b><p>+1 slot in every queue (build, training, research, staff) · +1 career slot</p>
         <button class="btn full ${vip ? 'sec2' : 'pri'}" data-act="buy" data-v="vip">${vip ? 'Active · ' + Math.ceil((a.vipUntil - C.now()) / 864e5) + ' days left (extend +30)' : 'Join · $4.99 / month'}</button></div>
       <h3 class="jh">${C.curEvent().th.icon} ${C.curEvent().th.name}</h3><button class="lrow" data-act="evopen"><span class="li">${C.curEvent().th.icon}</span><span class="lt"><b>Event packs</b><small>$4.99, then $9.99: open the premium tracks</small></span><span class="lr">›</span></button>`;
     if (stTab === 'coins') body = ['g100', 'g550', 'g1200'].map(k => row('buypack', k, '<i class="coin"></i>', C.PACKS[k].name, 'Speed-ups, coaching searches, agency scouts', C.PACKS[k].price)).join('');
@@ -313,11 +314,9 @@
   wrap('collect', (o, ...a) => { const r = o(...a); if (r) { ms('collect'); C.dailyEvent('collect'); } return r; });
   wrap('pbStart', (o, ...a) => { const r = o(...a); if (r === true) { ms('research'); C.dailyEvent('research'); } return r; });
   wrap('startUpgrade', (o, ...a) => { const r = o(...a); if (r) C.dailyEvent('upgrade'); return r; });
-  wrap('adSpeedUp', (o, ...a) => { const r = o(...a); if (r) { C.dailyEvent('ad'); C.dailyEvent('speed'); } return r; });
   wrap('finishNow', (o, ...a) => { const r = o(...a); if (r) C.dailyEvent('speed'); return r; });
   wrap('useSpeed', (o, ...a) => { const r = o(...a); if (r) C.dailyEvent('speed'); return r; });
   wrap('claimGift', (o, ...a) => { const r = o(...a); if (r) C.dailyEvent('gift'); return r; });
-  wrap('adReward', (o, ...a) => { const r = o(...a); if (r) C.dailyEvent('ad'); return r; });
   wrap('treat', (o, ...a) => { const r = o(...a); if (r === true) C.dailyEvent('medical'); return r; });
   wrap('applyResult', (o, m, f) => { const rep = o(m, f), my = rep.my, us = my === 0 ? rep.hs : rep.as, them = my === 0 ? rep.as : rep.hs, S = C.sea(), opp = S.teams[my === 0 ? rep.a : rep.h];
     ms('match'); C.dailyEvent('match'); if (us > them) { ms('win'); C.dailyEvent('win'); }

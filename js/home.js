@@ -38,7 +38,7 @@
     if (C.pbRunning && !C.pbRunning() && car.cp >= 20) return ['📋', 'Start some Playbook research.', 'playbook', ''];
     if (C.myFixture() && C.tac().xi.map(C.P).filter(p => p && p.energy < 50).length >= 3) return ['🧴', 'Your starters are tired: rejuvenate before the next match.', 'rejuv', ''];
     if (inj && C.medState().physio > 0) return ['🩺', `Use a physio session on an injured player.`, 'medical', ''];
-    if (C.adUnread()) return ['🏛', 'The Director has a message for you.', 'ad', ''];
+    if ((C.meta().inbox || []).some(x => x.f === 'director' && !x.read)) return ['🏛', 'The Director has a message for you.', 'inbox', ''];   // 1.01: Director notes are mail
     if (C.inboxUnread && C.meta().inbox.some(x => x.r && !x.claimed)) return ['✉️', 'You have rewards waiting in your Inbox.', 'inbox', ''];
     if (C.portalOpen()) return ['🚪', 'The transfer window is open.', 'portalgo', ''];
     return C.myFixture() ? ['⚽', 'Pick your line-up and play the next match.', 'prematch', ''] : ['🏆', 'Review the season.', 'tab', 'season'];

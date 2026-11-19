@@ -105,6 +105,42 @@
   C.jobPage = d => { if (M.onlyShort) return; M.page = (M.page + d + 3) % 3; C.ui.refresh(); };
   C.toggleShort = id => { M.short.has(id) ? M.short.delete(id) : M.short.add(id); C.ui.refresh(); };
 
+  // ---------------- "Your college" (1.01, FEEDBACK 128): the signed contract page again, read-only ----------------
+  // Signed values come from the career's job (car.job). Every 9t opening was equal, so the budget at signing is EQUAL.cash.
+  // Squad and facilities show the program as it is now (the signing-day squad isn't saved).
+  C.openYourCollege = () => C.ui.open('Your college', () => {
+    const car = C.car(), j = car.job, col = C.college(), st = STORIES[j.story] || {}, ty = TYPES[j.type] || TYPES.sch;
+    const best = [...car.squad].sort((a, b) => b.rating - a.rating).slice(0, 3), yrN = ['', 'Fr', 'So', 'Jr', 'Sr'];
+    const mix = [1, 2, 3, 4].map(y => car.squad.filter(p => p.year === y).length), mixCols = ['#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'];
+    const fac = Object.keys(C.BUILDINGS).map(k => { const d = C.BUILDINGS[k], l = car.b[k];
+      return `<div class="fac"><span>${d.icon}</span><b>${d.name}</b><em>${l ? 'Lv ' + l : C.locked(k) ? '🔒' : 'Empty plot'}</em></div>`; }).join('');
+    return `<div class="jhead">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<div><b>${C.esc(col.full)}</b><small>${C.esc(col.mascot)} · ${car.gender === 'w' ? "Women's" : "Men's"} soccer · ${col.state} · Head coach since season 1</small></div></div>
+      <div class="card jcard"><b>${C.esc(st.title || '')}</b><p>${C.esc(st.text || '')}</p></div>
+      <h3 class="jh">📜 Your contract</h3>
+      <div class="kgrid">
+        <div class="k"><small>Athletic director's goal</small><b>${GOAL[j.stars] || ''}</b></div>
+        <div class="k"><small>Long-term ambition</small><b>${C.esc(st.ambition || '')}</b></div>
+        <div class="k"><small>Squad style</small><b>${C.esc(st.kind || '')}</b></div>
+        <div class="k"><small>College type</small><b>${ty.icon} ${ty.name}</b><small>${ty.line}</small></div>
+      </div>
+      <h3 class="jh">💵 Money</h3>
+      <div class="kgrid">
+        <div class="k"><small>Cost to attend</small><b>${C.money(j.coa)}/yr</b><small>${j.type === 'juco' ? 'Two-year college' : col.pub ? 'Public college' : 'Private: most recruits get academic aid'}</small></div>
+        <div class="k"><small>Scholarships</small><b>${j.eq ? `🎓 ${j.eq} of ${j.limit} funded` : 'None'}</b><small>${j.eq ? C.money(j.pool) + ' a year · ' + C.money(C.poolLeft()) + ' left' : 'Academic aid only'}</small></div>
+        <div class="k"><small>Booster budget at signing</small><b>${C.money(EQUAL.cash)}</b><small>Now: ${C.money(car.cash)}</small></div>
+        <div class="k"><small>Squad strength at signing</small><b>avg ${EQUAL.rating}</b><small>Every opening started equal</small></div>
+      </div>
+      <h3 class="jh">👕 Squad now</h3>
+      <div class="card">
+        <div class="srow"><span>Best players</span><b>${best.map(p => `${p.pos} ${p.rating} (${yrN[p.year] || ''})`).join(' · ')}</b></div>
+        <div class="mixbar">${mix.map((n, i) => n ? `<i style="flex:${n};background:${mixCols[i]}">${['Fr', 'So', 'Jr', 'Sr'][i]} ${n}</i>` : '').join('')}</div>
+      </div>
+      <h3 class="jh">🏛 Facilities now</h3>
+      <div class="facs">${fac}</div>
+      ${st.ray ? `<div class="raytake"><span>👀</span><p><b>First impressions</b>${C.esc(st.ray)}</p></div>` : ''}`;
+  });
+  C.ACTS.yourcollege = () => C.openYourCollege();
+
   // ---------------- college preview ----------------
   C.openJob = id => { M.pick = id; C.ui.open(C.COLLEGES[M.jobs[id].college].short, jobHTML); };
   function jobHTML() {

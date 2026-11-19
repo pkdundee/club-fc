@@ -9,7 +9,7 @@
   const POSLIST = ['GK', 'CB', 'CB', 'LB', 'RB', 'DM', 'CM', 'CM', 'AM', 'LM', 'RM', 'LW', 'RW', 'ST', 'ST'];
   const KITS = [['#dc2626', '#fff'], ['#2563eb', '#fff'], ['#111827', '#facc15'], ['#16a34a', '#fff'], ['#7c3aed', '#fde68a'], ['#f8fafc', '#1e3a8a'], ['#ea580c', '#111827'], ['#0891b2', '#f8fafc']];
   const INTL = ['eng', 'ger', 'swe', 'esp', 'fra', 'bra', 'mex', 'yor', 'gha', 'jam', 'jpn', 'kor'];
-  const JOB_VALUE = 4000, HOUSE_VALUE = 2500, SCOUT_CP = 10, AGENCY_GOLD = 60, PORTAL_DAYS = 3;
+  const R0 = C.ECON.recruit, JOB_VALUE = R0.jobValue, HOUSE_VALUE = R0.houseValue, SCOUT_CP = R0.scoutCP, AGENCY_GOLD = R0.agencyCoins, PORTAL_DAYS = R0.portalDays;
   C.REASONS = { up: ['📈', 'Moving up', 'Bigger programs are watching'], mins: ['⏱', 'Minutes', 'Wants more playing time'], promise: ['💔', 'Broken promise', 'Was promised a bigger role'], home: ['🏠', 'Homesick', 'Misses home'] };
 
   // ---------- state ----------
