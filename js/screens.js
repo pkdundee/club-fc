@@ -77,14 +77,25 @@
   const insetTop = () => { const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;top:env(safe-area-inset-top);left:0;width:1px;height:1px;visibility:hidden'; document.body.appendChild(pr); const v = parseFloat(getComputedStyle(pr).top) || 0; pr.remove(); return v; };
   C.fitInfo = { mode: 'auto', applied: 'standard', gap: 0, inset: 0 };
   // the rule on its own, from measurements only (tested across iPhone sizes and modes by the regression runner)
+  // Phone test (20 Nov, FEEDBACK 177): in that case iOS draws nothing of the page below the window, so a taller frame is
+  // simply cut off. Instead ("band"): the frame stays the window's height, the bottom bars drop their home-bar padding, and
+  // the strip below the window (the screen's curved corners), which shows the page background, takes the colour of the
+  // bar at the bottom of the screen, so the bar runs on into the curve. "full" (the old attempt) stays as a test option.
   C.fitCalc = m => { const portrait = m.ih >= m.iw, sh = portrait ? Math.max(m.sw, m.shh) : Math.min(m.sw, m.shh), gap = Math.round(sh - m.ih);
-    const full = m.mode === 'full' || (m.mode === 'auto' && m.sa && gap > 0 && m.top > 0 && Math.abs(gap - m.top) <= 2); return { full, sh, gap }; };
+    const short = m.sa && gap > 0 && m.top > 0 && Math.abs(gap - m.top) <= 2;
+    const fit = m.mode === 'full' ? 'full' : m.mode === 'auto' && short ? 'band' : 'standard'; return { fit, full: fit === 'full', sh, gap }; };
   C.fitScreen = () => { const app = document.getElementById('app'); if (!app) return;
     const mode = (C.db && C.db.account && C.db.account.screenFit) || 'auto', sa = matchMedia('(display-mode: standalone)').matches || !!navigator.standalone, top = insetTop();
-    const { full, sh, gap } = C.fitCalc({ mode, sa, top, iw: innerWidth, ih: innerHeight, sw: screen.width, shh: screen.height });
-    app.style.height = full ? sh + 'px' : ''; app.style.bottom = full ? 'auto' : '';
-    document.documentElement.classList.toggle('fitfull', full); document.documentElement.classList.toggle('standalone', sa);
-    C.fitInfo = { mode, applied: full ? 'full height (' + sh + ')' : 'standard', gap, inset: top }; };
+    const { fit, sh, gap } = C.fitCalc({ mode, sa, top, iw: innerWidth, ih: innerHeight, sw: screen.width, shh: screen.height });
+    app.style.height = fit === 'full' ? sh + 'px' : ''; app.style.bottom = fit === 'full' ? 'auto' : '';
+    const H = document.documentElement; H.classList.toggle('fitfull', fit === 'full'); H.classList.toggle('fitband', fit === 'band'); H.classList.toggle('standalone', sa);
+    C.fitInfo = { mode, applied: fit === 'full' ? 'full height (' + sh + ')' : fit === 'band' ? 'window + bar colour below (' + gap + ')' : 'standard', gap, inset: top }; C.syncBand(); };
+  // the strip below the window matches whatever bar is at the bottom now (a page's Back bar, or the tab bar)
+  C.syncBand = () => { const H = document.documentElement; if (!H.classList.contains('fitband')) { H.style.backgroundColor = ''; return; }
+    const app = document.getElementById('app'); if (!app) return; const r = app.getBoundingClientRect(), el = document.elementFromPoint(r.left + 4, r.bottom - 2);
+    let n = el, c = ''; while (n && n !== document.body) { const b = getComputedStyle(n).backgroundColor; if (b && b !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(b)) { c = b; break; } n = n.parentElement; }
+    H.style.backgroundColor = c; document.body.style.backgroundColor = c; };
+  { let pend = 0; const app0 = document.getElementById('app'); if (app0 && window.MutationObserver) new MutationObserver(() => { if (pend || !document.documentElement.classList.contains('fitband')) return; pend = 1; requestAnimationFrame(() => { pend = 0; C.syncBand(); }); }).observe(app0, { childList: true, subtree: true }); }
   ['resize', 'orientationchange'].forEach(e => window.addEventListener(e, () => setTimeout(C.fitScreen, 60)));
   if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(C.fitScreen, 60));
   C.ACTS.screenfit = v => { C.acct().screenFit = v; C.save(); C.fitScreen(); C.ui.refresh(); };

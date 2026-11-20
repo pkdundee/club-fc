@@ -1474,3 +1474,6 @@ button.pbslot2{cursor:pointer}
 .pbtree2{min-height:max(var(--mh,440px),calc(100% - 2px))}
 /* full amounts (FEEDBACK 164) at the narrowest phones: the page resource bar stays on one line */
 @media (max-width:340px){.res{flex-wrap:nowrap;gap:4px}.res span{font-size:15px;padding:2px 7px 2px 3px}.res i{width:16px;height:16px}}
+/* phone test (FEEDBACK 177): when iOS's window stops short of the screen, the strip below it is the home-bar area,
+   so the bottom bars need no home-bar padding of their own; the strip takes the bar's colour (C.syncBand) */
+html.fitband{--sab:0px}
