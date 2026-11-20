@@ -21,7 +21,7 @@
       : `<div class="lu-in"><div class="lu-rib">${C.esc(d.name.toUpperCase())} ${first ? 'BUILT!' : 'LEVEL UP!'}</div>
           <div class="lu-rows">${first ? `<div class="lu-row"><span>${C.esc(C.BJOB[k] || d.desc)}</span></div>` : rows(k, q.to - 1, q.to)}</div>
           ${reward ? `<div class="lu-tiles">${reward}</div>` : ''}</div>`;
-    document.body.appendChild(el); showing = true;
+    (document.getElementById('app') || document.body).appendChild(el); showing = true;
     requestAnimationFrame(() => el.classList.add('on'));
     // 1.01 (FEEDBACK 135, 137, 142 C3): a building's banner shows for 2 seconds and fades on its own (a tap closes it early);
     // only the Coaches' Office level-up card waits for a tap
@@ -37,11 +37,14 @@
   function next() { if (showing || !C.lvlQueue || !C.lvlQueue.length) return; show(C.lvlQueue.shift()); }
   C.nextLevelUp = next;
   // a small reward list above a tapped chest; any tap elsewhere closes it
-  C.rewardPreview = (r, el) => { document.querySelectorAll('.chpop').forEach(x => x.remove()); if (!el) return C.toast('🧰 ' + C.rwText(r));
-    const b = el.getBoundingClientRect(), p = document.createElement('div'); p.className = 'chpop';
-    p.innerHTML = `<b>Rewards</b>${C.itemTiles ? C.itemTiles(r) : C.esc(C.rwText(r))}`; document.body.appendChild(p);
-    const w = p.offsetWidth, x = Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width / 2 - w / 2)); p.style.left = x + 'px'; p.style.top = Math.max(8, b.top - p.offsetHeight - 8) + 'px';
-    setTimeout(() => document.addEventListener('click', () => p.remove(), { once: true }), 0); };
+  // 1.02 (FEEDBACK 151): a speech bubble whose tail points at the chest, kept inside the game screen; the chest is highlighted meanwhile
+  C.rewardPreview = (r, el) => { document.querySelectorAll('.chpop').forEach(x => x.remove()); document.querySelectorAll('.peek').forEach(x => x.classList.remove('peek')); if (!el) return C.toast('🧰 ' + C.rwText(r));
+    const app = document.getElementById('app') || document.body, a = app.getBoundingClientRect(), b = el.getBoundingClientRect(), p = document.createElement('div'); p.className = 'chpop';
+    p.innerHTML = `<b>Rewards</b>${C.itemTiles ? C.itemTiles(r) : C.esc(C.rwText(r))}<i class="chtail"></i>`; app.appendChild(p); el.classList.add('peek');
+    const w = p.offsetWidth, cx = b.left + b.width / 2, x = Math.max(a.left + 8, Math.min(a.right - w - 8, cx - w / 2));
+    p.style.left = x + 'px'; p.style.top = Math.max(a.top + 8, b.top - p.offsetHeight - 12) + 'px';
+    p.querySelector('.chtail').style.left = Math.max(12, Math.min(w - 12, cx - x)) + 'px';
+    setTimeout(() => document.addEventListener('click', () => { p.remove(); el.classList.remove('peek'); }, { once: true }), 0); };
 
   // Ask before spending Coins to finish something now (FEEDBACK 79, 81). "Don't show me today" skips it until tomorrow.
   C.confirmCoins = (n, go) => {
@@ -52,7 +55,7 @@
     el.innerHTML = `<div class="cc-box"><b class="cc-h">Finish now?</b><p>Use ${C.GEM} <b>${n}</b> Coins to finish straight away?</p>
       <label class="cc-chk"><input type="checkbox" id="ccday"> Don't show me today</label>
       <div class="cc-btns"><button class="btn sec2" data-cc="0">Cancel</button><button class="btn pri" data-cc="1">Confirm</button></div></div>`;
-    document.body.appendChild(el);
+    (document.getElementById('app') || document.body).appendChild(el);
     el.addEventListener('click', e => { const b = e.target.closest('[data-cc]'); if (!b && e.target !== el) return;
       const yes = b && b.dataset.cc === '1'; if (yes && el.querySelector('#ccday').checked) { a.coinTip = today; C.save(); }
       el.remove(); if (yes) { C.ok2spend = 1; go(); } });

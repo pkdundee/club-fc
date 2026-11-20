@@ -25,28 +25,46 @@
   // a brief overlay: Power gained and what completed; fades by itself (FEEDBACK 79)
   C.powerFlash = (pow, text) => { const el = document.createElement('div'); el.className = 'pflash';
     el.innerHTML = `<div class="pf1"><i class="ppi"></i>POWER +${pow.toLocaleString()}</div><div class="pf2">${C.esc(text)}</div>`;
-    document.body.appendChild(el); requestAnimationFrame(() => el.classList.add('on')); setTimeout(() => el.classList.remove('on'), 1600); setTimeout(() => el.remove(), 2000); };
+    (document.getElementById('app') || document.body).appendChild(el); requestAnimationFrame(() => el.classList.add('on')); setTimeout(() => el.classList.remove('on'), 1600); setTimeout(() => el.remove(), 2000); };
 
-  // ---------- 1. categories ----------
+  // ---------- 1.02 (FEEDBACK 159.2, 174-176): the full-screen Playbook ----------
+  // One "Playbook" page header; the overview of branches; a tree per branch; the research slots sit in the standard Back bar.
+  // The slot number (a yellow hexagon) is the same on branch tiles, tree nodes and the slots.
+  const hn = i => `<span class="pbhn"><svg viewBox="0 0 30 27"><polygon points="8,1.5 22,1.5 28.5,13.5 22,25.5 8,25.5 1.5,13.5" fill="#fcd34d" stroke="#1e3a8a" stroke-width="2.4"/><polygon points="9,4.5 21,4.5 25.5,13.5 21,22.5 9,22.5 4.5,13.5" fill="none" stroke="#fef3c7" stroke-width="1"/></svg><b>${i + 1}</b></span>`;
+  const tileSVG = '<svg viewBox="0 0 40 48"><path d="M20 2 L37 9.5 V34 Q37 42 20 46 Q3 42 3 34 V9.5 Z" fill="#a9b4cc" stroke="#e2e8f0" stroke-width="2.2"/><path d="M20 6 L33 12 V33 Q33 39 20 42 Q7 39 7 33 V12 Z" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1"/></svg>';
+  const hexSVG = fill => `<svg viewBox="0 0 84 94" preserveAspectRatio="none"><polygon points="42,3 81,25.5 81,68.5 42,91 3,68.5 3,25.5" fill="${fill}" stroke="#0f172a" stroke-width="3"/><polygon points="42,10 75,29.5 75,64.5 42,84 9,64.5 9,29.5" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/></svg>`;
+  const ff = '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 5l9 7-9 7zM12 5l9 7-9 7z" fill="#fff" stroke="#0f2a55" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+  // the open slots, in order; the slot a research is in is its place in the queue
+  const openSlots = () => C.PBSLOTS.filter(s => C.pbSlotOpen(s.id));
+  const slotOf = key => pbq().findIndex(q => q.key === key);
+  const nextLv = key => { const { n } = node(key); return `${Math.min(n[3], C.pbLv(key) + 1)}/${n[3]}`; };
+  C.pbSlotsHTML = () => { const q = pbq(), n = Math.max(2, openSlots().length);
+    const tile = key => `<span class="pbtile">${tileSVG}${key ? `<span class="art">${node(key).B[1]}</span><span class="cnt">${nextLv(key)}</span>` : ''}</span>`;
+    const out = []; for (let i = 0; i < n; i++) { const r = q[i], tw = k => `<span class="pbtw">${tile(k)}${hn(i)}</span>`;
+      if (i >= openSlots().length) { out.push(`<button class="pbslot2" data-act="pbslot" data-v="prog">${tw(null)}<span class="msg lock">Locked until Performance Lab Lv 10</span></button>`); continue; }
+      if (!r) { out.push(`<button class="pbslot2" data-act="pbrec">${tw(null)}<span class="msg">Idle</span></button>`); continue; }
+      if (r.end <= C.now()) { out.push(`<div class="pbslot2">${tw(r.key)}<button class="cbtn" data-act="pbdone" data-v="${r.key}">Completed</button></div>`); continue; }
+      const f = Math.max(0, Math.min(1, 1 - C.remaining(r) / ((r.end - r.start) / 1000)));
+      out.push(`<div class="pbslot2" data-act="pbnode" data-v="${r.key}">${tw(r.key)}<span class="bar"><i style="width:calc(${Math.round(f * 100)}% - 4px)"></i><span data-until="${r.end}" data-trim="1">${C.dur(C.remaining(r)).replace(/^0(?=\d:)/, '')}</span></span><button class="ff" data-act="pbspeed2" data-v="${r.key}" aria-label="Speed up">${ff}</button></div>`); }
+    return `<div class="pbslots">${out.join('')}</div>`; };
+
+  // ---------- the overview ----------
   C.openPlaybook = () => C.ui.open('Playbook', () => { pbq();
     const rec = C.pbRecommend(), recB = rec ? rec.split('.')[0] : null;
     const pct = B => { const tot = B[3].reduce((s, n) => s + n[3], 0), got = B[3].reduce((s, n, t) => s + C.pbLv(B[0] + '.' + t), 0); return Math.round(got / tot * 100); };
-    const cards = C.PB.map(B => `<button class="pbcat ${B[0] === recB ? 'rec' : ''}" data-act="pbtree" data-v="${B[0]}">${B[0] === recB ? thumb(rec) + '<s class="rib">Recommended</s>' : ''}<span class="pci">${B[1]}</span><b>${pct(B)}%</b><small>${C.esc(B[2])}</small></button>`).join('');
-    return `<div class="pbcats">${cards}</div><p class="note">Research runs in the Performance Lab with Coaching Points. Bonuses are small and capped: tactics, players and fitness still decide matches.</p>${qbar()}`; });
-  // the research queue along the bottom of every research screen
-  function qbar() { const q = pbq(), openS = C.PBSLOTS.filter(s => C.pbSlotOpen(s.id));
-    return `<div class="pbqbar">${C.PBSLOTS.map((s, i) => { if (!C.pbSlotOpen(s.id)) return `<button class="pbqs lock" data-act="pbslot" data-v="${s.id}"><i>${i + 1}</i>🔒</button>`;
-      const r = q[openS.indexOf(s)]; if (!r) return `<button class="pbqs" data-act="pbrec"><i>${i + 1}</i>Idle</button>`;
-      const done = r.end <= C.now(); return `<button class="pbqs ${done ? 'done' : 'run'}" data-act="${done ? 'pbdone' : 'pbnode'}" data-v="${r.key}"><i>${i + 1}</i>${done ? 'Complete' : `<span data-until="${r.end}">${C.dur(C.remaining(r))}</span>`}</button>`; }).join('')}</div>`; }
+    const cards = C.PB.map(B => { const p = pct(B), qi = pbq().findIndex(q => q.key.split('.')[0] === B[0]), off = !B[3].some((n, t) => C.pbUnlocked(B[0] + '.' + t) && C.pbLv(B[0] + '.' + t) < n[3]) && p < 100;
+      return `<button class="pbcat2 ${off ? 'off' : ''}" data-act="pbtree" data-v="${B[0]}">${qi >= 0 ? hn(qi) : ''}${B[0] === recB ? '<s class="rib">RECOMMENDED</s>' : ''}<span class="ring" style="--p:${p}%"><span>${B[1]}</span></span><b>${p}%</b><small>${C.esc(B[2])}</small></button>`; }).join('');
+    return `<div class="pbcats2">${cards}</div><p class="note">Research runs in the Performance Lab with Coaching Points. Bonuses are small and capped: tactics, players and fitness still decide matches.</p>`; }, { foot: C.pbSlotsHTML });
 
-  // ---------- 2. the tree for one category ----------
+  // ---------- 2. the tree for one branch: nodes joined by lines, equally spaced, centred, from the top ----------
   let branch = 'att';
-  C.openPBTree = b => { branch = b; C.ui.open(node(b + '.0').B[2], treeHTML); };
-  function treeHTML() { const B = node(branch + '.0').B, rec = C.pbRecommend();
-    const hex = (key, t) => { const n = B[3][t], lv = C.pbLv(key), un = C.pbUnlocked(key), q = C.pbInQueue(key), max = lv >= n[3];
-      return `<button class="hexn ${un ? 'on' : ''} ${t === 2 ? 'key' : ''} ${q ? 'run' : ''}" data-act="${q && q.end <= C.now() ? 'pbdone' : 'pbnode'}" data-v="${key}">${key === rec ? thumb(rec) : ''}
-        <span class="hx"><span class="hi">${B[1]}</span><b class="${max ? 'max' : ''}">${max ? 'MAX' : q && q.end <= C.now() ? '✔' : lv + '/' + n[3]}</b></span><small>${C.esc(n[0])}</small></button>`; };
-    return `<div class="hextree">${B[3].map((n, t) => (t ? `<div class="hexl ${C.pbUnlocked(branch + '.' + t) ? 'on' : ''}"></div>` : '') + hex(branch + '.' + t, t)).join('')}</div>${qbar()}`; }
+  C.openPBTree = b => { branch = b; C.ui.open('Playbook', treeHTML, { foot: C.pbSlotsHTML }); };
+  function treeHTML() { const B = node(branch + '.0').B, H = 94, GAP = 52, y = t => 16 + t * (H + GAP);
+    const tot = B[3].reduce((s, n) => s + n[3], 0), got = B[3].reduce((s, n, t) => s + C.pbLv(B[0] + '.' + t), 0);
+    const links = B[3].slice(1).map((_, t) => `<i class="pblink ${C.pbUnlocked(branch + '.' + (t + 1)) ? 'on' : ''}" style="top:${y(t) + H - 6}px;height:${GAP + 12}px"></i>`).join('');
+    const hex = (n, t) => { const key = branch + '.' + t, lv = C.pbLv(key), un = C.pbUnlocked(key), q = C.pbInQueue(key), si = slotOf(key);
+      return `<button class="pbhex ${un ? '' : 'off'}" style="top:${y(t)}px" data-act="${q && q.end <= C.now() ? 'pbdone' : 'pbnode'}" data-v="${key}">${hexSVG(un ? '#2563eb' : '#475569')}${si >= 0 ? hn(si) : ''}<span class="e">${B[1]}</span><span class="lv">${lv}/${n[3]}</span></button>`; };
+    return `<div class="pbtree2" style="min-height:${y(B[3].length - 1) + H + 70}px"><div class="bh"><span class="e">${B[1]}</span><b>${C.esc(B[2])}</b><span class="pc">${Math.round(got / tot * 100)}%</span></div><div class="nodes">${links}${B[3].map(hex).join('')}</div></div>`; }
 
   // ---------- 3. the node card ----------
   C.openPBNode = key => C.ui.open('Research', () => {
@@ -63,11 +81,11 @@
     const rows = (prev ? row(B[1], `Lv.5 ${C.esc(B[3][t - 1][0])}`, C.pbLv(prev) >= 5) : '') +
       row('<i class="cpi"></i>', `<span class="${car.cp >= k.cp ? '' : 'short'}">${C.short(car.cp)}</span>/${C.short(k.cp)}`, car.cp >= k.cp, 'cp', k.cp) +
       (k.cash ? row('💵', `<span class="${car.cash >= k.cash ? '' : 'short'}">${C.short(car.cash)}</span>/${C.short(k.cash)}`, car.cash >= k.cash, 'cash', k.cash) : '');
-    const ok = un && car.cp >= k.cp && car.cash >= k.cash, slot = pbq().length < C.pbSlots();
+    const ok = un && car.cp >= k.cp && car.cash >= k.cash, slot = pbq().length < C.pbSlots(), waitDone = !slot && pbq().some(z => z.end <= C.now());
     return head + `<h3 class="jh" style="text-align:center">Cost</h3><div class="tbl">${rows}</div>
-      <div class="orig"><span>${ok && !slot ? 'All research slots are busy' : ''}</span><span>Original Time: ${C.dur(tm)}</span></div>
+      <div class="orig"><span>${ok && !slot ? (waitDone ? 'Complete a finished research first' : 'All research slots are busy') : ''}</span><span>Original Time: ${C.dur(tm)}</span></div>
       <div class="bt2"><button class="btn fin2" data-act="pbinstant" data-v="${key}" ${ok ? '' : 'disabled'}>Finish Now<br><em>${C.GEM} ${C.coinsFor(tm)}</em></button>
-      <button class="btn pri" data-act="pbgo" data-v="${key}" ${ok && slot ? '' : 'disabled'}>Research<br><em>⏱ ${C.dur(tm)}</em></button></div>`;
+      <button class="btn pri" data-act="${slot ? 'pbgo' : 'pbqfull'}" data-v="${key}" ${ok && (slot || waitDone) ? '' : 'disabled'}>Research<br><em>⏱ ${C.dur(tm)}</em></button></div>`;
   }, { popup: true });
 
   // ---------- speed-up items in Finish Now ----------
@@ -103,13 +121,20 @@
     if (!use) return; C.ui.open('Use Items', () => `<div class="useit"><span class="itile t2">📦<b>$5K</b><em>×${use}</em></span></div><p class="note" style="text-align:center"><b style="color:var(--fit5)">+${C.short(use * 5000)}</b> / ${C.short(need)} needed</p>
       <div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Cancel</button><button class="btn pri" data-act="mrok" data-v="${use}">Confirm</button></div>`, { popup: true }); };
   A.mrok = v => { for (let i = 0; i < +v; i++) C.openCrate(); C.ui.back(); congrats(`+${C.short(+v * 5000)} Booster $`); C.ui.refresh(); };
-  function congrats(t) { const el = document.createElement('div'); el.className = 'congr'; el.innerHTML = `<div class="lu-rib">CONGRATULATIONS!</div><div class="cg-t">${C.esc(t)}</div>`; document.body.appendChild(el); setTimeout(() => el.remove(), 1400); }
+  function congrats(t) { const el = document.createElement('div'); el.className = 'congr'; el.innerHTML = `<div class="lu-rib">CONGRATULATIONS!</div><div class="cg-t">${C.esc(t)}</div>`; (document.getElementById('app') || document.body).appendChild(el); setTimeout(() => el.remove(), 1400); }
 
   // ---------- actions ----------
   A.pbtree = v => C.openPBTree(v);
+  A.pbspeed2 = v => C.finishRunning('r', v, () => { C.ui.refresh(); C.render(); });   // from the slot bar: the slot then shows Completed
+  { const oB = A.bpop; A.bpop = v => v === 'playbook' ? C.openPlaybook() : oB(v); }   // 1.02 (FEEDBACK 159.2): a page, not a popup
   A.pbrec = () => { const r = C.pbRecommend(); if (!r) return C.toast('Everything open is being researched'); C.openPBTree(r.split('.')[0]); C.openPBNode(r); };
   // 1.01 (FEEDBACK 140): the research badge on the Performance Lab / Next Step: one finished -> complete it; several -> the queue
   A.pbready = () => { const r = (C.car().pbq || []).filter(q => q.end <= C.now()); if (r.length === 1) { if (C.pbComplete(r[0].key)) { C.ui.closeAll(); C.render(); } } else if (r.length) C.openResearchQueue(); };
+  // 1.02 (FEEDBACK 159.4): the slots are full and research is waiting: show it to Complete, then return to the tree to choose again
+  A.pbqfull = () => C.ui.open('Research queue full', () => { const q = pbq();
+    return `<p class="note" style="margin-top:0">Your research slots are full. Complete the finished research to free a slot, then choose what to research next.</p>${q.map((z, i) => { const done = z.end <= C.now(), { B, n } = node(z.key);
+      return `<div class="pbqrow"><span class="pbtw sm"><span class="pbtile">${tileSVG}<span class="art">${B[1]}</span></span>${hn(i)}</span><b>${C.esc(n[0])} · Lv ${C.pbLv(z.key) + 1}<small>${done ? 'Finished' : C.dur(C.remaining(z)) + ' left'}</small></b>${done ? `<button class="cta2 blue" data-act="pbqdone" data-v="${z.key}">Completed</button>` : `<button class="cta2 gold" data-act="pbspeed" data-v="${z.key}">Speed Up<em>${finishLabel('r', z.key)}</em></button>`}</div>`; }).join('')}`; }, { popup: true });
+  A.pbqdone = v => { if (!C.pbComplete(v)) return; C.ui.back(); if (C.ui.isOpen()) C.ui.back(); C.ui.refresh(); C.render(); };
   A.pbdone = v => { if (C.pbComplete(v)) { if (C.ui.isOpen()) C.ui.refresh(); C.render(); } };
   A.pbinstant = v => { const to = C.pbLv(v) + 1, tm = C.pbTime(v, to), g = C.coinsFor(tm);
     C.confirmCoins(g, () => { const car = C.car(), k = C.pbCost(v, to); if (C.acct().gold < g) return C.toast('Not enough Coins'); if (car.cp < k.cp || car.cash < k.cash) return C.toast('Not enough resources');

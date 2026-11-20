@@ -1375,3 +1375,98 @@ html,body{background:var(--card)}
 /* your row in the league table stands out (FEEDBACK 97) */
 .tr2.me{background:var(--school);color:#fff;font-weight:900;border-radius:8px;box-shadow:none}
 .tr2.me em{font-weight:900}
+
+/* ===== 1.02 ===== */
+.gifti{display:inline-block;line-height:1;vertical-align:-.12em;font-style:normal}
+/* Inbox (FEEDBACK 157): headline rows, unread dot, footer actions */
+.mrowh{display:flex;align-items:center;gap:10px;width:100%;border:0;text-align:left;background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;margin-bottom:8px;color:var(--ink);position:relative}
+.mrowh.new{box-shadow:var(--shadow),inset 4px 0 0 var(--school2)}
+.mrowh .mi{font-size:22px;width:28px;text-align:center}.mrowh .mt{flex:1;min-width:0}.mrowh .mt b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrowh .mt small{color:var(--mute);font-size:11px;font-weight:800}.mrowh em{font-style:normal;font-size:22px;font-weight:900;color:var(--mute)}
+.mrd{width:10px;height:10px;border-radius:50%;background:#ef4444;flex:0 0 10px}
+.mfoot{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;margin-top:12px}
+.mfoot .btn[disabled]{opacity:.45}
+/* task bar (FEEDBACK 144.3, 149): grey when it takes you somewhere, green only when a tap collects */
+.tstrip9 .taskstrip{background:linear-gradient(90deg,#475569,#64748b);border-color:#0f172a}
+.tstrip9 .taskstrip .tsg{color:#fff}
+.tstrip9 .taskstrip.claim{background:linear-gradient(90deg,#16a34a,#22c55e)}
+/* overlays stay inside the phone-sized game frame on a wide desktop window (FEEDBACK 154.2) */
+#app>.lvlup,#app>.congr,#app>.pflash{position:absolute}
+/* buildings drawer (FEEDBACK 148): tabs on a dark grey translucent band that rises halfway up the cards; no scrollbar */
+.d102 .dstrip{scrollbar-width:none;-ms-overflow-style:none;margin-bottom:-78px;padding:6px 8px 0;cursor:grab}
+.d102 .dstrip::-webkit-scrollbar{display:none}
+.d102 .dband{position:relative;z-index:1;background:rgba(51,65,85,.78);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);border-top:1.5px solid rgba(15,23,42,.6);padding:84px 0 calc(6px + var(--sab))}
+.d102 .dtabs2{display:flex;align-items:flex-end;gap:2px;padding:0 8px;border-bottom:3px solid #ea580c}
+.d102 .dtab{position:relative;border:1.5px solid #0f172a;border-bottom:0;border-radius:9px 9px 0 0;background:#475569;color:#cbd5e1;font:900 13px Nunito;padding:6px 14px 5px}
+.d102 .dtab.on{background:#ea580c;color:#fff;padding-top:8px}
+.d102 .dtab:disabled{opacity:.45}
+.d102 .dtab .rd{top:-7px;right:-7px}
+.d102 .dsp{flex:1}.d102 .dlist{border:1.5px solid #0f172a;border-radius:8px;background:#2563eb;color:#fff;padding:3px 8px;margin-bottom:4px}
+/* chests (FEEDBACK 150) and the reward bubble (FEEDBACK 151) */
+.pchest{filter:none;opacity:1}.pchest svg{display:block;margin:0 auto}
+.pchest.got{opacity:1}
+.pchest.ready svg{filter:drop-shadow(0 0 5px #fde047)}
+.pchest.justopen .lid{transform-box:fill-box;transform-origin:50% 100%;animation:lidup .5s ease-out}
+@keyframes lidup{0%{transform:translateY(8px) scaleY(.4)}60%{transform:translateY(-3px) scaleY(1.1)}100%{transform:none}}
+.pchest.peek svg{filter:drop-shadow(0 0 0 #fff) drop-shadow(0 0 6px #fff)}
+.chpop{overflow:visible}
+.chtail{position:absolute;bottom:-11px;width:0;height:0;margin-left:-10px;border:10px solid transparent;border-bottom:0;border-top:11px solid #0f172a}
+.chtail::after{content:'';position:absolute;left:-8px;top:-13px;border:8px solid transparent;border-bottom:0;border-top:9px solid #f8fafc}
+/* Squad Number screen (FEEDBACK 155): own class names, an even 6-column grid that fits a 320 px screen */
+.ticketcard{display:flex;align-items:center;gap:10px;padding:10px 12px}.ticketcard .tki{font-size:30px}.ticketcard div{flex:1;min-width:0}
+.ticketcard b{display:block;font-size:16px}.ticketcard small{color:var(--mute);font-weight:800;font-size:11.5px}.ticketcard .tkbtns{flex:none;display:flex;gap:6px}
+.numgrid{grid-template-columns:repeat(6,minmax(0,1fr))}
+.numgrid button{min-width:0;padding:8px 0;font-size:17px;color:var(--ink)}
+.numgrid button.ntaken{opacity:.38}.numgrid button.nme{border-color:var(--school);background:var(--school);color:#fff;opacity:1}
+.numgrid button.nwant::after{content:"⭐";position:absolute;top:-6px;right:-3px;font-size:11px}
+.numgrid button.nfav::before{content:'❤';position:absolute;top:1px;left:3px;font-size:8px;color:#dc2626}
+.numgrid button.nreg{font-weight:900}
+.numgrid.nolock button:not(.nme){opacity:.3}
+/* iPhone home-screen app (FEEDBACK 153): anything outside the frame (status-bar area, any gap) is the header's dark color, never white */
+html.standalone,html.standalone body{background:#0f1b3d}
+.seg2 button.on{background:var(--school);color:#fff}
+/* research alerts (FEEDBACK 159.1) */
+.pbalert{position:absolute;top:-8px;right:-6px;z-index:2;background:#fff;border:2px solid #0f172a;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;animation:bob2 1.2s ease-in-out infinite}
+@keyframes bob2{50%{transform:translateY(-3px)}}
+/* ===== 1.02 full-screen Playbook (FEEDBACK 159.2, 174-176) ===== */
+.pbhn{position:absolute;width:30px;height:27px;z-index:3;pointer-events:none}.pbhn svg{position:absolute;inset:0}
+.pbhn b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:900 14px Nunito;color:#1e3a8a}
+.pbcats2{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px;padding-top:6px}
+.pbcat2{position:relative;border:2px solid #64748b;border-radius:12px;background:linear-gradient(#e2e9f5,#c3d1e8);color:#0f172a;display:flex;flex-direction:column;align-items:center;padding:8px 4px 0;cursor:pointer}
+.pbcat2 .pbhn{top:-11px;right:-9px}
+.pbcat2 .ring{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;background:conic-gradient(#16a34a var(--p),#94a3b8 0);position:relative}
+.pbcat2 .ring::before{content:'';position:absolute;inset:4px;border-radius:50%;background:#f1f5f9}.pbcat2 .ring span{position:relative}
+.pbcat2 b{font:600 18px/1 Teko,sans-serif;margin-top:3px}
+.pbcat2 small{display:block;width:calc(100% + 8px);background:#475569;color:#fff;font:900 10.5px Nunito;padding:4px 2px;margin-top:5px;border-radius:0 0 9px 9px;text-align:center}
+.pbcat2 .rib{position:absolute;top:-9px;left:10%;right:24%;border-radius:6px;background:#f59e0b;color:#fff;font:900 9px Nunito;text-decoration:none;text-align:center;padding:1px 0;border:1.5px solid #0f172a}
+.pbcat2.off{background:#e2e8f0;filter:grayscale(1);opacity:.55}
+.pbtree2{position:relative;border-radius:14px;background:radial-gradient(120% 70% at 50% 10%,#1e3a8a 0,#0f172a 70%);overflow:hidden}
+.pbtree2 .bh{display:flex;align-items:center;gap:8px;padding:10px 12px;color:#fff;border-bottom:1px solid rgba(255,255,255,.12)}.pbtree2 .bh .e{font-size:24px}.pbtree2 .bh b{font:600 22px/1 Teko,sans-serif}
+.pbtree2 .bh .pc{margin-left:auto;font:600 22px/1 Teko,sans-serif;color:#fde047}
+.pbtree2 .nodes{position:absolute;left:0;right:0;top:50px}
+.pblink{position:absolute;left:50%;width:8px;margin-left:-4px;border-radius:4px;background:#475569;box-shadow:inset 0 0 0 2px #0f172a}.pblink.on{background:#60a5fa}
+.pbhex{position:absolute;left:50%;transform:translateX(-50%);width:84px;height:94px;border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;cursor:pointer}
+.pbhex svg{position:absolute;inset:0}.pbhex .e{position:relative;font-size:40px;line-height:1;margin-top:-4px}.pbhex .lv{position:relative;font:600 14px/1 Teko,sans-serif;margin-top:2px}
+.pbhex.off .e{filter:grayscale(1);opacity:.45}.pbhex.off .lv{opacity:.6}.pbhex .pbhn{top:-4px;right:-10px}
+/* the research slots, inside the standard Back bar (the bar and the Back arrow are unchanged) */
+.pbslots{flex:1;min-width:0;display:flex;gap:6px;margin-left:6px}
+.pbslot2{flex:1;min-width:0;position:relative;height:44px;border-radius:7px;background:#141b29;border:1px solid #334155;display:flex;align-items:center;gap:5px;padding:0 5px 0 8px;color:#fff;font-family:Nunito}
+button.pbslot2{cursor:pointer}
+.pbtw{flex:none;position:relative;width:30px;height:36px}.pbtw .pbhn{top:-9px;left:-10px;transform:scale(.8)}
+.pbtile{position:absolute;inset:0}.pbtile svg{position:absolute;inset:0}
+.pbtile .art{position:absolute;left:0;right:0;top:6px;text-align:center;font-size:14px;line-height:1}
+.pbtile .cnt{position:absolute;left:0;right:0;bottom:5px;text-align:center;font:600 10.5px/1 Teko,sans-serif;color:#fff;text-shadow:0 1px 1px #0f172a}
+.pbslot2 .bar{flex:1;min-width:0;position:relative;height:22px;border-radius:5px;background:#0b0f17;overflow:hidden}
+.pbslot2 .bar i{position:absolute;left:2px;top:2px;bottom:2px;border-radius:3px;background:linear-gradient(#5ee05e,#22a722)}
+.pbslot2 .bar span{position:relative;display:flex;align-items:center;justify-content:center;height:100%;font:600 15px/1 Teko,sans-serif;white-space:nowrap;color:#fff;text-shadow:0 1px 0 #0f172a,0 -1px 0 #0f172a,1px 0 0 #0f172a,-1px 0 0 #0f172a}
+.pbslot2 .ff{flex:none;width:28px;height:28px;border:0;border-radius:6px;background:linear-gradient(180deg,#38bdf8,#1d4ed8);box-shadow:0 2px 0 #1e3a8a;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.pbslot2 .msg{flex:1;min-width:0;text-align:center;font:900 12.5px/1.15 Nunito;color:#fff}.pbslot2 .msg.lock{color:#94a3b8;font-size:10px}
+.pbslot2 .cbtn{flex:1;min-width:0;height:30px;border-radius:7px;background:linear-gradient(180deg,#38bdf8,#1d4ed8);border:2px solid #0f2a55;color:#fff;font:900 13px Nunito;text-shadow:0 1px 0 #0f2a55;cursor:pointer;padding:0}
+@media (max-width:340px){.pgft .pbslots{gap:5px;margin-left:5px}.pbslot2{gap:4px;padding:0 4px 0 7px}.pbtw{width:27px;height:33px}.pbslot2 .bar span{font-size:12.5px}.pbslot2 .ff{width:24px;height:24px}.pbslot2 .msg.lock{font-size:9px}.pbslot2 .cbtn{font-size:11px}}
+/* the research-full popup */
+.pbqrow{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:12px;padding:8px 10px;margin-top:8px;border:1.5px solid var(--line)}
+.pbtw.sm{width:30px;height:36px;margin:4px 0 0 4px}
+.pbqrow b{flex:1;font-size:13px}.pbqrow b small{display:block;color:var(--mute);font-size:11px}
+.cta2{border:2px solid #0f172a;border-radius:10px;font:900 13px Nunito;padding:6px 10px;text-align:center;white-space:nowrap;cursor:pointer}
+.cta2.blue{background:linear-gradient(180deg,#38bdf8,#1d4ed8);color:#fff;border-color:#0f2a55}
+.cta2.gold{background:linear-gradient(#fde047,#f59e0b);color:#fff;text-shadow:0 1px 0 #0f172a,0 -1px 0 #0f172a,1px 0 0 #0f172a,-1px 0 0 #0f172a;line-height:1.05}.cta2.gold em{display:block;font-style:normal;font-size:11px}

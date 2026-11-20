@@ -143,8 +143,8 @@
 
   // ---------- coach card ----------
   C.openCoach = id => C.ui.open('Coach', () => {
-    const c = C.coach(id) || st().market.find(x => x.id === id); if (!c) return '<p class="note">Gone.</p>';
-    const S = st(), hired = S.list.includes(c), on = S.on.includes(c.id), col = C.college(), cap = LV_CAP[c.lic], k = C.licCost(c);
+    const cand = (st().cands || []).find(x => x.id === id), c = cand || C.coach(id) || st().market.find(x => x.id === id); if (!c) return '<p class="note">Gone.</p>';
+    const S = st(), hired = !cand && S.list.includes(c), on = !cand && S.on.includes(c.id), col = C.college(), cap = LV_CAP[c.lic], k = C.licCost(c);
     return `<div class="chero" style="background:radial-gradient(120% 90% at 50% 20%,${C.shade(C.RARITY[c.rar][1], .1)} 0%,${C.shade(C.RARITY[c.rar][1], -.45)} 100%)"><svg class="cport" viewBox="0 0 120 120">${window.faceV4(Object.assign({}, c.look, { role: 'coach', age: c.age, k1: col.c1, k2: col.c2 }))}</svg>
         <div class="nameplate"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><div class="tags"><span class="lic big">${C.LICENCE[c.lic]} licence</span><span class="rarp" style="background:${C.RARITY[c.rar][1]}">${C.RARITY[c.rar][0]}</span></div><small class="hometown">${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]} · ${c.pers} · age ${c.age}</small></div></div>
       <div class="kpis" style="margin-top:12px"><div class="kpi"><b>${c.level}</b><small>Level / ${cap}</small></div><div class="kpi"><b>${Math.round(C.coachQ(c))}</b><small>Quality</small></div><div class="kpi"><b>${TRAITS[c.spec][0]}${c.trait}</b><small>Trait</small></div><div class="kpi"><b>${C.LICENCE[c.lic]}</b><small>Licence</small></div></div>
@@ -156,6 +156,7 @@
         <button class="lrow ${c.lic >= 4 ? 'lock' : ''}" data-act="clic" data-v="${c.id}"><span class="li">🎫</span><span class="lt"><b>${c.lic >= 4 ? 'Pro licence: top rank' : `Licence ${C.LICENCE[c.lic]} → ${C.LICENCE[c.lic + 1]} · level cap ${LV_CAP[c.lic + 1]}`}</b><small>${c.lic >= 4 ? '' : `Needs Lv ${cap} · 🎫 ${k.credits} Clinic Credits · 💵 ${C.short(k.cash)}`}</small></span></button>
         <button class="lrow ${c.trait >= 5 ? 'lock' : ''}" data-act="ctrait" data-v="${c.id}"><span class="li">📕</span><span class="lt"><b>${TRAITS[c.spec][1]} ${c.trait >= 5 ? 'Lv 5 (max)' : `Lv ${c.trait} → ${c.trait + 1}`}</b><small>${c.trait >= 5 ? '' : `📕 ${c.trait} Trait Book${c.trait > 1 ? 's' : ''} (${S.items.books} owned)`}</small></span></button>
         <div class="jbtns"><button class="btn ${on ? 'sec2' : 'pri'}" data-act="cassign" data-v="${c.id}">${on ? 'Take off duty' : 'Put on duty'}</button><button class="btn danger" data-act="crelease" data-v="${c.id}">Release</button></div>`
+      : cand ? `<button class="btn full pri" data-act="firstpick" data-v="${c.id}">Choose as my first assistant · Free</button>`
       : `<button class="btn full pri" data-act="chire" data-v="${c.id}">Hire · ${C.hireCost(c).gold ? '<i class="coin"></i> ' + C.hireCost(c).gold : '💵 ' + C.short(C.hireCost(c).cash)}</button>`}`;
   });
   C.openCoachMarket = () => { st().mNew = false; C.save(); C.ui.open('Coaching market', () => { const S = st(); C.refreshMarket();
@@ -165,7 +166,7 @@
   let afterPick = null;
   C.openFirstCoach = then => { const S = st(), r = C.rng(C.now() & 0xffffff), specs = ['dev', 'snc', 'tac', 'rec', 'mot', 'gk'].sort(() => r() - .5);
     S.cands = [S.list.find(c => c.id === 'ray') || ray(), genCoach(r, 1, specs[0]), genCoach(r, r() < .5 ? 1 : 0, specs[1])]; afterPick = then || null; C.save();
-    C.ui.open('Your first assistant', () => `<p class="note" style="margin-top:0">Pick one assistant coach to start with. You can hire more later in the Staff tab.</p>
+    C.ui.open('Your first assistant', () => `<p class="note" style="margin-top:0">Pick one assistant coach to start with. Tap a coach to see them in full. You can hire more later in the Staff tab.</p>
       ${st().cands.map(c => `<button class="ccard pick" data-act="firstcoach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><div class="cf">${C.coachFace(c)}</div><div class="ci"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]} · ${c.pers}, age ${c.age}</small><p class="ben">▶ ${C.coachBenefit(c)}</p><div class="ctags"><span>Lv ${c.level}</span><span class="rarp" style="background:${C.RARITY[c.rar][1]}">${C.RARITY[c.rar][0]}</span></div></div></button>`).join('')}`); };
   C.pickFirstCoach = id => { const S = st(), c = (S.cands || []).find(x => x.id === id); if (!c) return; S.list = [c]; S.on = [c.id];
     S.market = S.cands.filter(x => x !== c && x.id !== 'ray').concat(S.market).slice(0, 4); S.cands = null; C.save(); C.ui.closeAll(); const f = afterPick; afterPick = null; if (f) f(); };

@@ -32,7 +32,7 @@
     if (!C.loginClaimed()) return ['🎁', 'Claim your login reward.', 'dailytasks', ''];
     if (C.stripTask) { const st = C.stripTask(); if (st && (car.pre || C.meta().main.length < 10 || st.go)) return [st.claim ? '🎯' : '👉', st.text + '.', 'taskgo', '']; }   // same as the campus task strip (9s)
     if (C.loClaimable()) return ['🎉', `You have ${C.loClaimable()} reward${C.loClaimable() > 1 ? 's' : ''} waiting in Events.`, 'events', ''];
-    if (C.idleBuilders() && ready.length) return ['🔨', `A builder is free: upgrade the ${C.BUILDINGS[ready[0]].name}.`, 'bldopen', ready[0]];
+    if (C.idleBuilders() && ready.length) return ['🔨', `A builder is free: upgrade the ${C.BUILDINGS[ready[0]].name}.`, 'dgo', ready[0]];
     const coll = Object.keys(C.PRODUCERS).filter(k => C.bubble(k));
     if (coll.length) return ['💵', 'Income is waiting on campus: collect it.', 'tab', 'campus'];
     if (C.pbRunning && !C.pbRunning() && car.cp >= 20) return ['📋', 'Start some Playbook research.', 'playbook', ''];
@@ -72,5 +72,5 @@
   // the one resource bar used on every tab (round 4, item 13): Booster $, Coaching Points, Coins (+ opens the Store)
   C.schChip = () => `<span class="schip" title="Scholarship money left this year"><i class="schi"></i>$${C.short(C.poolLeft())} scholarships left</span>`;
   C.resBar = () => { const car = C.car(), a = C.acct();
-    return `<span><i>💵</i><b id="r-cash">$${C.short(car.cash)}</b></span><span><i class="cpi"></i><b id="r-cp">${C.short(car.cp)}</b></span><span data-act="store"><i class="coin"></i><b id="r-gold">${C.short(a.gold)}</b><em class="plus">+</em></span>`; };
+    return `<span><i>💵</i><b id="r-cash">$${C.full(car.cash)}</b></span><span><i class="cpi"></i><b id="r-cp">${C.full(car.cp)}</b></span><span data-act="store"><i class="coin"></i><b id="r-gold">${C.full(a.gold)}</b><em class="plus">+</em></span>`; };
 })(window.CFC);

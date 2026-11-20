@@ -83,7 +83,7 @@
       <div class="card"><div class="attrs">${Object.keys(A).map(k => `<div class="attr ${C.KEY[p.pos].includes(k) ? 'key' : ''}"><span class="ai">${A[k][0]}</span><div class="ab"><div><span>${A[k][1]}</span><em>${p.a[k]}<small>/${C.attrCap(p, k)}</small></em></div><div class="bar capb"><i style="width:${p.a[k]}%;background:${acol(p.a[k])}"></i><u style="left:${C.attrCap(p, k)}%"></u></div></div></div>`).join('')}</div>
         ${gk ? `<div class="kstyle">Style: ${C.KEEPER_STYLE(p).map(s => `<span>${s}</span>`).join('')}</div>` : ''}</div>
       <h3 class="jh">Development ${STARS(p.stars)} <small class="devp">${p.stars >= 5 ? 'all 5 stars' : `${p.dev}/${p.stars + 2} plans to next ★`}</small></h3>${devHTML}${C.gearRowHTML ? C.gearRowHTML(p) : ''}
-      <h3 class="jh">Squad number <span class="tok">🎟 ${car.tokens}</span></h3>
+      <h3 class="jh">Squad number</h3>
       <div class="card numcard"><svg class="jersey" viewBox="0 0 60 60"><path d="M18 6 L24 4 Q30 9 36 4 L42 6 L56 14 L50 26 L44 23 V56 H16 V23 L10 26 L4 14Z" fill="${kitOf(p).k1}" stroke="${kitOf(p).k2}" stroke-width="1.5"/><text x="30" y="44" text-anchor="middle" font-family="Graduate,serif" font-size="20" fill="${kitOf(p).k2}">${p.num}</text></svg>
         <div style="flex:1"><b style="font-size:15px">Wears No. ${p.num}</b><br><small class="mutey">${p.want ? (p.want === p.num ? 'Their favourite number · 😀' : `Wants No. ${p.want} · morale lower until they get it`) : 'No preference'}</small></div>
         <button class="btn sm2" data-act="numbers" data-v="${id}">Change</button></div>
@@ -151,9 +151,13 @@
   C.openNumbers = id => C.ui.open('Squad number', () => {
     const p = C.P(id), car = C.car(), taken = {}, roles = C.roles(); car.squad.forEach(x => taken[x.num] = x);
     const nums = []; for (let n = 1; n <= 40; n++) nums.push(n);
-    return `<p class="note" style="margin-top:0">Tap a number. If someone wears it, you'll see who they are, and the two of you swap. Each change uses a 🎟 Number Change: you have <b>${car.tokens}</b>.</p>
-      <div class="numgrid">${nums.map(n => { const t = taken[n], w = t && t.want === n; return `<button class="${t ? (t.id === id ? 'me' : 'tk') : ''} ${p.want === n ? 'want' : ''} ${w && t.id !== id ? 'wanted' : ''} ${t && t.id !== id && roles[t.id] === 'xi' ? 'reg' : ''}" data-act="${t && t.id === id ? 'toast' : 'numpick'}" data-v="${t && t.id === id ? 'Already wearing it' : id + '|' + n}">${n}</button>`; }).join('')}</div>
-      <p class="note">⭐ = the number ${C.esc(p.fn)} wants · ❤ = the holder's favourite · bold = worn by a starter. More Number Changes come from events and the Store.</p>`;
+    // 1.02 (FEEDBACK 155): the tickets up front with ways to get more; grid classes renamed (.tok/.tk clashed with the Tactics pitch markers)
+    const tk = car.tokens || 0;
+    return `<div class="card ticketcard"><span class="tki">🎟</span><div><b>${tk} Number Change${tk === 1 ? "" : "s"}</b><small>${tk ? 'Each change uses one.' : 'You need one to change a number.'}</small></div>
+        <div class="tkbtns"><button class="btn sm2 sec2" data-act="events">Events</button><button class="btn sm2 pri" data-act="numstore">Store</button></div></div>
+      <p class="note" style="margin-top:8px">Tap a number. If someone wears it, you'll see who they are, and the two of you swap.</p>
+      <div class="numgrid ${tk ? '' : 'nolock'}">${nums.map(n => { const t = taken[n], w = t && t.want === n; return `<button class="${t ? (t.id === id ? 'nme' : 'ntaken') : ''} ${p.want === n ? 'nwant' : ''} ${w && t.id !== id ? 'nfav' : ''} ${t && t.id !== id && roles[t.id] === 'xi' ? 'nreg' : ''}" data-act="${t && t.id === id ? 'toast' : 'numpick'}" data-v="${t && t.id === id ? 'Already wearing it' : id + '|' + n}">${n}</button>`; }).join('')}</div>
+      <p class="note">⭐ = the number ${C.esc(p.fn)} wants · ❤ = the holder's favourite · bold = worn by a starter. Get more Number Changes from Events and the Store.</p>`;
   });
   A2.numpick = v => { const [id, ns] = v.split('|'), n = +ns, p = C.P(id), car = C.car(), o = car.squad.find(q => q.num === n && q.id !== id), roles = C.roles();
     const rolTxt = { xi: 'a starter', bench: 'on the bench', res: 'in the reserves' };

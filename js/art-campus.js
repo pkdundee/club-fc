@@ -240,7 +240,7 @@ function renderBase(I,car,opts){const C=window.CFC;const col=C.college(car);C1=c
   let g;
   if(o.lvl>0)g=drawBuilding(I,o.k,x,y,sz,o.lvl);
   else g=envTile(I,x,y,sz,'plot_build',()=>plotTile(I,x,y,sz,'plot_empty',()=>emptyPlot(I,x,y,sz,'')));   // blank prepared ground until it's built (FEEDBACK 84, 88)
-  if(o.q)g+=construction(I,x,y,S,o.lvl?16:4);
+  if(o.q&&!(o.q.ready||o.q.end<=window.CFC.now()))g+=construction(I,x,y,S,o.lvl?16:4);   // 1.02 (FEEDBACK 145): a finished job shows the gift, not the scaffold
   items.push([o.depth,g])}
   // the campus edge (FEEDBACK 84): a wall round the outside of the road grid, with the gate at the front
  if(probe(`img/campus/env/wall_${wn}_l.webp`)!=='bad'){const occS=new Set(occ.map(([s,d])=>((s+d)/2)+','+((s-d)/2)));const has=(i,j)=>occS.has(i+','+j);
@@ -280,9 +280,9 @@ function renderOver(I,car,opts){const C=window.CFC;if(opts.preview)return '';con
     return `<g data-act="${a.act}" data-v="${a.v}" transform="translate(${dx},${dy+6})"><circle r="${R}" fill="${a.col||'#2563eb'}" stroke="#0f172a" stroke-width="2.5"/><circle r="${R-2.5}" fill="none" stroke="#fff" stroke-width="1.5" opacity=".7"/>${a.icon==='up'?`<path d="M0 ${-R*.6} L${R*.55} 0 H${R*.2} V${R*.55} H${-R*.2} V0 H${-R*.55}Z" fill="#fff" stroke="#0f172a" stroke-width="1.2"/>`:a.icon==='i'?`<text y="${R*.35}" text-anchor="middle" font-size="${R}" font-weight="900" fill="#fff" font-family="Nunito">i</text>`:`<text y="${R*.32}" text-anchor="middle" font-size="${R*.9}">${a.icon}</text>`}<text y="${R+12}" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" font-family="Nunito" ${out()}>${C.esc(a.label)}</text></g>`}).join('')+`</g>`);
   }
   if(k==='lab'&&!sel){const rq=(car.pbq||[]).filter(z=>z.end<=C.now()).length; // 1.01 (FEEDBACK 140): finished research waits here for a tap
-   if(rq)add(`<g data-act="pbready" transform="translate(${(tcx-(q?16:0)).toFixed(1)},${(tcy-(q?20:8)).toFixed(1)})"><g class="bnc"><circle r="11" fill="#0d9488" stroke="#0f172a" stroke-width="2"/><path d="M-5.5 -4 h4.5 a1.5 1.5 0 0 1 1 .5 a1.5 1.5 0 0 1 1 -.5 h4.5 v8.5 h-4.5 a1.5 1.5 0 0 0 -1 .5 a1.5 1.5 0 0 0 -1 -.5 h-4.5z" fill="#fff"/>${rq>1?`<circle cx="9" cy="-8" r="5.5" fill="#ef4444" stroke="#0f172a" stroke-width="1.5"/><text x="9" y="-5.2" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="7.5" fill="#fff">${rq}</text>`:''}</g><text y="22" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="9" fill="#fff" ${out()}>Research done</text></g>`)}
+   if(rq)add(`<g data-act="pbready" transform="translate(${(tcx-(q?16:0)).toFixed(1)},${(tcy+(q?0:12)).toFixed(1)})"><g class="bnc">${window.CFC.giftSVG(13)}${rq>1?`<circle cx="9" cy="-8" r="5.5" fill="#ef4444" stroke="#0f172a" stroke-width="1.5"/><text x="9" y="-5.2" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="7.5" fill="#fff">${rq}</text>`:''}</g><text y="22" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="9" fill="#fff" ${out()}>Research done</text></g>`)}
   if(q&&!sel&&(q.ready||q.end<=C.now())){ // finished: waiting for the player to tap and complete it (FEEDBACK 92)
-   add(`<g data-act="bdone" data-v="${k}" transform="translate(${tcx.toFixed(1)},${(tcy-8).toFixed(1)})"><g class="bnc"><circle r="11" fill="#16a34a" stroke="#0f172a" stroke-width="2"/><path d="M-5 0.5 L-1.5 4 L5.5 -3.5" stroke="#fff" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g><text y="22" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="9" fill="#fff" ${out()}>Complete</text></g>`);continue}
+   add(`<g data-act="bdone" data-v="${k}" transform="translate(${tcx.toFixed(1)},${(tcy-8).toFixed(1)})"><g class="bnc">${window.CFC.giftSVG(13)}</g><text y="22" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="9" fill="#fff" ${out()}>Complete</text></g>`);continue}
   if(q&&!sel){ // compact build timer over the plot's back corner
    add(`<g data-act="bld" data-v="${k}" transform="translate(${top[0].toFixed(1)},${(top[1]-2).toFixed(1)})"><rect x="-25" y="-8" width="50" height="13" rx="6.5" fill="#0f172a" fill-opacity=".78"/><circle cx="-18" cy="-1.5" r="5" fill="#f59e0b"/><path d="M-18 -4.5 V-1.5 L-16 0" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/><text x="22" y="2.3" text-anchor="end" font-family="Teko,sans-serif" font-weight="600" font-size="9.5" fill="#fff" data-timer="${k}">${C.dur(C.remaining(q))}</text></g>`);continue}
   if(!lvl&&C.buildable(k)&&!sel){ // a newly unlocked building, ready for its free one-tap build (FEEDBACK 85)
@@ -298,7 +298,7 @@ function renderOver(I,car,opts){const C=window.CFC;if(opts.preview)return '';con
 
 const view4=()=>iso(K4,W4/2,150);
 window.CFC.campusLayers=(car)=>{const I=view4(),C=window.CFC;
- const key=JSON.stringify([car.college,car.b,car.queue.map(q=>q.key+q.to),testRender(),Object.keys(SEEN).filter(h=>SEEN[h]==='bad'),Object.keys(STAD).filter(k=>STAD[k]!=='busy'),Object.keys(TOWER).filter(k=>TOWER[k]!=='busy')]);
+ const key=JSON.stringify([car.college,car.b,car.queue.map(q=>q.key+q.to+(q.ready||q.end<=C.now()?'r':'')),testRender(),Object.keys(SEEN).filter(h=>SEEN[h]==='bad'),Object.keys(STAD).filter(k=>STAD[k]!=='busy'),Object.keys(TOWER).filter(k=>TOWER[k]!=='busy')]);
  return {key,svg:`<svg viewBox="0 0 ${W4} ${H4}" width="${W4}" height="${H4}" xmlns="http://www.w3.org/2000/svg" style="display:block">${renderBase(I,car,{})}<g id="camOver"></g></svg>`,over:()=>renderOver(I,car,{})}};
 window.CFC.campusSVG=(car,opts={})=>opts.preview
  ?`<svg viewBox="100 60 520 560" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%">${renderBase(view4(),car,opts)}</svg>`

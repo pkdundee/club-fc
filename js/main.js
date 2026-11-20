@@ -10,10 +10,13 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.01 · 18 Nov 2026';
+  C.BUILD = 'CLUB FC 1.02 · 20 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
-  const NEEDS_OK = { buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
+  const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
+    if (a === 'signjob') return ['Sign the contract', C.contractHTML(), '✍️ Sign'];   // 1.02 (FEEDBACK 144.1)
+    if (a === 'firstpick') { const c = (C.staffState().cands || []).find(x => x.id === v); if (!c) return null;   // 1.02 (FEEDBACK 144.2)
+      return ['Your first assistant', `<div class="card"><p style="font-weight:800">${C.esc(c.fn + ' ' + c.ln)} · ${C.SPECS[c.spec][1]} (${C.RARITY[c.rar][0]})</p><p class="note">▶ ${C.coachBenefit(c)}</p><div class="srow"><span>Costs</span><b>Free</b></div></div><p class="note">The other candidates go to the coaching market. You can hire more coaches later in Staff.</p>`, 'Hire']; }
     const own = (n, x) => `<div class="srow"><span>You have</span><b>${x} ${n}</b></div>`, gold = C.short(C.acct().gold);
     if (a === 'cmanual' || a === 'clic' || a === 'ctrait') { const c = C.coach(v), S = C.staffState(), k = C.licCost(c);
       const t = { cmanual: ['📗 Coaching manual', `+100 XP for ${c.fn} ${c.ln} (Lv ${c.level}, ${c.xp}/${C.xpNeed(c)} XP)`, '1 manual', own('manuals', S.items.manual)],
@@ -81,7 +84,9 @@
       case 'signjob': act('startjob'); break;   // 9r (FEEDBACK 98): no name or pronoun step; you're simply Coach
       case 'pron': C.market().coach = (C.$('#coachName') || {}).value || ''; C.market().pron = v; C.ui.refresh(); break;
       case 'startjob': { const M = C.market(); C.newCareer({ coach: 'Coach', pron: 'they', job: M.jobs[M.pick] }); C.ui.closeAll(); C.tab = 'campus'; C.applyTheme(); C.render(); C.openFirstCoach(welcome); break; }
-      case 'firstcoach': C.pickFirstCoach(v); C.render(); break;
+      case 'firstcoach': C.openCoach(v); break;   // 1.02 (FEEDBACK 144.2): a full page first, then a confirmed hire
+      case 'prefirst': C.ui.closeAll(); C.openPreseason(); break;   // 1.02 (FEEDBACK 152.1): a new career opens on its Pre-season plan
+      case 'firstpick': C.pickFirstCoach(v); C.render(); break;
       case 'sguide': C.car().seen.staffGuide = 1; C.save(); C.render(); break;
       case 'switchcar': C.db.active = +v; C.save(); C.ui.closeAll(); C.tab = 'home'; C.applyTheme(); C.render(); break;
       case 'delcar': C.ui.open('Delete a career', () => C.db.careers.map((c, i) => `<button class="lrow" data-act="delone" data-v="${i}"><span class="li">🗑</span><span class="lt"><b>${C.esc(C.COLLEGES[c.college].short)}</b><small>Tap to delete. This can't be undone.</small></span></button>`).join('')); break;
@@ -218,7 +223,7 @@
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
       case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Coins and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
       case 'wipeyes': C.wipe(); location.reload(); break;
-      case 'imp9t': C.ui.open('Import 9t save', () => `<p class="note" style="font-size:14px">Copies your phase-9t save into CLUB FC 1.01 for testing. <b>Your 9t save is not changed.</b> It replaces everything currently saved in 1.01, and can be done once (again only after Delete all data).</p><button class="btn full pri" data-act="imp9tyes">Import the 9t save</button>`, { popup: true }); break;
+      case 'imp9t': C.ui.open('Import 9t save', () => `<p class="note" style="font-size:14px">Copies your phase-9t save into CLUB FC 1.02 for testing. <b>Your 9t save is not changed.</b> It replaces everything currently saved in 1.02, and can be done once (again only after Delete all data).</p><button class="btn full pri" data-act="imp9tyes">Import the 9t save</button>`, { popup: true }); break;
       case 'imp9tyes': { const r = C.import9t(); if (r === true) location.reload(); else C.toast(r === 'none' ? 'No phase-9t save on this device' : r === 'done' ? 'Already imported' : 'Import failed'); break; }
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();
@@ -237,7 +242,7 @@
     const col = C.college();
     C.ui.open('Welcome', () => `<div class="scenebn">${C.artSlot('arrival', C.sceneArrival(col.c1, col.c2))}</div><div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(col.full)}</b><br><small style="color:var(--mute);font-weight:800">${C.esc(col.mascot)} · ${col.state} · Tier 5</small></div></div>
       <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Welcome, Coach. ${C.esc(C.STORIES[C.car().job.story].title)}.<br><br>🏛 Start with your Coaches' Office: tap the green badge on its plot to build it. Then the rest of your campus follows, one tap each.<br>💵 Tap the bubbles to collect Booster $ and <i class="cpi"></i> Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
-      <button class="btn full pri" data-act="close">Let's build</button>`);
+      <button class="btn full pri" data-act="prefirst">See your pre-season plan</button>`);
   }
 
   // 9s (FEEDBACK 101): no page zoom anywhere. iPhone Safari ignores user-scalable=no, so pinches outside the map and
@@ -274,7 +279,7 @@
     if (C.recover() && C.tab === 'squad' && !C.ui.isOpen() && ++n % 30 === 0) C.render();
     const pm = C.tickPB(); if (pm.length) { pm.forEach(x => C.toast(x)); if (C.ui.isOpen()) C.ui.refresh(); }
     const rt = C.tickRecruit(); rt.msgs.forEach(m => C.toast(m)); if (rt.changed && !C.ui.isOpen() && C.tab !== 'campus') C.render();
-    C.$$('[data-until]').forEach(e => { e.textContent = C.dur((+e.dataset.until - C.now()) / 1000); });
+    C.$$('[data-until]').forEach(e => { const d = C.dur((+e.dataset.until - C.now()) / 1000); e.textContent = e.dataset.trim ? d.replace(/^0(?=\d:)/, '') : d; });
     C.$$('[data-dtimer]').forEach(e => { const q = C.inDev(e.dataset.dtimer); if (q) e.textContent = C.dur(C.remaining(q)); });
     const done = C.tick();
     if (done.length || (C.lvlQueue && C.lvlQueue.length)) { C.render(); if (C.ui.isOpen()) C.ui.refresh(); C.nextLevelUp(); if (done.length) return; }
@@ -289,7 +294,7 @@
   C.load(); C.tickRealDay(); C.applyTheme(); C.booting = true; C.tab = 'home';
   C.$('#screen').innerHTML = C.titleHTML();
   const ready = C.loadArtManifest ? C.loadArtManifest() : Promise.resolve();
-  Promise.all([ready, new Promise(r => setTimeout(r, C.TITLE_MS))]).then(() => { C.booting = false; C.render(); });
+  C.fitScreen(); Promise.all([ready, new Promise(r => setTimeout(r, C.TITLE_MS))]).then(() => { C.booting = false; C.fitScreen(); C.render(); });
   const cs = C.$('#calstrip .next'); if (cs) cs.scrollIntoView({ inline: 'center', block: 'nearest' });
   // offline support; when a new upload takes over, reload once so the new version shows straight away
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

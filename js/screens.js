@@ -53,6 +53,7 @@
         ${sq('rqueue', 'book', C.pbRunning() + '/' + C.pbSlots(), (car.pbq || []).some(q => q.end <= C.now()) ? true : 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
       </div>
       <div class="side tr9">
+        ${car.pre ? sq('preseason', 'list', 'Pre-season', C.preTasksLeft ? C.preTasksLeft() : 0, 'linear-gradient(160deg,#4ade80,#15803d)') : ''}
         ${C.fwActive() ? sq('firstweek', 'cal', 'Week 1', C.fwClaimable(), 'linear-gradient(160deg,#fb923c,#c2410c)') : ''}
         ${C.portalOpen() ? sq('portalgo', 'door', 'Portal', true, 'linear-gradient(160deg,#c084fc,#7e22ce)') : ''}
         ${sq('events', 'gift', 'Events', C.loClaimable(), 'linear-gradient(160deg,#fbbf24,#d97706)')}
@@ -64,24 +65,42 @@
         <div class="mailrow">${C.adWaiting && C.adWaiting() && !C.drawerOpen ? `<button class="adport" data-act="inbox" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}</div>
         ${sq('inventory', 'bag', 'Items', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
       </div>
-      <div class="tstrip9"><button class="tsradio" data-act="nexttask" aria-label="Missions">${C.ico('radio', 34)}${C.loClaimable() ? `<i class="rd">${C.loClaimable()}</i>` : ''}</button>
-        ${task ? `<button class="taskstrip ${claim ? 'claim' : ''}" data-act="taskgo"><span class="tst">${C.esc(task)}</span>${claim ? '<span class="tsr">🎁</span>' : '<span class="tsg">›</span>'}</button>` : ''}</div>
+      <div class="tstrip9"><button class="tsradio" data-act="nexttask" aria-label="Missions">${C.ico('clip', 34)}${C.loClaimable() ? `<i class="rd">${C.loClaimable()}</i>` : ''}</button>
+        ${task ? `<button class="taskstrip ${claim ? 'claim' : ''}" data-act="taskgo"><span class="tst">${C.esc(task)}</span>${claim ? `<span class="tsr">${C.giftIco(17)}</span>` : '<span class="tsg">›</span>'}</button>` : ''}</div>
       ${C.drawerOpen ? drawerHTML() : ''}
     </div>`;
   }
+  // 1.02 (FEEDBACK 153, 171): fit the game frame to the screen from measurements, never a fixed number.
+  // In the home-screen app iOS can report a window shorter than the screen by exactly the status-bar inset while the page
+  // still starts at the top, which left a blank band at the bottom. When that is measured, the frame fills to the screen's
+  // bottom edge. In Safari the frame fits the visible area (toolbars included). Settings has a test switch.
+  const insetTop = () => { const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;top:env(safe-area-inset-top);left:0;width:1px;height:1px;visibility:hidden'; document.body.appendChild(pr); const v = parseFloat(getComputedStyle(pr).top) || 0; pr.remove(); return v; };
+  C.fitInfo = { mode: 'auto', applied: 'standard', gap: 0, inset: 0 };
+  // the rule on its own, from measurements only (tested across iPhone sizes and modes by the regression runner)
+  C.fitCalc = m => { const portrait = m.ih >= m.iw, sh = portrait ? Math.max(m.sw, m.shh) : Math.min(m.sw, m.shh), gap = Math.round(sh - m.ih);
+    const full = m.mode === 'full' || (m.mode === 'auto' && m.sa && gap > 0 && m.top > 0 && Math.abs(gap - m.top) <= 2); return { full, sh, gap }; };
+  C.fitScreen = () => { const app = document.getElementById('app'); if (!app) return;
+    const mode = (C.db && C.db.account && C.db.account.screenFit) || 'auto', sa = matchMedia('(display-mode: standalone)').matches || !!navigator.standalone, top = insetTop();
+    const { full, sh, gap } = C.fitCalc({ mode, sa, top, iw: innerWidth, ih: innerHeight, sw: screen.width, shh: screen.height });
+    app.style.height = full ? sh + 'px' : ''; app.style.bottom = full ? 'auto' : '';
+    document.documentElement.classList.toggle('fitfull', full); document.documentElement.classList.toggle('standalone', sa);
+    C.fitInfo = { mode, applied: full ? 'full height (' + sh + ')' : 'standard', gap, inset: top }; };
+  ['resize', 'orientationchange'].forEach(e => window.addEventListener(e, () => setTimeout(C.fitScreen, 60)));
+  if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(C.fitScreen, 60));
+  C.ACTS.screenfit = v => { C.acct().screenFit = v; C.save(); C.fitScreen(); C.ui.refresh(); };
   // screen measurements for checking phone layouts (FEEDBACK 100)
   C.diagText = () => { const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom);top:env(safe-area-inset-top)'; document.body.appendChild(pr);
     const cs = getComputedStyle(pr), sab = cs.height, sat = cs.top; pr.remove(); const app = C.$('#app'), r = app ? app.getBoundingClientRect() : { top: 0, bottom: 0, height: 0 }, tb = C.$('.tabs'), t = tb ? tb.getBoundingClientRect() : null;
     const vv = window.visualViewport;
     return [`screen ${screen.width}×${screen.height} · dpr ${devicePixelRatio}`, `window ${innerWidth}×${innerHeight}`, `visible ${vv ? Math.round(vv.width) + '×' + Math.round(vv.height) + ' · zoom ' + vv.scale.toFixed(2) : 'n/a'}`,
       `home-bar space ${sab} · top inset ${sat}`, `app frame ${Math.round(r.top)}–${Math.round(r.bottom)} (h ${Math.round(r.height)})`, t ? `tab bar ${Math.round(t.top)}–${Math.round(t.bottom)}` : 'tab bar n/a',
-      `home-screen app ${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'yes' : 'no'}`].join('\n'); };
+      `home-screen app ${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'yes' : 'no'}`, `screen fit ${C.fitInfo.mode} → ${C.fitInfo.applied} · short by ${C.fitInfo.gap} · status bar ${C.fitInfo.inset}`].join('\n'); };
   // ---------- the one top bar (FEEDBACK 75, 97): college badge as the profile box, resources where you can spend, Store ----------
   C.topBar = (spend, cls = 'tbstatic') => { const car = C.car(), col = C.college(), a = C.acct();
     return `<div class="${cls} tb9">
         <button class="pf" data-act="profile" aria-label="Profile">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<span class="pflv">${car.b.hq || 0}</span></button>
         <div class="tbm">${spend ? `<div class="res">${C.resBar()}</div>` : `<b class="tbname">${C.esc(col.short)} ${C.esc(col.mascot)}</b>`}<div class="tbpow" data-act="proginfo"><i class="ppi"></i>${C.programPower().toLocaleString()}</div></div>
-        <button class="storeb" data-act="store">${C.ico('cart', 22)}<span><i class="coin"></i><b id="r-gold2">${C.short(a.gold)}</b></span></button>
+        <button class="storeb" data-act="store">${C.ico('cart', 22)}<span><i class="coin"></i><b id="r-gold2">${C.full(a.gold)}</b></span></button>
       </div>`; };
   // ---------- builders drawer (FEEDBACK 87): every building as a card, by type, in a scrolling strip along the bottom ----------
   C.drawerTab = 'economy';
@@ -92,14 +111,26 @@
     const built = k => C.level(k) > 0 || !!C.inQueue(k), order = k => C.buildable(k) ? 0 : built(k) ? 2 : 1;
     const card = k => { const d = C.BUILDINGS[k], lock = C.locked(k), act = built(k), ready = C.buildable(k);
       const foot = ready ? 'Build · Free' : act ? 'Building is active' : lock ? `Unlocks at Coaches' Office Lv ${d.needHQ}` : "Needs the Coaches' Office first";
-      return `<button class="dcard ${ready ? 'new' : 'ghost'}" data-act="dgo" data-v="${k}">${ready ? '<s>NEW</s>' : ''}
+      return `<button class="dcard ${ready ? 'new' : 'ghost'}" data-act="${ready ? 'dbuild' : 'dgo'}" data-v="${k}">${ready ? '<s>NEW</s>' : ''}
         <div class="dpic">${C.buildingThumb(k, Math.max(1, C.level(k)), car, 120, 80)}</div><b>${C.esc(d.name)}</b><small>${C.esc(C.BJOB[k] || '')}</small><em>${foot}</em></button>`; };
-    const tb = (k, n) => `<button class="${C.drawerTab === k ? 'on' : ''}" data-act="drawertab" data-v="${k}">${n}</button>`;
-    return `<div class="drawer d9"><div class="dstrip">${keys.sort((a, b) => order(a) - order(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
-      <div class="dtabs"><button class="dx" data-act="drawer" aria-label="Close">✕</button><button class="dlist" data-act="blist" aria-label="All your buildings">${C.ico('list', 18)}</button>
-        <span class="dsp"></span>${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}<button disabled title="Coming later">Decoration</button></div></div>`;
+    // 1.02 (FEEDBACK 148): real tabs, no ✕ (a tap anywhere outside closes it), no scrollbar, mouse drag to scroll
+    const nNew = t => Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === t && C.buildable(k)).length;
+    const tb = (k, n) => `<button class="dtab ${C.drawerTab === k ? 'on' : ''}" data-act="drawertab" data-v="${k}">${n}${nNew(k) ? `<i class="rd">${nNew(k)}</i>` : ''}</button>`;
+    return `<div class="drawer d9 d102"><div class="dstrip">${keys.sort((a, b) => order(a) - order(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
+      <div class="dband"><div class="dtabs2">${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}<button class="dtab" disabled title="Coming later">Decoration</button><span class="dsp"></span><button class="dlist" data-act="blist" aria-label="All your buildings">${C.ico('list', 18)}</button></div></div></div>`;
   }
-  C.ACTS.drawer = () => { C.drawerOpen = !C.drawerOpen; C.selB = null; C.render(); };
+  // 1.02 (FEEDBACK 158.1): open on the tab holding the new building(s); Economy when there are none, or new ones on both tabs
+  C.ACTS.drawer = () => { C.drawerOpen = !C.drawerOpen; C.selB = null;
+    if (C.drawerOpen) { const tabs = new Set(Object.keys(C.BUILDINGS).filter(C.buildable).map(k => C.BTYPE[k])); C.drawerTab = tabs.size === 1 ? [...tabs][0] : 'economy'; }
+    C.render(); };
+  // 1.02 (FEEDBACK 158.2): "Build · Free" closes the drawer, pans to the plot and starts the same free Lv 1 build as the popup's button
+  C.ACTS.dbuild = v => { C.goToBuilding(v); C.act('upgrade', v); };
+  // mouse drag-to-scroll for the card strip (touch keeps its own swipe); a drag never counts as a tap on a card
+  (() => { let d = null;
+    document.addEventListener('pointerdown', e => { const s = e.pointerType === 'mouse' && e.target.closest('.dstrip'); d = s ? { s, x: e.clientX, l: s.scrollLeft, moved: false } : null; });
+    document.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.x; if (Math.abs(dx) > 6) d.moved = true; if (d.moved) d.s.scrollLeft = d.l - dx; });
+    document.addEventListener('pointerup', () => { if (d && d.moved) { const s = d.s; s.dataset.dragged = '1'; setTimeout(() => delete s.dataset.dragged, 0); } d = null; });
+    document.addEventListener('click', e => { const s = e.target.closest && e.target.closest('.dstrip'); if (s && s.dataset.dragged) { e.stopPropagation(); e.preventDefault(); } }, true); })();
   C.ACTS.drawertab = v => { C.drawerTab = v; C.render(); };
   C.ACTS.profile = () => C.openProfile();
   // ---------- profile popup (FEEDBACK 75): coach, college, key stats, and the account buttons ----------
@@ -192,7 +223,7 @@
       const bar = C.$(`[data-bar="${q.key}"]`); if (bar) bar.setAttribute('width', (28 * C.clamp(1 - C.remaining(q) / ((q.end - q.start) / 1000), 0, 1)).toFixed(1));
     }
     const set = (id, v) => { const e = C.$(id); if (e) e.textContent = v; };
-    set('#r-cash', '$' + C.short(car.cash)); set('#r-cp', C.short(car.cp)); set('#r-gold', C.short(C.acct().gold)); set('#r-gold2', C.short(C.acct().gold));
+    set('#r-cash', '$' + C.full(car.cash)); set('#r-cp', C.full(car.cp)); set('#r-gold', C.full(C.acct().gold)); set('#r-gold2', C.full(C.acct().gold));
   };
 
   // ================= building actions when selected on the map (Last War style) =================
@@ -250,7 +281,7 @@
     const mt = [C.recMission && C.recMission(), ...C.MAIN.filter(t => !C.mainDone(t[0]))].find(t => t && t[3](car));
     if (mt) return { claim: 1, text: `Claim: ${mt[2]}`, t: mt };
     const di = C.daily().findIndex(t => t.n >= t.goal && !t.claimed); if (di >= 0) { const d = C.daily()[di]; return { claim: 1, text: `Claim: ${d.def[2]}`, daily: di }; }
-    if (C.loClaimable() > 0) return { claim: 1, text: 'Collect your rewards', go: () => C.act('nexttask') };
+    if (C.loClaimable() > 0) return { text: 'Collect your rewards', go: () => C.act('nexttask') };   // 1.02 (FEEDBACK 149): it navigates, so grey
     const done = car.queue.find(q => C.buildReady(q.key)); if (done) return { text: `Complete the ${C.BUILDINGS[done.key].name}`, go: () => C.goToBuilding(done.key) };
     const pd = (car.pbq || []).find(q => q.end <= C.now()); if (pd) return { text: `Complete the research: ${C.pbName(pd.key)}`, go: () => C.act('pbready') };   // 1.01 (FEEDBACK 140)
     const nb = ks.find(C.buildable); if (nb) return { text: `Build the ${C.BUILDINGS[nb].name}`, go: () => C.goToBuilding(nb) };
@@ -274,7 +305,7 @@
     Object.keys(r).forEach((k, ki) => { const m = map[k] || ['🎁', '.pf']; const to = C.$(m[1]); if (!to) return; const tr = to.getBoundingClientRect();
       for (let i = 0; i < 6; i++) { const el = document.createElement('div'); el.className = 'flyr'; el.innerHTML = m[0];
         const x0 = from.left + from.width / 2 + (Math.random() - .5) * 80, y0 = from.top + from.height / 2 + (Math.random() - .5) * 20;
-        el.style.left = x0 + 'px'; el.style.top = y0 + 'px'; document.body.appendChild(el);
+        el.style.left = x0 + 'px'; el.style.top = y0 + 'px'; (document.getElementById('app') || document.body).appendChild(el);
         setTimeout(() => { el.style.transform = `translate(${(Math.random() - .5) * 60}px,${-30 - Math.random() * 40}px) scale(1.3)`; }, 20 + ki * 80);
         setTimeout(() => { el.style.transition = 'transform .55s cubic-bezier(.5,0,.7,1), opacity .55s'; el.style.transform = `translate(${tr.left + tr.width / 2 - x0}px,${tr.top + tr.height / 2 - y0}px) scale(.6)`; el.style.opacity = '.4'; }, 300 + i * 40 + ki * 80);
         setTimeout(() => { el.remove(); to.classList.remove('bump'); void to.offsetWidth; to.classList.add('bump'); }, 900 + i * 40 + ki * 80); } }); };
@@ -397,6 +428,8 @@
       <label class="fld">Art check: show every building at render… (map only, nothing is changed)</label>
       <div class="rgrid">${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<button class="${(a.testRender || 0) === v ? 'on' : ''}" data-act="testrender" data-v="${v}">${v || 'Off'}</button>`).join('')}</div>
       <p class="note">Testing tools are for this preview build only.</p>
+      <label class="fld">Screen fit (iPhone home-screen app)</label>
+      <div class="seg3">${[['auto', 'Auto'], ['standard', 'Standard'], ['full', 'Full height']].map(([k, n]) => `<button class="${(a.screenFit || 'auto') === k ? 'on' : ''}" data-act="screenfit" data-v="${k}">${n}</button>`).join('')}</div>
       <label class="fld">Screen check (send a screenshot of this if anything looks off)</label><div class="diag" id="diag">${C.diagText()}</div>
       <p class="note">Version: ${C.BUILD}</p><button class="btn full sec2" data-act="checkupdate">🔄 Check for update</button>
       ${C.has9tSave() && !C.imported9t() ? '<button class="btn full sec2" data-act="imp9t">Import phase-9t save (testing)…</button>' : ''}

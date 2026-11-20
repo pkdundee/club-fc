@@ -140,6 +140,11 @@
       ${st.ray ? `<div class="raytake"><span>👀</span><p><b>First impressions</b>${C.esc(st.ray)}</p></div>` : ''}`;
   });
   C.ACTS.yourcollege = () => C.openYourCollege();
+  // 1.02 (FEEDBACK 144.1): what exactly is being signed, before the career starts
+  C.contractHTML = () => { const j = M.jobs[M.pick], col = C.COLLEGES[j.college], ty = TYPES[j.type], row = (k, v) => `<div class="srow"><span>${k}</span><b>${v}</b></div>`;
+    return `<div class="jhead">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 46)}<div><b>${C.esc(col.full)}</b><small>Head coach · ${j.gender === 'w' ? "Women's" : "Men's"} soccer · ${col.state}</small></div></div>
+      <div class="card" style="margin-top:10px">${row('College', `${ty.icon} ${ty.name} · Tier 5`)}${row("Athletic director's goal", GOAL[j.stars])}${row('Cost to attend', C.money(j.coa) + '/yr')}${row('Scholarships', j.eq ? `${C.money(j.pool)} a year` : 'Academic aid only')}${row('Booster budget', C.money(j.cash))}${row('Squad', `${j.mix.reduce((a, b) => a + b, 0)} players · avg ${j.rating}`)}</div>
+      <p class="note">This starts your career at ${C.esc(col.short)}. One campus for your whole career. You can't change college later.</p>`; };
 
   // ---------------- college preview ----------------
   C.openJob = id => { M.pick = id; C.ui.open(C.COLLEGES[M.jobs[id].college].short, jobHTML); };

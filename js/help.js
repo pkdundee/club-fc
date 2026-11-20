@@ -22,8 +22,8 @@
       ${step < INTRO.length - 1 ? '<button class="btn full sec2" data-act="introskip" style="margin-top:8px">Skip</button>' : ''}`;
   }
   C.introNext = () => { if (step < INTRO.length - 1) { step++; C.ui.refresh(); } else C.introDone(); };
-  C.introDone = () => { try { localStorage.setItem('clubfc_v101_intro', '1'); } catch (e) { } if (after) { const f = after; after = null; f(); } else C.ui.back(); };
-  C.introSeen = () => { try { return !!localStorage.getItem('clubfc_v101_intro'); } catch (e) { return true; } };
+  C.introDone = () => { try { localStorage.setItem('clubfc_v102_intro', '1'); } catch (e) { } if (after) { const f = after; after = null; f(); } else C.ui.back(); };
+  C.introSeen = () => { try { return !!localStorage.getItem('clubfc_v102_intro'); } catch (e) { return true; } };
 
   // ---------- Coach's Handbook ----------
   C.HANDBOOK = [

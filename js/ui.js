@@ -9,7 +9,7 @@
 
   // Open a page or popup. render() returns its body HTML and is re-run on refresh (live timers).
   C.ui.open = (title, render, opts = {}) => {
-    stack.push({ title, render, mode: modeOf(title, opts) });
+    stack.push({ title, render, mode: modeOf(title, opts), foot: opts.foot });
     try { history.pushState({ cfcSheet: stack.length }, ''); } catch (e) { /* file:// */ }
     draw();
   };
@@ -26,7 +26,7 @@
   const SPEND = new Set(['Store', 'Playbook', 'Inventory', 'Medical Room', 'Kit Room', 'Staff', 'Buildings', 'Events', 'Research']);
   const res = e => C.car && C.car() && C.resBar && SPEND.has(e.title) ? `<div class="res hres pgres">${C.resBar()}</div>` : '';
   const pageHTML = e => `<div class="page"><div class="pghd"><b>${C.esc(e.title)}</b>${res(e)}</div><div class="pgbody sbody">${e.render()}</div>
-    <div class="pgft"><button class="backarrow" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M11 4 3 12l8 8v-5h10V9H11z" fill="#fff"/></svg></button></div></div>`;
+    <div class="pgft"><button class="backarrow" data-act="back" aria-label="Back"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M11 4 3 12l8 8v-5h10V9H11z" fill="#fff"/></svg></button>${e.foot ? e.foot() : ''}</div></div>`;
   const popHTML = e => e.mode === 'modal' ? `<div class="pop-bg" data-act="bgclose">${e.render()}</div>`
     : `<div class="pop-bg" data-act="bgclose"><div class="pop"><div class="pophd"><b>${C.esc(e.title)}</b><button class="xbtn2" data-act="back" aria-label="Close">✕</button></div><div class="popbody sbody">${e.render()}</div></div></div>`;
   function draw(keep) {

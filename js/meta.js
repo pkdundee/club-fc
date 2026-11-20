@@ -59,10 +59,10 @@
   // ================= Missions: main tasks (a guided path) and daily tasks with a points track =================
   // main tasks double as the tutorial: pre-season first (coach, campus, recruiting), then the season
   const MAIN = [
-    ['bhq', '🏛', "Build the Coaches' Office", c => c.b.hq >= 1, { gold: 10 }, 'tab', 'campus'],
+    ['bhq', '🏛', "Build the Coaches' Office", c => c.b.hq >= 1, { gold: 10 }, 'dgo', 'hq'],
     ['bcamp', '🏗', 'Build your 7 starting buildings', c => ['stadium','training','med','lab','recruit','media','dorms'].every(k => c.b[k] >= 1), { cash: 2000 }, 'tab', 'campus'],
     ['coach', '🧢', 'Hire your first assistant coach', c => (C.staffState().list || []).length >= 1, { cash: 2000 }, 'tab', 'staff'],
-    ['hq2', '🏛', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2, { gold: 20, sp15: 1 }, 'bldopen', 'hq'],
+    ['hq2', '🏛', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2, { gold: 20, sp15: 1 }, 'dgo', 'hq'],
     ['offer', '✉️', 'Make a scholarship offer to a recruit', c => (meta().ms.offers || 0) >= 1, { cp: 30 }, 'tab', 'recruit'],
     ['sign', '✍️', 'Sign a recruit', c => (c.rec && c.rec.signed || 0) >= 1, { cash: 3000 }, 'tab', 'recruit'],
     ['collect', '💵', 'Collect income on campus', c => (meta().ms.collect || 0) >= 1, { crate: 1 }, 'tab', 'campus'],
@@ -72,11 +72,11 @@
     ['play', '⚽', 'Play your first match', c => (meta().ms.match || 0) >= 1, { sp60: 1 }, 'prematch', ''],
     ['train', '🏋️', 'Start a training plan', c => (meta().ms.train || 0) >= 1, { manual: 2, gear: 1 }, 'tab', 'squad'],
     ['win', '🏆', 'Win a match', c => (meta().ms.win || 0) >= 1, { gold: 30, crate: 1 }, 'prematch', ''],
-    ['hq3', '🏛', "Upgrade the Coaches' Office to Lv 3", c => c.b.hq >= 3, { sp60: 2, badge: 5 }, 'bldopen', 'hq'],
-    ['video', '🎞', 'Upgrade the Analysis Suite to Lv 2', c => c.b.video >= 2, { gold: 40 }, 'bldopen', 'video'],
+    ['hq3', '🏛', "Upgrade the Coaches' Office to Lv 3", c => c.b.hq >= 3, { sp60: 2, badge: 5 }, 'dgo', 'hq'],
+    ['video', '🎞', 'Upgrade the Analysis Suite to Lv 2', c => c.b.video >= 2, { gold: 40 }, 'dgo', 'video'],
     ['wins3', '🏆', 'Win 3 matches', c => (meta().ms.win || 0) >= 3, { gold: 60, books: 1, gear: 2 }, 'prematch', ''],
-    ['hq5', '🏛', "Reach Coaches' Office Lv 5", c => c.b.hq >= 5, { gold: 80, sp180: 1 }, 'bldopen', 'hq'],
-    ['gym', '🏋️', 'Upgrade the Gym to Lv 2', c => c.b.gym >= 2, { sp15: 2 }, 'bldopen', 'gym'],
+    ['hq5', '🏛', "Reach Coaches' Office Lv 5", c => c.b.hq >= 5, { gold: 80, sp180: 1 }, 'dgo', 'hq'],
+    ['gym', '🏋️', 'Upgrade the Gym to Lv 2', c => c.b.gym >= 2, { sp15: 2 }, 'dgo', 'gym'],
     ['top4', '📊', 'Finish a season in the top 4', c => (meta().ms.top4 || 0) >= 1, { gold: 150, rare: 1 }, 'tab', 'season']
   ];
   C.MAIN = MAIN;
@@ -174,7 +174,7 @@
       return bigTabs() + sub + `<p class="note" style="margin-top:0">${M.main.length} of ${MAIN.length} done. Each one teaches a part of running your program.</p>${rows || '<p class="note">All main tasks done. 🎉</p>'}`;
     }
     const M = meta(), list = C.daily(), max = CHESTS[CHESTS.length - 1][0];
-    const track = `<div class="ptrack"><div class="pstar"><i>★</i><b>${M.pts}</b></div><div class="pline"><div class="pfill" style="width:${Math.min(100, M.pts / max * 100)}%"></div>${CHESTS.map(([p], i) => `<button class="pchest ${M.chests.includes(i) ? 'got' : M.pts >= p ? 'ready' : ''}" style="left:${p / max * 100}%" data-act="chestopen" data-v="${i}">🧰<small>${p}</small></button>`).join('')}</div></div>`;
+    const track = `<div class="ptrack"><div class="pstar"><i>★</i><b>${M.pts}</b></div><div class="pline"><div class="pfill" style="width:${Math.min(100, M.pts / max * 100)}%"></div>${CHESTS.map(([p], i) => `<button class="pchest ${M.chests.includes(i) ? 'got' : M.pts >= p ? 'ready' : ''}" style="left:${p / max * 100}%" data-act="chestopen" data-v="${i}">${C.chestSVG(M.chests.includes(i) ? 'open' : M.pts >= p ? 'ready' : 'idle', 30)}<small>${p}</small></button>`).join('')}</div></div>`;
     const rows = list.map((t, i) => [t, i]).sort((a, b) => ((b[0].n >= b[0].goal && !b[0].claimed) - (a[0].n >= a[0].goal && !a[0].claimed)) || (a[0].claimed - b[0].claimed)).map(([t, i]) => `<div class="mrow2 ${t.claimed ? 'done' : ''} ${t.id === 'login' && !t.claimed ? 'alert' : ''}"><div class="mh"><span>${t.def[1]}</span><b>${C.esc(t.def[2])}${t.id === 'login' ? '' : ` <small>(${t.n}/${t.goal})</small>`}</b>${t.id === 'login' && !t.claimed ? '<i class="ldot"></i>' : ''}</div><div class="mb">${C.itemTiles(Object.assign({ pts: 20 }, DREW[t.id]))}
       ${t.claimed ? '<span class="donechk">✔</span>' : t.n >= t.goal ? `<button class="btn sm2 claim" data-act="dailyclaim" data-v="${i}">Claim</button>` : `<button class="btn sm2 go" data-act="${t.def[4]}" data-v="${t.def[5]}">Go</button>`}</div></div>`).join('');
     return bigTabs() + sub + `<div class="nextref">⏱ New tasks in ${C.dur((new Date().setHours(24, 0, 0, 0) - Date.now()) / 1000)}</div>${track}${rows}`;
@@ -203,7 +203,7 @@
   A.mainclaim = v => { const r = C.mainClaim(v); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
   A.dailyclaim = v => { const r = C.dailyClaim(+v); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
   // an unearned chest shows one preview, straight away, just above the chest that was tapped (FEEDBACK 78, 95)
-  A.chestopen = (v, el) => { const r = C.chestOpen(+v); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); return; } C.rewardPreview(CHESTS[+v][1], el); };
+  A.chestopen = (v, el) => { const r = C.chestOpen(+v); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); const n = document.querySelector(`.pchest[data-v="${+v}"]`); if (n) n.classList.add('justopen'); return; } C.rewardPreview(CHESTS[+v][1], el); };
   A.evclaim = v => { const [t, i] = v.split('|'), r = C.evClaim(t, +i); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
   A.evall = () => { const r = C.evClaimAll(); C.toast(r ? '✔ ' + C.rwText(r) : 'Nothing to claim yet'); C.ui.refresh(); C.render(); };
   A.evbuy = (v, el) => { const n = +v, X = C.evx(); if (n === 2 && !X.has1) return C.toast('Buy the $4.99 pack first');
@@ -224,25 +224,55 @@
   C.loClaimable = () => { if (!C.car()) return 0; const M = meta(); return C.evClaimable() + C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => M.pts >= p && !M.chests.includes(i)).length + (C.isVip() && C.lo().vipDay !== dayKey() ? 1 : 0); };
 
   // ================= Inbox: one place for messages, by topic =================
-  C.mail = (f, icon, title, body, r) => { const M = meta(); M.inbox.unshift({ id: 'm' + C.now() + Math.floor(Math.random() * 1e4), f, icon, title, body, r: r || null, claimed: false, read: false, t: C.now() }); M.inbox = M.inbox.filter(x => C.now() - x.t < 30 * D || x.fav).slice(0, 120); C.save(); };
+  C.mail = (f, icon, title, body, r) => { const M = meta(); M.inbox.unshift({ id: 'm' + C.now() + Math.floor(Math.random() * 1e4), f, icon, title, body, r: r || null, claimed: false, read: false, t: C.now() }); C.mailPrune(M); C.save(); };
+  // 1.02 (FEEDBACK 157, 171): mail with an unclaimed reward, and favourites, are never removed by the 30-day clean-up or the 120 cap.
+  // Only other mail ages out, and the cap trims the oldest of it. (1.01 removed unclaimed rewards too.)
+  const MAIL_DAYS = 30, MAIL_CAP = 120;
+  C.mailKeep = x => !!(x.fav || (x.r && !x.claimed));
+  C.mailPrune = M => { M = M || meta(); const keep = M.inbox.filter(C.mailKeep).length; let room = Math.max(0, MAIL_CAP - keep);
+    M.inbox = M.inbox.filter(x => { if (C.mailKeep(x)) return true; if (C.now() - x.t >= MAIL_DAYS * D || room <= 0) return false; room--; return true; }); };
   function receipt(name, r) { C.mail('purchases', '🧾', 'Purchase: ' + name, `Thanks for your purchase. ${r ? 'Received: ' + C.rwText(r) + '.' : ''}<br><small>Test store: nothing was charged.</small>`, null); }
   const FOLDERS = [['match', '📋', 'Match reports'], ['director', '🏛', 'Director'], ['rewards', '🎁', 'Rewards'], ['purchases', '🧾', 'Purchases'], ['system', '⚙️', 'News & updates'], ['fav', '⭐', 'Favourites']];
   C.inboxUnread = () => { const car = C.car(); if (!car) return 0; sysMail(); return meta().inbox.filter(x => !x.read || (x.r && !x.claimed)).length; };   // 1.01: mail only (the Director's notes are mail now)
   function sysMail() { C.syncADMail && C.syncADMail(C.car()); const M = meta(); if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `Ray here. A few changes around the office:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
-  let folder = null;
-  C.openInbox = () => { folder = null; C.ui.open('Inbox', inboxHTML); };
+  // 1.02 (FEEDBACK 157): Inbox menu → folder page (headlines) → message page. Back goes up one level each time.
+  const folderName = k => (FOLDERS.find(f => f[0] === k) || [0, '', 'Inbox'])[2];
+  const inFolder = k => meta().inbox.filter(x => k === 'fav' ? x.fav : x.f === k);
+  const isNew = x => !x.read || (x.r && !x.claimed);
+  const ago = t => { const s = Math.max(0, (C.now() - t) / 1000); return s < 3600 ? Math.max(1, Math.floor(s / 60)) + 'm ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + 'd ago'; };
+  C.openInbox = () => { C.mailPrune(); C.save(); C.ui.open('Inbox', inboxHTML); };
   function inboxHTML() {
     sysMail(); const M = meta();
-    if (!folder) return FOLDERS.map(([k, ic, n]) => { const list = k === 'fav' ? M.inbox.filter(x => x.fav) : M.inbox.filter(x => x.f === k), un = list.filter(x => !x.read || (x.r && !x.claimed)).length, gift = list.some(x => x.r && !x.claimed);
-      return `<button class="mfold" data-act="mfold" data-v="${k}"><span class="mfi">${ic}</span><b>${n}</b>${gift ? '<span class="mgift">🎁</span>' : ''}${un ? `<i class="mdot">${un}</i>` : ''}<em>›</em></button>`; }).join('') + '<p class="note">Messages older than 30 days are removed, unless you favourite them.</p>';
-    const list = folder === 'fav' ? M.inbox.filter(x => x.fav) : M.inbox.filter(x => x.f === folder);
-    return `<button class="btn sm2 sec2" data-act="mfold" data-v="">‹ All folders</button>${folder === 'director' ? '<button class="btn full sec2" data-act="ad" style="margin:8px 0">🏛 Director\'s Office: goals and confidence</button>' : ''}${list.length ? list.map(x => `<div class="mail ${x.read ? '' : 'new'}"><div class="mh"><span>${x.icon}</span><div><b>${C.esc(x.title)}</b><small>${new Date(x.t).toLocaleString()}</small></div><button class="mfav" data-act="mfav" data-v="${x.id}">${x.fav ? '⭐' : '☆'}</button></div>
-      <div class="mbody">${x.body}</div>${x.md != null ? `<button class="btn sm2 sec2" data-act="report" data-v="${x.md}">Full report</button>` : ''}${x.r ? `<div class="mrw">${C.itemTiles(x.r)}${x.claimed ? '<span class="donechk">✔ Claimed</span>' : `<button class="btn sm2 claim" data-act="mclaim" data-v="${x.id}">Claim</button>`}</div>` : ''}</div>`).join('') : '<p class="note">Nothing here yet.</p>'}`;
+    return FOLDERS.map(([k, ic, n]) => { const list = inFolder(k), un = list.filter(isNew).length, gift = list.some(x => x.r && !x.claimed);
+      return `<button class="mfold" data-act="mfold" data-v="${k}"><span class="mfi">${ic}</span><b>${n}</b>${gift ? `<span class="mgift">${C.giftIco(20)}</span>` : ''}${un ? `<i class="mdot">${un}</i>` : ''}<em>›</em></button>`; }).join('')
+      + '<p class="note">Mail older than 30 days is deleted automatically. Favourites and unclaimed rewards are kept.</p>';
+  }
+  function folderHTML(k) {
+    const list = inFolder(k), canClaim = list.some(x => x.r && !x.claimed), canDel = list.some(x => x.read && !C.mailKeep(x));
+    return `${k === 'director' ? '<button class="btn full sec2" data-act="ad" style="margin:0 0 8px">🏛 Director\'s Office: goals and confidence</button>' : ''}${list.length ? list.map(x => `<button class="mrowh ${isNew(x) ? 'new' : ''}" data-act="mopen" data-v="${x.id}"><span class="mi">${x.icon}</span><span class="mt"><b>${C.esc(x.title)}</b><small>${ago(x.t)}${x.fav ? ' · ⭐' : ''}</small></span>${x.r && !x.claimed ? `<span class="mgift">${C.giftIco(20)}</span>` : ''}${!x.read ? '<i class="mrd"></i>' : ''}<em>›</em></button>`).join('') : '<p class="note">Nothing here yet.</p>'}
+      ${list.length ? `<div class="mfoot"><button class="btn sec2" data-act="mdelall" data-v="${k}" ${canDel ? '' : 'disabled'}>🗑 Delete all</button><button class="btn ${canClaim ? 'claim' : 'sec2'}" data-act="mclaimall" data-v="${k}" ${canClaim ? '' : 'disabled'}>${C.giftIco(16)} Claim all</button></div>` : ''}`;
+  }
+  function msgHTML(id) {
+    const x = meta().inbox.find(m => m.id === id); if (!x) return '<p class="note">This message has been deleted.</p>';
+    return `<div class="mail"><div class="mh"><span>${x.icon}</span><div><b>${C.esc(x.title)}</b><small>${new Date(x.t).toLocaleString()}</small></div></div>
+      <div class="mbody">${x.body}</div>${x.md != null ? `<button class="btn sm2 sec2" data-act="report" data-v="${x.md}">Full report</button>` : ''}${x.r ? `<div class="mrw">${C.itemTiles(x.r)}${x.claimed ? '<span class="donechk">✔ Claimed</span>' : ''}</div>` : ''}</div>
+      <div class="mfoot"><button class="btn sec2" data-act="mfav" data-v="${x.id}">${x.fav ? '⭐ Favourite' : '☆ Favourite'}</button><button class="btn sec2" data-act="mdel" data-v="${x.id}" ${x.r && !x.claimed ? 'disabled' : ''}>🗑 Delete</button>${x.r && !x.claimed ? `<button class="btn claim" data-act="mclaim" data-v="${x.id}">Claim</button>` : ''}</div>
+      ${x.r && !x.claimed ? '<p class="note">Claim the reward first. Messages with a reward waiting are never deleted.</p>' : ''}`;
   }
   // 1.01 (FEEDBACK 133): Director is a message folder; the Office has its own button inside
-  A.mfold = v => { folder = v || null; if (folder) meta().inbox.forEach(x => { if ((folder === 'fav' ? x.fav : x.f === folder) && !x.r) x.read = true; }); C.save(); C.ui.refresh(); C.render(); };
+  A.mfold = v => { if (!v) return C.ui.back(); C.ui.open(folderName(v), () => folderHTML(v)); };
+  A.mopen = v => { const x = meta().inbox.find(m => m.id === v); if (!x) return; x.read = true; C.save(); C.ui.open(folderName(x.f), () => msgHTML(v)); C.render(); };
   A.mfav = v => { const x = meta().inbox.find(m => m.id === v); if (x) { x.fav = !x.fav; C.save(); C.ui.refresh(); } };
-  A.mclaim = v => { const x = meta().inbox.find(m => m.id === v); if (x && x.r && !x.claimed) { x.claimed = true; x.read = true; C.giveReward(x.r); C.toast('🎁 ' + C.rwText(x.r)); C.ui.refresh(); C.render(); } };
+  const claimOne = x => { x.claimed = true; x.read = true; C.giveReward(x.r); };
+  A.mclaim = v => { const x = meta().inbox.find(m => m.id === v); if (x && x.r && !x.claimed) { claimOne(x); C.toast('🎁 ' + C.rwText(x.r)); C.ui.refresh(); C.render(); } };
+  A.mclaimall = k => { const list = inFolder(k).filter(x => x.r && !x.claimed); if (!list.length) return; const tot = {};
+    list.forEach(x => { claimOne(x); for (const r in x.r) tot[r] = (tot[r] || 0) + x.r[r]; }); C.toast('🎁 ' + C.rwText(tot)); C.ui.refresh(); C.render(); };
+  A.mdel = v => { const M = meta(), x = M.inbox.find(m => m.id === v); if (!x) return; if (x.r && !x.claimed) return C.toast('Claim the reward first');
+    M.inbox = M.inbox.filter(m => m !== x); C.save(); C.ui.back(); C.render(); };
+  A.mdelall = k => { const del = inFolder(k).filter(x => x.read && !C.mailKeep(x)), kept = inFolder(k).length - del.length; if (!del.length) return;
+    C.confirm('Delete all', `<p>Delete <b>${del.length}</b> read message${del.length > 1 ? 's' : ''} in ${C.esc(folderName(k))}?</p><p class="note">${kept ? `${kept} kept: unread, favourites and unclaimed rewards are never deleted.` : 'Unread messages, favourites and unclaimed rewards are never deleted.'}</p>`, 'Delete', 'mdelallok', k); };
+  A.mdelallok = k => { const M = meta(), del = new Set(inFolder(k).filter(x => x.read && !C.mailKeep(x)));
+    M.inbox = M.inbox.filter(x => !del.has(x)); C.save(); C.ui.back(); C.toast(`🗑 Deleted ${del.size}`); C.ui.refresh(); C.render(); };
   A.inbox = () => C.openInbox();
   A.report = v => C.openReport(+v);
 
@@ -262,6 +292,7 @@
   A.evopen = () => { evTab = 'event'; C.ui.closeAll(); C.openEvents(); };
   A.sttab = v => { stTab = v; C.ui.refresh(); };
   C.openStoreAt = t => { stTab = t; C.openStore(); };
+  A.numstore = () => C.openStoreAt('items');
   const oStore = C.openStore;
   C.openStore = () => C.ui.open('Store', () => {
     const a = C.acct(), vip = C.isVip(), L = C.lo(), M = meta(); if (M.wk !== weekKey()) { M.wk = weekKey(); M.wbuy = {}; }
@@ -291,19 +322,33 @@
   // ================= pre-season (round 5): recruit, build and hire before the first match =================
   C.PRE_MIN = 22;   // the starting roster is 21: sign at least one recruit before the season
   C.openPreseason = () => C.ui.open('Pre-season', () => {
-    const car = C.car(), n = car.squad.length, coach = (C.staffState().list || []).length >= 1, ok = n >= C.PRE_MIN && coach, steps = MAIN.slice(0, 8);
+    const car = C.car(), n = car.squad.length, coach = (C.staffState().list || []).length >= 1, ok = n >= C.PRE_MIN && coach, steps = MAIN.slice(0, 8), cap = C.rosterCap(car), left = Math.max(0, cap - n);
     return `<div class="card prehd3"><b>🗓 Pre-season</b><p>Real college programs finish recruiting before the season starts: by then almost nobody has a roster spot left. Use pre-season to hire your staff, build your campus and fill your roster. Player training starts with the season.</p></div>
       <div class="card">${steps.map(t => { const done = meta().main.includes(t[0]) || t[3](car); return `<div class="pstep ${done ? 'done' : ''}"><span>${done ? '✔' : t[1]}</span><b>${C.esc(t[2])}</b>${done ? '' : `<button class="btn sm2 go" data-act="${t[5]}" data-v="${t[6]}">Go</button>`}</div>`; }).join('')}</div>
-      <div class="srow" style="margin:10px 2px"><span>👕 Roster</span><b class="${ok ? '' : 'short'}">${n} / ${C.PRE_MIN} needed</b></div>
+      <div class="card preroster"><div class="srow"><span>👕 Roster</span><b class="${n >= C.PRE_MIN ? '' : 'short'}">${n} players · ${C.PRE_MIN} needed</b></div><div class="srow"><span>Places left</span><b>${left} (up to ${cap})</b></div>${car.job.eq ? `<div class="srow"><span>🎓 Scholarships left</span><b>${C.money(C.poolLeft())}</b></div>` : ''}<p class="note" style="margin:4px 0 0">${C.PRE_MIN} is the minimum to start. ${left ? 'You can sign more, up to the Dorms limit.' : 'The roster is full: upgrade the Dorms for more places.'}</p></div>
       <button class="btn full ${ok ? 'pri' : 'sec2'}" data-act="startseason" ${ok ? '' : 'disabled'}>${ok ? '🏁 Start the season' : !coach ? 'Hire an assistant coach to start' : `Sign ${C.PRE_MIN - n} more player${C.PRE_MIN - n > 1 ? 's' : ''} to start`}</button>
       <p class="note">${ok ? 'Once the season starts, matches open and training plans begin.' : 'Not enough players? Walk-on tryouts fill the gaps if you start short later on.'}</p>`;
   });
-  A.startseason = () => { const car = C.car(); if (car.squad.length < C.PRE_MIN || !(C.staffState().list || []).length) return; car.pre = false; C.mail('director', '🏁', 'The season is under way', 'Good luck out there, Coach.', null); C.save(); C.ui.closeAll(); C.toast('🏁 The season has started!'); C.render(); };
+  // 1.02 (FEEDBACK 156.4): a readiness check before the season starts. Advice only: it never blocks (the 1.01 rule stands: 22 players and a coach).
+  C.preTasksLeft = () => { const car = C.car(); return MAIN.slice(0, 8).filter(t => !(meta().main.includes(t[0]) || t[3](car))).length; };
+  C.readiness = () => { const car = C.car(), out = [], cap = C.rosterCap(car), n = car.squad.length;
+    if (cap > n) out.push(['👕', `${cap - n} roster place${cap - n > 1 ? 's' : ''} left`, 'tab', 'recruit']);
+    if (car.job.eq && C.poolLeft() > 0) out.push(['🎓', `${C.money(C.poolLeft())} of scholarships unspent`, 'tab', 'recruit']);
+    const nb = Object.keys(C.BUILDINGS).find(C.buildable), up = Object.keys(C.BUILDINGS).find(k => C.readyArrow(k));
+    if (C.freeSlot() && (nb || up)) out.push(['🔨', nb ? `A builder is free: build the ${C.BUILDINGS[nb].name}` : `A builder is free: upgrade the ${C.BUILDINGS[up].name}`, 'dgo', nb || up]);
+    if (C.pbRunning() < C.pbSlots()) out.push(['📋', `${C.pbSlots() - C.pbRunning()} research slot${C.pbSlots() - C.pbRunning() > 1 ? 's' : ''} free`, 'playbook', '']);
+    const rw = C.loClaimable() + meta().inbox.filter(x => x.r && !x.claimed).length; if (rw) out.push(['🎁', `${rw} reward${rw > 1 ? 's' : ''} to claim`, C.loClaimable() ? 'nexttask' : 'inbox', '']);
+    const tl = C.preTasksLeft(); if (tl) out.push(['🗓', `${tl} pre-season task${tl > 1 ? 's' : ''} not done`, 'preseason', '']);
+    return out; };
+  A.startseason = () => { const car = C.car(); if (car.squad.length < C.PRE_MIN || !(C.staffState().list || []).length) return; const list = C.readiness();
+    C.ui.open('Ready for the season?', () => `${list.length ? `<p class="note" style="margin-top:0">You can still do these before your first match:</p>${list.map(([ic, txt, act, v]) => `<div class="pstep"><span>${ic}</span><b>${txt}</b><button class="btn sm2 go" data-act="${act}" data-v="${v}">Go</button></div>`).join('')}` : '<p class="note" style="margin-top:0">Everything is ready.</p>'}
+      <p class="note">Once the season starts, matches open and training plans begin. Pre-season can't be reopened.</p><div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Not yet</button><button class="btn pri" data-act="startseasonok">🏁 Start the season</button></div>`, { popup: true }); };
+  A.startseasonok = () => { const car = C.car(); if (car.squad.length < C.PRE_MIN || !(C.staffState().list || []).length) return; car.pre = false; C.mail('director', '🏁', 'The season is under way', 'Good luck out there, Coach.', null); C.save(); C.ui.closeAll(); C.toast('🏁 The season has started!'); C.render(); };
   // matches and player training wait for the season
   const oPre = C.openPreMatch; C.openPreMatch = () => { const car = C.car(); if (car && car.pre) return C.openPreseason(); return oPre(); };
   const oPlan = C.startPlan; C.startPlan = (...a) => { const car = C.car(); if (car && car.pre) return 'pre'; const r = oPlan(...a); if (r === true) { meta().ms.train = (meta().ms.train || 0) + 1; C.dailyEvent('train'); } return r; };
   const oGameday = C.gamedayHTML; C.gamedayHTML = () => { const car = C.car(); if (!car || !car.pre) return oGameday();
-    const n = car.squad.length; return `<div class="gameday pre"><span class="gdc">🗓</span><div class="vs"><div><small>PRE-SEASON · ROSTER ${n}/${C.PRE_MIN}</small>Build your program</div></div><button class="go" data-act="preseason">${n >= C.PRE_MIN ? '🏁 Start' : 'Plan'}</button></div>`; };
+    const n = car.squad.length; return `<div class="gameday pre"><span class="gdc">🗓</span><div class="vs"><div><small>PRE-SEASON · ROSTER ${n}/${C.PRE_MIN}</small>Build your program</div></div><button class="go" data-act="preseason">${C.preTasksLeft() ? `See tasks (${C.preTasksLeft()} left)` : n >= C.PRE_MIN && (C.staffState().list || []).length ? '🏁 Start the season' : 'See tasks'}</button></div>`; };
   // a brand-new career starts in pre-season (older saves are already mid-season)
   const oNew = C.newCareer; C.newCareer = o => { const car = oNew(o); car.pre = true; C.save(); return car; };
 

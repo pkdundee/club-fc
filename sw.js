@@ -1,6 +1,6 @@
 // Club FC offline cache. Bump VERSION when you publish a new build.
-const PREFIX = 'clubfc-v101';
-const VERSION = 'clubfc-v101-net1';
+const PREFIX = 'clubfc-v102';
+const VERSION = 'clubfc-v102-net1';
 const FILES = ['./', './index.html', './manifest.webmanifest', './css/style.css',
   './js/errbar.js', './js/util.js', './js/economy-config.js', './js/data.js', './js/art-scenes.js', './img/manifest.json', './js/state.js', './js/build.js', './js/names.js', './js/art-faces.js', './js/players.js', './js/squad.js', './js/recruit.js', './js/engine.js', './js/season.js', './js/tactics.js', './js/match.js', './js/staff.js', './js/playbook.js', './js/career.js', './js/liveops.js', './js/medical.js', './js/home.js', './js/icons.js', './js/campus-meta.js', './js/campus-env.js', './js/stadium-paint.js', './js/tower-paint.js', './js/art-campus.js', './js/ui.js', './js/jobs.js', './js/help.js', './js/ad.js', './js/screens.js', './js/meta.js', './js/map.js', './js/progress.js', './js/gear.js', './js/academic.js', './js/levelup.js', './js/research.js', './js/main.js',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
