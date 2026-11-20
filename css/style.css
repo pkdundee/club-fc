@@ -1479,3 +1479,12 @@ button.pbslot2{cursor:pointer}
 html.fitband{--sab:0px}
 /* 1.02.01 (FEEDBACK 180): in the "band" fit the tab bar sits as low as the Back bar (the Back bar itself is unchanged) */
 html.fitband .tabs{padding-top:6px;padding-bottom:5px}
+/* 1.02.03 (FEEDBACK 182): the tab bar is exactly the Back bar's height (7 + 44 + 7 = 58 px, plus the same home-bar space),
+   so the two bars start and end at the same place on every screen. The Back bar is unchanged. */
+.tabs{box-sizing:border-box;height:calc(58px + var(--sab));padding:5px 6px calc(5px + var(--sab));align-items:center}
+html.fitband .tabs{padding:5px 6px 5px}
+.tab{gap:1px;line-height:13px}.tab .ti{font-size:22px;line-height:25px}
+.tab.on:before{top:-5px}
+/* 1.02.04 (FEEDBACK 183): the Recommended ribbon is as wide as its text (it ran past its background), from the tile's left edge,
+   clear of the slot number on the right */
+.pbcat2 .rib{left:6px;right:auto;width:auto;white-space:nowrap;padding:1px 6px;font-size:8.5px;letter-spacing:.2px}

@@ -96,7 +96,8 @@
   // so the background is two halves: navy at the top (as before), dark grey at the bottom. C.BAND_MATCH = true restores the matching.
   C.BAND_MATCH = false;
   C.syncBand = () => { const H = document.documentElement; if (!H.classList.contains('fitband')) { H.style.backgroundColor = ''; H.style.background = ''; document.body.style.background = ''; return; }
-    if (!C.BAND_MATCH) { const g = 'linear-gradient(#0f1b3d 0 50%, #4b5563 50% 100%) fixed'; H.style.background = g; document.body.style.background = g; return; }
+    // 1.02.02 (FEEDBACK 181): iOS paints both strips with the root background COLOUR only (the gradient showed white), so one solid colour
+    if (!C.BAND_MATCH) { H.style.background = ''; document.body.style.background = ''; H.style.backgroundColor = '#4b5563'; document.body.style.backgroundColor = '#4b5563'; return; }
     const app = document.getElementById('app'); if (!app) return; const r = app.getBoundingClientRect(), el = document.elementFromPoint(r.left + 4, r.bottom - 2);
     let n = el, c = ''; while (n && n !== document.body) { const b = getComputedStyle(n).backgroundColor; if (b && b !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(b)) { c = b; break; } n = n.parentElement; }
     H.style.backgroundColor = c; document.body.style.backgroundColor = c; };
