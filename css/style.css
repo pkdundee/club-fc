@@ -1477,3 +1477,5 @@ button.pbslot2{cursor:pointer}
 /* phone test (FEEDBACK 177): when iOS's window stops short of the screen, the strip below it is the home-bar area,
    so the bottom bars need no home-bar padding of their own; the strip takes the bar's colour (C.syncBand) */
 html.fitband{--sab:0px}
+/* 1.02.01 (FEEDBACK 180): in the "band" fit the tab bar sits as low as the Back bar (the Back bar itself is unchanged) */
+html.fitband .tabs{padding-top:6px;padding-bottom:5px}
