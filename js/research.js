@@ -64,7 +64,7 @@
     const links = B[3].slice(1).map((_, t) => `<i class="pblink ${C.pbUnlocked(branch + '.' + (t + 1)) ? 'on' : ''}" style="top:${y(t) + H - 6}px;height:${GAP + 12}px"></i>`).join('');
     const hex = (n, t) => { const key = branch + '.' + t, lv = C.pbLv(key), un = C.pbUnlocked(key), q = C.pbInQueue(key), si = slotOf(key);
       return `<button class="pbhex ${un ? '' : 'off'}" style="top:${y(t)}px" data-act="${q && q.end <= C.now() ? 'pbdone' : 'pbnode'}" data-v="${key}">${hexSVG(un ? '#2563eb' : '#475569')}${si >= 0 ? hn(si) : ''}<span class="e">${B[1]}</span><span class="lv">${lv}/${n[3]}</span></button>`; };
-    return `<div class="pbtree2" style="min-height:${y(B[3].length - 1) + H + 70}px"><div class="bh"><span class="e">${B[1]}</span><b>${C.esc(B[2])}</b><span class="pc">${Math.round(got / tot * 100)}%</span></div><div class="nodes">${links}${B[3].map(hex).join('')}</div></div>`; }
+    return `<div class="pbtree2" style="--mh:${y(B[3].length - 1) + H + 70}px"><div class="bh"><span class="e">${B[1]}</span><b>${C.esc(B[2])}</b><span class="pc">${Math.round(got / tot * 100)}%</span></div><div class="nodes">${links}${B[3].map(hex).join('')}</div></div>`; }
 
   // ---------- 3. the node card ----------
   C.openPBNode = key => C.ui.open('Research', () => {

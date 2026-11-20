@@ -1470,3 +1470,7 @@ button.pbslot2{cursor:pointer}
 .cta2{border:2px solid #0f172a;border-radius:10px;font:900 13px Nunito;padding:6px 10px;text-align:center;white-space:nowrap;cursor:pointer}
 .cta2.blue{background:linear-gradient(180deg,#38bdf8,#1d4ed8);color:#fff;border-color:#0f2a55}
 .cta2.gold{background:linear-gradient(#fde047,#f59e0b);color:#fff;text-shadow:0 1px 0 #0f172a,0 -1px 0 #0f172a,1px 0 0 #0f172a,-1px 0 0 #0f172a;line-height:1.05}.cta2.gold em{display:block;font-style:normal;font-size:11px}
+.pbcat2 .rib{bottom:auto}
+.pbtree2{min-height:max(var(--mh,440px),calc(100% - 2px))}
+/* full amounts (FEEDBACK 164) at the narrowest phones: the page resource bar stays on one line */
+@media (max-width:340px){.res{flex-wrap:nowrap;gap:4px}.res span{font-size:15px;padding:2px 7px 2px 3px}.res i{width:16px;height:16px}}
