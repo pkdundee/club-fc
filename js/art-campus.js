@@ -156,7 +156,9 @@ const SCEN=()=>window.CFC_SCEN||{};
 // Every picture is test-loaded first. One that fails (missing from an upload, say) falls back to render 1, then to the old drawn
 // building, so the map never shows a broken-image box (iPhone draws those as a "?").
 const SEEN={};
-function probe(h){if(SEEN[h])return SEEN[h];SEEN[h]='wait';const im=new Image();im.onload=()=>{SEEN[h]='ok'};im.onerror=()=>{SEEN[h]='bad';window.CFC.redrawMap&&window.CFC.redrawMap()};im.src=h;return 'wait'}
+// 1.02.05 (QA-14): every campus image is kept, decoded, for the whole session, so returning to the map never waits on it again
+const KEEP=[];
+function probe(h){if(SEEN[h])return SEEN[h];SEEN[h]='wait';const im=new Image();KEEP.push(im);im.decoding='async';im.onload=()=>{SEEN[h]='ok';if(im.decode)im.decode().catch(()=>{})};im.onerror=()=>{SEEN[h]='bad';window.CFC.redrawMap&&window.CFC.redrawMap()};im.src=h;return 'wait'}
 const STAD={};   // the Stadium recolored to the school's main color, cached as a data URL
 function stadiumHref(n){const C=window.CFC,key=n+C1,base=`img/campus/b_stadium_${n}.webp`;if(STAD[key])return STAD[key]==='busy'?base:STAD[key];
  if(!window.paintStadium)return base;STAD[key]='busy';const im=new Image();im.onload=()=>{try{const u=window.paintStadium(im,C1).toDataURL('image/png');STAD[key]=u&&u.length>100?u:base;C.redrawMap&&C.redrawMap()}catch(e){STAD[key]=base}};im.onerror=()=>STAD[key]=base;im.src=base;return base}
@@ -292,7 +294,7 @@ function renderOver(I,car,opts){const C=window.CFC;if(opts.preview)return '';con
    add(`<g data-act="bld" data-v="${k}" transform="translate(${ax.toFixed(1)},${ay.toFixed(1)})"><path d="M0 -6.5 L5.5 0 H2.3 V5.5 H-2.3 V0 H-5.5Z" fill="#22c55e" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round"/></g>`)}
   const amt=lvl&&C.PRODUCERS[k]?C.bubble(k):0;
   if(amt){const cp=C.PRODUCERS[k]==='cp',cx=tcx,cy=top[1]+(tcy-top[1])*.35-(sel?26:0);   // collect token: round, icon-led, amount underneath
-   add(`<g data-act="collect" data-v="${k}" transform="translate(${cx.toFixed(1)},${cy.toFixed(1)})"><g class="bnc"><circle r="9.5" fill="${cp?'#0d9488':'#16a34a'}" stroke="#0f172a" stroke-width="2"/><circle r="7" fill="${cp?'#14b8a6':'#22c55e'}"/>${cp?'<path d="M-3.4 -2h5a1.1 1.1 0 0 1 1.1 1.1v.7h-4.6a2.5 2.5 0 1 1-1.5-1.8z" fill="#fff"/>':'<text y="3.6" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" font-family="Nunito">$</text>'}</g><text y="19" text-anchor="middle" font-family="Teko,sans-serif" font-weight="600" font-size="9.5" fill="#fff" ${out()}>${cp?'':'$'}${C.short(amt)}</text></g>`)}
+   add(`<g data-act="collect" data-v="${k}" transform="translate(${cx.toFixed(1)},${cy.toFixed(1)})"><g class="bnc"><circle r="9.5" fill="${cp?'#0d9488':'#16a34a'}" stroke="#0f172a" stroke-width="2"/><circle r="7" fill="${cp?'#14b8a6':'#22c55e'}"/>${cp?'<path d="M-3.4 -2h5a1.1 1.1 0 0 1 1.1 1.1v.7h-4.6a2.5 2.5 0 1 1-1.5-1.8z" fill="#fff"/>':'<text y="3.6" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" font-family="Nunito">$</text>'}</g><text y="19" text-anchor="middle" font-family="Teko,sans-serif" font-weight="600" font-size="9.5" fill="#fff" ${out()}>${cp?'':'$'}${C.full(amt)}</text></g>`)}
  }
  return parts.join('')}
 

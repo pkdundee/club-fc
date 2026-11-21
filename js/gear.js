@@ -70,7 +70,7 @@
   const tile = (g, slot) => g ? `<span class="gtile r${g.rar}"><i>${C.GEAR[g.slot].icon}</i><b>Lv.${g.lv}</b><em>${'★'.repeat(Math.max(1, g.rar))}</em></span>` : `<span class="gtile empty"><i>${C.GEAR[slot].icon}</i><b>+</b></span>`;
   const lineTxt = (g, p) => { const d = C.GEAR[g.slot], main = p && p.pos === 'GK' && d.gkMain ? d.gkMain : d.main;
     return `<div class="gline main">${main.map(nm).join(' · ')} <b>+${C.gearPct(g)}%</b></div>${g.ex.map(([k, n]) => `<div class="gline">🔹 ${nm(k)} <b>+${n}%</b></div>`).join('')}`; };
-  const upBtn = g => { const at = g.lv >= C.gearCap(g); return !C.kitLevel() ? `<button class="btn sm2 sec2" data-act="bldopen" data-v="kitroom">🔒 Kit Room</button>` : at ? '<button class="btn sm2 sec2" disabled>Max level</button>' : g.lv >= C.gearLvMax(g) ? `<button class="btn sm2 sec2" data-act="bldopen" data-v="kitroom">Needs Kit Room Lv ${Math.ceil((g.lv - 1) / 2)}</button>` : `<button class="btn sm2" data-act="gearup" data-v="${g.id}">Upgrade: 💵 ${C.short(C.gearCost(g))}</button>`; };
+  const upBtn = g => { const at = g.lv >= C.gearCap(g); return !C.kitLevel() ? `<button class="btn sm2 sec2" data-act="bldopen" data-v="kitroom">🔒 Kit Room</button>` : at ? '<button class="btn sm2 sec2" disabled>Max level</button>' : g.lv >= C.gearLvMax(g) ? `<button class="btn sm2 sec2" data-act="bldopen" data-v="kitroom">Needs Kit Room Lv ${Math.ceil((g.lv - 1) / 2)}</button>` : `<button class="btn sm2" data-act="gearup" data-v="${g.id}">Upgrade: 💵 ${C.full(C.gearCost(g))}</button>`; };
   // the gear row on a player's card
   C.gearRowHTML = p => `<h3 class="jh">Gear ${C.gearTop(p) ? `<small class="devp">up to +${C.gearTop(p)}% in matches</small>` : ''}</h3><div class="grow">${C.gearSlots(p).map(s => `<button class="gslot" data-act="gearslot" data-v="${p.id}|${s}">${tile(C.gearOn(p, s), s)}<small>${C.GEAR[s].name}</small></button>`).join('')}</div>
     <p class="note" style="margin-top:4px">Tap a slot to equip gear you own. It comes back to the Kit Room when a player leaves.</p>`;
@@ -85,7 +85,7 @@
   }
   A.gearon = v => { if (C.equip(v, pick.pid)) { C.toast('🎒 Equipped'); C.ui.back(); C.ui.refresh(); } };
   A.gearoff = v => { C.unequip(v); C.ui.refresh(); };
-  A.gearup = v => { const g = gear().find(x => x.id === v); C.confirm('Upgrade gear?', `<div class="card"><b>${RAR[g.rar][0]} ${C.GEAR[g.slot].name}</b><div class="srow"><span>Level</span><b>${g.lv} ▶ ${g.lv + 1}</b></div><div class="srow"><span>Cost</span><b>💵 ${C.short(C.gearCost(g))}</b></div></div>`, 'Upgrade', 'gearupgo', v); };
+  A.gearup = v => { const g = gear().find(x => x.id === v); C.confirm('Upgrade gear?', `<div class="card"><b>${RAR[g.rar][0]} ${C.GEAR[g.slot].name}</b><div class="srow"><span>Level</span><b>${g.lv} ▶ ${g.lv + 1}</b></div><div class="srow"><span>Cost</span><b>💵 ${C.full(C.gearCost(g))}</b></div></div>`, 'Upgrade', 'gearupgo', v); };
   A.gearupgo = v => { const r = C.upgradeGear(v); C.toast(r === true ? '⬆ Gear upgraded' : r === 'cash' ? 'Not enough Booster $' : 'Can\'t upgrade this yet'); C.ui.refresh(); C.render(); };
   // everything you own: the Inventory's Gear tab and the Kit Room popup
   C.kitRoomHTML = () => { const list = gear().slice().sort((a, b) => b.rar - a.rar || b.lv - a.lv);

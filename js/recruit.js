@@ -251,13 +251,13 @@
     const tile = (k, icon, name, sub, n, cls = '') => `<button class="rtile ${route === k ? 'on' : ''} ${cls}" data-act="rroute" data-v="${k}"><span class="ri">${icon}</span><b>${name}</b><small>${sub}</small>${n ? `<em>${n}</em>` : ''}</button>`;
     const tiles = [
       tile('inbox', '📨', 'Applications', count('inbox') >= 8 ? 'Inbox full' : `Next <span data-until="${R.nextApp}">${C.dur((R.nextApp - t) / 1000)}</span>`, count('inbox')),
-      tile('camp', '🏕', 'ID Camp', t < R.campReady ? `Ready in <span data-until="${R.campReady}">${C.dur((R.campReady - t) / 1000)}</span>` : `Run · 💵 ${C.short(C.campCost())}`, count('camp')),
+      tile('camp', '🏕', 'ID Camp', t < R.campReady ? `Ready in <span data-until="${R.campReady}">${C.dur((R.campReady - t) / 1000)}</span>` : `Run · 💵 ${C.full(C.campCost())}`, count('camp')),
       isJC() ? tile('agency', '🌍', 'Agency scout', `<i class="coin"></i> ${agencyGold()} a recruit`, count('agency')) : tile('jc', '🚌', 'JC transfers', `New in <span data-until="${R.jcNext}">${C.dur((R.jcNext - t) / 1000)}</span>`, count('jc')),
       isJC() ? '' : tile('agency', '🌍', 'Agency scout', `<i class="coin"></i> ${agencyGold()} a recruit`, count('agency')),
       tile('portal', '🚪', 'Transfer portal', P ? `Open · closes in <span data-until="${P.end}">${C.dur((P.end - t) / 1000)}</span>` : 'Opens after the season', P ? count('portal') : 0, 'wide ' + (P ? 'live' : ''))
     ].join('');
     let body = '';
-    if (route === 'camp') body = `<button class="btn full pri" data-act="camp" ${t < R.campReady ? 'disabled' : ''} style="margin:10px 16px 0;width:calc(100% - 32px)">${t < R.campReady ? '🏕 Next camp in ' + C.dur((R.campReady - t) / 1000) : `🏕 Run an ID Camp · 💵 ${C.short(C.campCost())}`}</button><p class="note" style="padding:0 16px">3 players attend. You see them play, so their ratings are exact.</p>`;
+    if (route === 'camp') body = `<button class="btn full pri" data-act="camp" ${t < R.campReady ? 'disabled' : ''} style="margin:10px 16px 0;width:calc(100% - 32px)">${t < R.campReady ? '🏕 Next camp in ' + C.dur((R.campReady - t) / 1000) : `🏕 Run an ID Camp · 💵 ${C.full(C.campCost())}`}</button><p class="note" style="padding:0 16px">3 players attend. You see them play, so their ratings are exact.</p>`;
     if (route === 'agency') body = `<button class="btn full pri" data-act="agency" style="margin:10px 16px 0;width:calc(100% - 32px)">🌍 Hire an agency scout · <i class="coin"></i> ${agencyGold()}</button><p class="note" style="padding:0 16px">One international recruit, Uncommon or better.</p>`;
     if (route === 'jc') body = `<p class="note" style="padding:0 16px">Juniors from two-year colleges: ready now, with 2 seasons left.</p>`;
     if (route === 'portal') body = portalHTML(P, R);

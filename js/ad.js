@@ -56,7 +56,7 @@
   C.fwDone = (car, d) => DAYS[d].tasks.every(t => t[2](car));
   C.fwClaimable = () => { const car = C.car(); if (!car) return 0; C.fwInit(car); let k = 0; for (let d = 0; d <= C.fwUnlocked(car); d++) if (!car.fw.claimed.includes(d) && C.fwDone(car, d)) k++; return k; };
   C.fwActive = () => { const car = C.car(); if (!car) return false; C.fwInit(car); return car.fw.claimed.length < 7; };
-  const rw = r => [r.gold ? `<i class="coin"></i> ${r.gold}` : '', r.cash ? `💵 ${C.short(r.cash)}` : '', r.cp ? `<i class="cpi"></i> ${r.cp}` : '', r.item ? '🎁 Rare recruit' : ''].filter(Boolean).join(' · ');
+  const rw = r => [r.gold ? `<i class="coin"></i> ${r.gold}` : '', r.cash ? `💵 ${C.full(r.cash)}` : '', r.cp ? `<i class="cpi"></i> ${r.cp}` : '', r.item ? '🎁 Rare recruit' : ''].filter(Boolean).join(' · ');
   C.openFirstWeek = () => C.ui.open("Coach's First Week", () => {
     const car = C.car(); C.fwInit(car); const open = C.fwUnlocked(car);
     return `<div class="raytake" style="margin-top:0"><span>📅</span><p><b>Your first week</b>One chapter a day for your first week. Missed a day? You can catch up.</p></div>

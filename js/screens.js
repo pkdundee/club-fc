@@ -134,7 +134,7 @@
     const nNew = t => Object.keys(C.BUILDINGS).filter(k => C.BTYPE[k] === t && C.buildable(k)).length;
     const tb = (k, n) => `<button class="dtab ${C.drawerTab === k ? 'on' : ''}" data-act="drawertab" data-v="${k}">${n}${nNew(k) ? `<i class="rd">${nNew(k)}</i>` : ''}</button>`;
     return `<div class="drawer d9 d102"><div class="dstrip">${keys.sort((a, b) => order(a) - order(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
-      <div class="dband"><div class="dtabs2">${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}<button class="dtab" disabled title="Coming later">Decoration</button><span class="dsp"></span><button class="dlist" data-act="blist" aria-label="All your buildings">${C.ico('list', 18)}</button></div></div></div>`;
+      <div class="dband"><div class="dtabs2"><button class="dlist" data-act="blist" aria-label="All your buildings">${C.ico('list', 18)}</button><span class="dsp"></span>${tb('economy', 'Economy')}${tb('soccer', 'Soccer')}<button class="dtab" disabled title="Coming later">Decoration</button></div></div></div>`;   // 1.02.05 (QA-16): list left, tabs right
   }
   // 1.02 (FEEDBACK 158.1): open on the tab holding the new building(s); Economy when there are none, or new ones on both tabs
   C.ACTS.drawer = () => { C.drawerOpen = !C.drawerOpen; C.selB = null;
@@ -147,7 +147,9 @@
     document.addEventListener('pointerdown', e => { const s = e.pointerType === 'mouse' && e.target.closest('.dstrip'); d = s ? { s, x: e.clientX, l: s.scrollLeft, moved: false } : null; });
     document.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.x; if (Math.abs(dx) > 6) d.moved = true; if (d.moved) d.s.scrollLeft = d.l - dx; });
     document.addEventListener('pointerup', () => { if (d && d.moved) { const s = d.s; s.dataset.dragged = '1'; setTimeout(() => delete s.dataset.dragged, 0); } d = null; });
-    document.addEventListener('click', e => { const s = e.target.closest && e.target.closest('.dstrip'); if (s && s.dataset.dragged) { e.stopPropagation(); e.preventDefault(); } }, true); })();
+    document.addEventListener('click', e => { const s = e.target.closest && e.target.closest('.dstrip'); if (s && s.dataset.dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
+    // 1.02.05 (QA-15): the browser's own image drag took over the mouse (the pictures moved, the strip didn't); stop it in the drawer
+    document.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('.dstrip')) e.preventDefault(); }); })();
   C.ACTS.drawertab = v => { C.drawerTab = v; C.render(); };
   C.ACTS.profile = () => C.openProfile();
   // ---------- profile popup (FEEDBACK 75): coach, college, key stats, and the account buttons ----------

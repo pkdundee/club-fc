@@ -27,7 +27,7 @@
     if (k !== 'hq') rows.push(['🏛', `Lv.${to} ${C.BUILDINGS.hq.name}`, C.level('hq') >= to, 'hq']);
     else C.hqNeeds(to).forEach(([b, l]) => rows.push([C.BUILDINGS[b].icon, `Lv.${l} ${C.BUILDINGS[b].name}`, C.level(b) >= l, b]));
     if (C.locked(k)) rows.push(['🔒', `Unlocks at ${C.BUILDINGS.hq.name} Lv ${def.needHQ}`, C.level('hq') >= def.needHQ]);
-    if (cost.cash) rows.push(['💵', `${C.short(car.cash)} / ${C.short(cost.cash)}`, car.cash >= cost.cash, 'cash']);
+    if (cost.cash) rows.push(['💵', `${C.full(car.cash)} / ${C.full(cost.cash)}`, car.cash >= cost.cash, 'cash']);
     if (cost.cp) rows.push(['<i class="cpi"></i>', `${C.short(car.cp)} / ${cost.cp} Coaching Points`, car.cp >= cost.cp]);
     return rows;
   };

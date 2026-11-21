@@ -1488,3 +1488,31 @@ html.fitband .tabs{padding:5px 6px 5px}
 /* 1.02.04 (FEEDBACK 183): the Recommended ribbon is as wide as its text (it ran past its background), from the tile's left edge,
    clear of the slot number on the right */
 .pbcat2 .rib{left:6px;right:auto;width:auto;white-space:nowrap;padding:1px 6px;font-size:8.5px;letter-spacing:.2px}
+/* ===== 1.02.05 ===== */
+/* Inbox actions in the Back bar (FEEDBACK 193-195): same height as the Back arrow; red Delete All, blue Claim All, green Claim,
+   blue icon buttons (white star / bin with a dark outline) like the Back button. The bar and the Back arrow are unchanged. */
+.mbar{flex:1;min-width:0;display:flex;align-items:center;gap:8px;margin-left:10px}
+.mbsp{flex:1}
+.mbtn{position:relative;flex:1;min-width:0;height:44px;border:0;border-radius:10px;color:#fff;font:900 15px Nunito;text-shadow:0 1px 0 rgba(0,0,0,.45);cursor:pointer;padding:0 6px;white-space:nowrap}
+.mbtn.red{background:linear-gradient(180deg,#f87171,#dc2626);box-shadow:0 3px 0 #991b1b}
+.mbtn.blue{background:linear-gradient(180deg,#38bdf8,#1d4ed8);box-shadow:0 3px 0 #1e3a8a}
+.mbtn.green{flex:0 0 auto;min-width:110px;background:linear-gradient(180deg,#4ade80,#16a34a);box-shadow:0 3px 0 #166534}
+.mbtn:disabled{filter:grayscale(.7);opacity:.5}
+.mbdot{position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:#ef4444;border:2px solid #1e293b}
+.mico{flex:none;width:52px;height:44px;border:0;border-radius:10px;background:linear-gradient(180deg,#38bdf8,#1d4ed8);box-shadow:0 3px 0 #1e3a8a;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.mico:disabled{filter:grayscale(.7);opacity:.5}
+@media (max-width:340px){.mbar{gap:6px;margin-left:8px}.mbtn{font-size:13.5px}.mico{width:46px}.mbtn.green{min-width:90px}}
+/* buildings drawer (QA-15, QA-16): no image drag or text selection in the strip; list button left, tabs right;
+   the orange line runs along the TOP of the tab row and the tabs hang down from it (they belong to the cards above) */
+.d102 .dstrip,.d102 .dstrip *{-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
+.d102 .dstrip img{pointer-events:none}
+.d102 .dtabs2{align-items:flex-start;border-bottom:0;border-top:3px solid #ea580c}
+.d102 .dtab{border:1.5px solid #0f172a;border-top:0;border-radius:0 0 9px 9px;padding:5px 14px 6px}
+.d102 .dtab.on{padding-top:5px;padding-bottom:8px}
+.d102 .dtab .rd{top:auto;bottom:-7px;right:-7px}
+.d102 .dlist{margin:6px 0 0}
+.d102 .dband{padding-top:80px}
+/* QA-19: the task bar sits behind its clipboard button (the green bar's pulse gave it its own layer on top) */
+.tstrip9{isolation:isolate}.tstrip9 .tsradio{position:relative;z-index:2}.tstrip9 .taskstrip{position:relative;z-index:1}
+/* QA-19 follow-up: relative positioning must not re-apply the old strip's absolute offsets */
+.tstrip9 .taskstrip{left:auto;right:auto;top:auto;bottom:auto}

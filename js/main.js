@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.02.04 · 20 Nov 2026';
+  C.BUILD = 'CLUB FC 1.02.05 · 20 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -20,14 +20,14 @@
     const own = (n, x) => `<div class="srow"><span>You have</span><b>${x} ${n}</b></div>`, gold = C.short(C.acct().gold);
     if (a === 'cmanual' || a === 'clic' || a === 'ctrait') { const c = C.coach(v), S = C.staffState(), k = C.licCost(c);
       const t = { cmanual: ['📗 Coaching manual', `+100 XP for ${c.fn} ${c.ln} (Lv ${c.level}, ${c.xp}/${C.xpNeed(c)} XP)`, '1 manual', own('manuals', S.items.manual)],
-        clic: ['🎫 Licence upgrade', `${C.LICENCE[c.lic]} → ${C.LICENCE[Math.min(4, c.lic + 1)]} licence: level cap ${C.lvCap(c)} → ${[20, 30, 40, 50, 60][Math.min(4, c.lic + 1)]}`, `🎫 ${k.credits} Clinic Credits + 💵 ${C.short(k.cash)}`, own('Clinic Credits', S.items.credits)],
+        clic: ['🎫 Licence upgrade', `${C.LICENCE[c.lic]} → ${C.LICENCE[Math.min(4, c.lic + 1)]} licence: level cap ${C.lvCap(c)} → ${[20, 30, 40, 50, 60][Math.min(4, c.lic + 1)]}`, `🎫 ${k.credits} Clinic Credits + 💵 ${C.full(k.cash)}`, own('Clinic Credits', S.items.credits)],
         ctrait: ['📕 Trait upgrade', `Trait Lv ${c.trait} → ${c.trait + 1}: +8% to everything this coach does`, `📕 ${c.trait} Trait Book${c.trait > 1 ? 's' : ''}`, own('Trait Books', S.items.books)] }[a];
       return [t[0], `<div class="card"><p style="font-weight:800">${t[1]}</p><div class="srow"><span>Costs</span><b>${t[2]}</b></div>${t[3]}</div>`, 'Confirm']; }
     if (a === 'treatc') { const [pid, kind] = v.split('|'), p = C.P(pid), kits = (C.car().items && C.car().items.kit) || 0;
       return kind === 'spec' ? ['Specialist treatment', `<div class="card"><p style="font-weight:800">${C.esc(p.fn + ' ' + p.ln)}: ${C.esc(p.injury.name)}. One match off their recovery (${p.inj} → ${p.inj - 1}). Once per injury.</p><div class="srow"><span>Costs</span><b>${C.GEM} ${C.TREAT.spec}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Treat']
         : ['Rush back', `<div class="card"><p style="font-weight:800">${C.esc(p.fn + ' ' + p.ln)} plays next match, not fully fit: −15% and ×3 risk of re-injury.</p><div class="srow"><span>Costs</span><b>${kits ? '🧴 1 recovery kit' : C.GEM + ' ' + C.TREAT.rush}</b></div><div class="srow"><span>You have</span><b>${kits ? kits + ' kits' : C.GEM + ' ' + gold}</b></div></div>`, 'Rush back']; }
     if (a === 'chire') { const c = C.staffState().market.find(x => x.id === v); if (!c) return null; const k = C.hireCost(c);
-      return ['Hire coach', `<div class="card"><p style="font-weight:800">${C.esc(c.fn + ' ' + c.ln)} · ${C.SPECS[c.spec][1]} (${C.RARITY[c.rar][0]})</p><p class="note">▶ ${C.coachBenefit(c)}</p><div class="srow"><span>Costs</span><b>${k.gold ? C.GEM + ' ' + k.gold : '💵 ' + C.short(k.cash)}</b></div><div class="srow"><span>You have</span><b>${k.gold ? C.GEM + ' ' + C.short(C.acct().gold) : '💵 ' + C.short(C.car().cash)}</b></div></div>`, 'Hire']; }
+      return ['Hire coach', `<div class="card"><p style="font-weight:800">${C.esc(c.fn + ' ' + c.ln)} · ${C.SPECS[c.spec][1]} (${C.RARITY[c.rar][0]})</p><p class="note">▶ ${C.coachBenefit(c)}</p><div class="srow"><span>Costs</span><b>${k.gold ? C.GEM + ' ' + k.gold : '💵 ' + C.full(k.cash)}</b></div><div class="srow"><span>You have</span><b>${k.gold ? C.GEM + ' ' + C.short(C.acct().gold) : '💵 ' + C.full(C.car().cash)}</b></div></div>`, 'Hire']; }
     if (a === 'buydeal') { const dl = C.todayDeal(); return ["Today's deal", `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><div class="card" style="margin-top:8px"><p style="font-weight:900;font-size:16px">${dl.icon} ${C.esc(dl.name)}</p><p class="note">${C.rwText(dl.r)}</p><div class="srow"><span>Price</span><b><s style="opacity:.5">${dl.was}</s> ${dl.price}</b></div></div>`, 'Buy (test)']; }
     if (a === 'buykitc') return ['Buy a recovery kit', `<div class="card"><p style="font-weight:800">🧴 +25 Freshness to one player, any time.</p><div class="srow"><span>Costs</span><b>${C.GEM} ${C.TREAT.kit}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Buy'];
     if (a === 'teamsess') return C.medState().team > 0 ? ['Team recovery session', `<div class="card"><p style="font-weight:800">👥 +12 Freshness for the whole squad. Free again in ${C.medState().team} match${C.medState().team > 1 ? 'es' : ''}.</p><div class="srow"><span>Costs now</span><b>${C.GEM} ${C.TREAT.team}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Run session'] : null;
@@ -61,7 +61,7 @@
       case 'speed': { const q = C.inQueue(v); if (!q) break; return C.finishRunning('b', v, () => { if (C.completeBuild(v)) { C.fwEvent('speed'); C.ui.closeAll(); C.render(); } }); }
       case 'speedold': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
         if (C.finishNow(q, !free)) { C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } else C.toast('Not enough Coins'); break; }
-      case 'collect': { const amt = C.collect(v); if (amt) C.fwEvent(C.PRODUCERS[v] === 'cp' ? 'collect_cp' : 'collect_cash'); if (amt) C.toast(`${C.PRODUCERS[v] === 'cp' ? '<i class="cpi"></i>' : '💵'} +${C.short(amt)} collected`); if (C.ui.isOpen()) C.ui.refresh(); C.redrawMap(); C.updateLive(); break; }
+      case 'collect': { const amt = C.collect(v); if (amt) C.fwEvent(C.PRODUCERS[v] === 'cp' ? 'collect_cp' : 'collect_cash'); if (amt) C.toast(`${C.PRODUCERS[v] === 'cp' ? '<i class="cpi"></i>' : '💵'} +${C.full(amt)} collected`); if (C.ui.isOpen()) C.ui.refresh(); C.redrawMap(); C.updateLive(); break; }
       case 'queue': C.openQueue(); break;
       case 'blist': C.openBuildList(); break;
       case 'blisttab': C.blistTab = v; C.ui.refresh(); break;
@@ -147,7 +147,7 @@
       case 'mauto': C.matchAuto(); break;
       case 'report': C.openReport(+v); break;
       case 'seav': C.setSeasonView(v); break;
-      case 'nextseason': { const r = C.startNextSeason(); C.render(); C.toast(r.up ? `🎉 ${C.college().short} moved up to ${C.TIERS[car.tier].n}!` : `🎓 ${r.left.length} seniors graduated${r.walk.length ? ` · ${r.walk.length} walk-ons joined` : ''} · 💵 Director's budget +${C.short(r.budget)}`); break; }
+      case 'nextseason': { const r = C.startNextSeason(); C.render(); C.toast(r.up ? `🎉 ${C.college().short} moved up to ${C.TIERS[car.tier].n}!` : `🎓 ${r.left.length} seniors graduated${r.walk.length ? ` · ${r.walk.length} walk-ons joined` : ''} · 💵 Director's budget +${C.full(r.budget)}`); break; }
       case 'tactics': C.openTactics(); break;
       case 'form': C.setForm(v); C.ui.refresh(); break;
       case 'ment': C.tac().ment = +v; C.save(); C.ui.refresh(); break;
@@ -294,6 +294,8 @@
   C.load(); C.tickRealDay(); C.applyTheme(); C.booting = true; C.tab = 'home';
   C.$('#screen').innerHTML = C.titleHTML();
   const ready = C.loadArtManifest ? C.loadArtManifest() : Promise.resolve();
+  // 1.02.05 (QA-14): start loading and decoding the campus art during the title screen, so the map's first draw is complete
+  ready.then(() => { try { if (C.car() && C.campusLayers) C.campusLayers(C.car()); } catch (e) { } });
   C.fitScreen(); Promise.all([ready, new Promise(r => setTimeout(r, C.TITLE_MS))]).then(() => { C.booting = false; C.fitScreen(); C.render(); });
   const cs = C.$('#calstrip .next'); if (cs) cs.scrollIntoView({ inline: 'center', block: 'nearest' });
   // offline support; when a new upload takes over, reload once so the new version shows straight away

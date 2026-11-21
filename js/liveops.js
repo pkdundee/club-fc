@@ -11,7 +11,7 @@
 
   // ---------- rewards: Coins are account-wide; everything else goes to the career you're playing ----------
   const NAMES = { gold: ['<i class="coin"></i>', 'Coins'], cash: ['💵', 'Booster $'], cp: ['<i class="cpi"></i>', 'Coaching Points'], manual: ['📗', 'Coaching manuals'], credits: ['🎫', 'Clinic Credits'], kit: ['🧴', 'Recovery kits'], books: ['📕', 'Trait Books'], tokens: ['🎟', 'Number Changes'], rare: ['🎁', 'Rare recruit'], coach: ['🧑‍🏫', 'Rare coach'] };
-  C.rwText = r => Object.keys(r).map(k => `${NAMES[k][0]} ${k === 'cash' ? C.short(r[k]) : r[k] > 1 || !['rare', 'coach'].includes(k) ? r[k] : ''}`.trim()).join(' · ');
+  C.rwText = r => Object.keys(r).map(k => `${NAMES[k][0]} ${k === 'cash' ? C.full(r[k]) : r[k] > 1 || !['rare', 'coach'].includes(k) ? r[k] : ''}`.trim()).join(' · ');
   C.giveReward = r => { const car = C.car(), S = car && C.staffState();
     for (const k in r) { const v = r[k];
       if (k === 'gold') C.acct().gold += v; else if (!car) continue;

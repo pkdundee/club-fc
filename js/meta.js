@@ -23,7 +23,7 @@
   C.rwText = r => { const a = {}, b = []; for (const k in r) { if (XN[k]) b.push(`${XN[k][0]} ${r[k] > 1 ? r[k] + '× ' : ''}${XN[k][1]}`); else a[k] = r[k]; } return [Object.keys(a).length ? oText(a) : '', ...b].filter(Boolean).join(' · '); };
   C.giveReward = r => { const a = {}, inv = C.car() ? meta().inv : null; for (const k in r) { if (XN[k]) { if (inv) inv[k] = (inv[k] || 0) + r[k]; } else a[k] = r[k]; } oGive(a); C.save(); };
   // rewards as item tiles (Last War style): icon, amount, colour by value
-  C.itemTiles = r => `<span class="itiles">${Object.keys(r).map(k => { const v = r[k], ic = XN[k] ? XN[k][0] : ICON[k] || '🎁', lab = k === 'cash' ? C.short(v) : XN[k] && XN[k][2] ? (XN[k][2] >= 60 ? XN[k][2] / 60 + 'h' : XN[k][2] + 'm') + (v > 1 ? ' ×' + v : '') : k === 'crate' ? '$5K' + (v > 1 ? ' ×' + v : '') : v;
+  C.itemTiles = r => `<span class="itiles">${Object.keys(r).map(k => { const v = r[k], ic = XN[k] ? XN[k][0] : ICON[k] || '🎁', lab = k === 'cash' ? C.full(v) : XN[k] && XN[k][2] ? (XN[k][2] >= 60 ? XN[k][2] / 60 + 'h' : XN[k][2] + 'm') + (v > 1 ? ' ×' + v : '') : k === 'crate' ? '$5K' + (v > 1 ? ' ×' + v : '') : v;
     return `<span class="itile t${TIER[k] || 1}" title="${C.esc(XN[k] ? XN[k][1] : NAME[k] || k)}">${ic}<b>${lab}</b></span>`; }).join('')}</span>`;
 
   // use a speed-up on something running: b = building, t = training, r = research
@@ -250,18 +250,25 @@
   function folderHTML(k) {
     const list = inFolder(k), canClaim = list.some(x => x.r && !x.claimed), canDel = list.some(x => x.read && !C.mailKeep(x));
     return `${k === 'director' ? '<button class="btn full sec2" data-act="ad" style="margin:0 0 8px">🏛 Director\'s Office: goals and confidence</button>' : ''}${list.length ? list.map(x => `<button class="mrowh ${isNew(x) ? 'new' : ''}" data-act="mopen" data-v="${x.id}"><span class="mi">${x.icon}</span><span class="mt"><b>${C.esc(x.title)}</b><small>${ago(x.t)}${x.fav ? ' · ⭐' : ''}</small></span>${x.r && !x.claimed ? `<span class="mgift">${C.giftIco(20)}</span>` : ''}${!x.read ? '<i class="mrd"></i>' : ''}<em>›</em></button>`).join('') : '<p class="note">Nothing here yet.</p>'}
-      ${list.length ? `<div class="mfoot"><button class="btn sec2" data-act="mdelall" data-v="${k}" ${canDel ? '' : 'disabled'}>🗑 Delete all</button><button class="btn ${canClaim ? 'claim' : 'sec2'}" data-act="mclaimall" data-v="${k}" ${canClaim ? '' : 'disabled'}>${C.giftIco(16)} Claim all</button></div>` : ''}`;
+`;
   }
+  // 1.02.05 (FEEDBACK 193-195): the Inbox actions sit in the standard Back bar (its depth and the Back arrow are unchanged)
+  const STAR = '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="#fff" stroke="#0f2a55" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  const STAR_ON = STAR.replace('fill="#fff"', 'fill="#fde047"');
+  const BIN = '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M5 6.5h14l-1.2 13.5a1.6 1.6 0 0 1-1.6 1.5H7.8a1.6 1.6 0 0 1-1.6-1.5z" fill="#fff" stroke="#0f2a55" stroke-width="1.6" stroke-linejoin="round"/><path d="M3.5 6.5h17M9 3.5h6v3H9z" fill="#fff" stroke="#0f2a55" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 10v8M14 10v8" stroke="#0f2a55" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  const folderFoot = k => () => { const list = inFolder(k); if (!list.length) return ''; const canClaim = list.some(x => x.r && !x.claimed), canDel = list.some(x => x.read && !C.mailKeep(x));
+    return `<div class="mbar"><button class="mbtn red" data-act="mdelall" data-v="${k}" ${canDel ? '' : 'disabled'}>Delete All</button><button class="mbtn blue" data-act="mclaimall" data-v="${k}" ${canClaim ? '' : 'disabled'}>Claim All${canClaim ? '<i class="mbdot"></i>' : ''}</button></div>`; };
+  const msgFoot = id => () => { const x = meta().inbox.find(m => m.id === id); if (!x) return ''; const wait = x.r && !x.claimed;
+    return `<div class="mbar"><button class="mico" data-act="mfav" data-v="${x.id}" aria-label="Favourite">${x.fav ? STAR_ON : STAR}</button><button class="mico" data-act="mdel" data-v="${x.id}" aria-label="Delete" ${wait ? 'disabled' : ''}>${BIN}</button><span class="mbsp"></span>${wait ? `<button class="mbtn green" data-act="mclaim" data-v="${x.id}">Claim</button>` : ''}</div>`; };
   function msgHTML(id) {
     const x = meta().inbox.find(m => m.id === id); if (!x) return '<p class="note">This message has been deleted.</p>';
     return `<div class="mail"><div class="mh"><span>${x.icon}</span><div><b>${C.esc(x.title)}</b><small>${new Date(x.t).toLocaleString()}</small></div></div>
       <div class="mbody">${x.body}</div>${x.md != null ? `<button class="btn sm2 sec2" data-act="report" data-v="${x.md}">Full report</button>` : ''}${x.r ? `<div class="mrw">${C.itemTiles(x.r)}${x.claimed ? '<span class="donechk">✔ Claimed</span>' : ''}</div>` : ''}</div>
-      <div class="mfoot"><button class="btn sec2" data-act="mfav" data-v="${x.id}">${x.fav ? '⭐ Favourite' : '☆ Favourite'}</button><button class="btn sec2" data-act="mdel" data-v="${x.id}" ${x.r && !x.claimed ? 'disabled' : ''}>🗑 Delete</button>${x.r && !x.claimed ? `<button class="btn claim" data-act="mclaim" data-v="${x.id}">Claim</button>` : ''}</div>
       ${x.r && !x.claimed ? '<p class="note">Claim the reward first. Messages with a reward waiting are never deleted.</p>' : ''}`;
   }
   // 1.01 (FEEDBACK 133): Director is a message folder; the Office has its own button inside
-  A.mfold = v => { if (!v) return C.ui.back(); C.ui.open(folderName(v), () => folderHTML(v)); };
-  A.mopen = v => { const x = meta().inbox.find(m => m.id === v); if (!x) return; x.read = true; C.save(); C.ui.open(folderName(x.f), () => msgHTML(v)); C.render(); };
+  A.mfold = v => { if (!v) return C.ui.back(); C.ui.open(folderName(v), () => folderHTML(v), { foot: folderFoot(v) }); };
+  A.mopen = v => { const x = meta().inbox.find(m => m.id === v); if (!x) return; x.read = true; C.save(); C.ui.open(folderName(x.f), () => msgHTML(v), { foot: msgFoot(v) }); C.render(); };
   A.mfav = v => { const x = meta().inbox.find(m => m.id === v); if (x) { x.fav = !x.fav; C.save(); C.ui.refresh(); } };
   const claimOne = x => { x.claimed = true; x.read = true; C.giveReward(x.r); };
   A.mclaim = v => { const x = meta().inbox.find(m => m.id === v); if (x && x.r && !x.claimed) { claimOne(x); C.toast('🎁 ' + C.rwText(x.r)); C.ui.refresh(); C.render(); } };

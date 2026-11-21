@@ -79,8 +79,8 @@
     const row = (icon, txt, ok, kind, need) => `<div class="cr ${ok ? '' : 'bad'}"><span class="ic">${icon}</span><span class="ct">${txt}</span>${ok ? '<b class="ok">✔</b>' : kind ? `<button class="obtain" data-act="pbobtain" data-v="${kind}|${need}">Obtain</button>` : '<b class="no">✖</b>'}</div>`;
     const prev = t ? B[0] + '.' + (t - 1) : null;
     const rows = (prev ? row(B[1], `Lv.5 ${C.esc(B[3][t - 1][0])}`, C.pbLv(prev) >= 5) : '') +
-      row('<i class="cpi"></i>', `<span class="${car.cp >= k.cp ? '' : 'short'}">${C.short(car.cp)}</span>/${C.short(k.cp)}`, car.cp >= k.cp, 'cp', k.cp) +
-      (k.cash ? row('💵', `<span class="${car.cash >= k.cash ? '' : 'short'}">${C.short(car.cash)}</span>/${C.short(k.cash)}`, car.cash >= k.cash, 'cash', k.cash) : '');
+      row('<i class="cpi"></i>', `<span class="${car.cp >= k.cp ? '' : 'short'}">${C.full(car.cp)}</span>/${C.full(k.cp)}`, car.cp >= k.cp, 'cp', k.cp) +
+      (k.cash ? row('💵', `<span class="${car.cash >= k.cash ? '' : 'short'}">${C.full(car.cash)}</span>/${C.full(k.cash)}`, car.cash >= k.cash, 'cash', k.cash) : '');
     const ok = un && car.cp >= k.cp && car.cash >= k.cash, slot = pbq().length < C.pbSlots(), waitDone = !slot && pbq().some(z => z.end <= C.now());
     return head + `<h3 class="jh" style="text-align:center">Cost</h3><div class="tbl">${rows}</div>
       <div class="orig"><span>${ok && !slot ? (waitDone ? 'Complete a finished research first' : 'All research slots are busy') : ''}</span><span>Original Time: ${C.dur(tm)}</span></div>
@@ -112,15 +112,15 @@
   // ---------- Missing resources (Obtain) and Replenish All ----------
   C.openMissing = (kind, need) => C.ui.open('Missing Resources', () => { const car = C.car(), inv = C.meta().inv, have = kind === 'cp' ? car.cp : car.cash, f = Math.min(1, have / need);
     const rows = kind === 'cash' ? (inv.crate ? `<div class="mrw"><span class="itile t2">📦<b>$5K</b></span><div><b>Booster crate</b><small>Owned: ${inv.crate}</small></div><button class="btn sm2 pri" data-act="mruse" data-v="crate">Use</button></div>` : '') : '';
-    return `<div class="mrhd"><p>Need <b class="short">${C.short(Math.max(0, need - have))}</b> ${kind === 'cp' ? 'Coaching Points' : 'Booster $'} to proceed.</p><div class="bq-bar big"><i style="width:${Math.round(f * 100)}%"></i><span>${C.short(have)} / ${C.short(need)}</span></div></div>
+    return `<div class="mrhd"><p>Need <b class="short">${C.full(Math.max(0, need - have))}</b> ${kind === 'cp' ? 'Coaching Points' : 'Booster $'} to proceed.</p><div class="bq-bar big"><i style="width:${Math.round(f * 100)}%"></i><span>${C.full(have)} / ${C.full(need)}</span></div></div>
       ${rows || `<p class="note">${kind === 'cp' ? 'Coaching Points come from the Performance Lab (collect them on campus), matches and Missions.' : 'No Booster crates in your Items. Booster $ come from the Clubhouse, home matches and Missions.'}</p>`}
       ${rows ? `<button class="btn full pri" data-act="mrall" data-v="${kind}|${need}" style="background:#16a34a">Replenish All</button>` : `<button class="btn full sec2" data-act="${kind === 'cp' ? 'bgo' : 'store'}" data-v="${kind === 'cp' ? 'lab' : ''}">${kind === 'cp' ? 'Go to the Performance Lab' : 'Store'}</button>`}`; }, { popup: true });
   A.pbobtain = v => { const [k, n] = v.split('|'); C.openMissing(k, +n); };
   A.mruse = () => { if (C.openCrate()) { congrats('+$5K Booster $'); C.ui.refresh(); } };
   A.mrall = v => { const [k, n] = v.split('|'), car = C.car(), inv = C.meta().inv, need = Math.max(0, +n - car.cash), use = Math.min(inv.crate || 0, Math.ceil(need / 5000));
-    if (!use) return; C.ui.open('Use Items', () => `<div class="useit"><span class="itile t2">📦<b>$5K</b><em>×${use}</em></span></div><p class="note" style="text-align:center"><b style="color:var(--fit5)">+${C.short(use * 5000)}</b> / ${C.short(need)} needed</p>
+    if (!use) return; C.ui.open('Use Items', () => `<div class="useit"><span class="itile t2">📦<b>$5K</b><em>×${use}</em></span></div><p class="note" style="text-align:center"><b style="color:var(--fit5)">+${C.full(use * 5000)}</b> / ${C.full(need)} needed</p>
       <div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Cancel</button><button class="btn pri" data-act="mrok" data-v="${use}">Confirm</button></div>`, { popup: true }); };
-  A.mrok = v => { for (let i = 0; i < +v; i++) C.openCrate(); C.ui.back(); congrats(`+${C.short(+v * 5000)} Booster $`); C.ui.refresh(); };
+  A.mrok = v => { for (let i = 0; i < +v; i++) C.openCrate(); C.ui.back(); congrats(`+${C.full(+v * 5000)} Booster $`); C.ui.refresh(); };
   function congrats(t) { const el = document.createElement('div'); el.className = 'congr'; el.innerHTML = `<div class="lu-rib">CONGRATULATIONS!</div><div class="cg-t">${C.esc(t)}</div>`; (document.getElementById('app') || document.body).appendChild(el); setTimeout(() => el.remove(), 1400); }
 
   // ---------- actions ----------
