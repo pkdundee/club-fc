@@ -53,10 +53,10 @@
         ${sq('rqueue', 'book', C.pbRunning() + '/' + C.pbSlots(), (car.pbq || []).some(q => q.end <= C.now()) ? true : 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
       </div>
       <div class="side tr9">
+        ${sq('events', 'gift', 'Events', C.evOnlyClaimable(), 'linear-gradient(160deg,#fbbf24,#d97706)')}
         ${car.pre ? sq('preseason', 'list', 'Pre-season', C.preTasksLeft ? C.preTasksLeft() : 0, 'linear-gradient(160deg,#4ade80,#15803d)') : ''}
         ${C.fwActive() ? sq('firstweek', 'cal', 'Week 1', C.fwClaimable(), 'linear-gradient(160deg,#fb923c,#c2410c)') : ''}
         ${C.portalOpen() ? sq('portalgo', 'door', 'Portal', true, 'linear-gradient(160deg,#c084fc,#7e22ce)') : ''}
-        ${sq('events', 'gift', 'Events', C.loClaimable(), 'linear-gradient(160deg,#fbbf24,#d97706)')}
       </div>
       <div class="side bl9">
         ${rnd('drawer', 'hammer', newB)}
@@ -65,7 +65,7 @@
         <div class="mailrow">${C.adWaiting && C.adWaiting() && !C.drawerOpen ? `<button class="adport" data-act="inbox" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}</div>
         ${sq('inventory', 'bag', 'Items', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
       </div>
-      <div class="tstrip9"><button class="tsradio" data-act="nexttask" aria-label="Missions">${C.ico('clip', 34)}${C.loClaimable() ? `<i class="rd">${C.loClaimable()}</i>` : ''}</button>
+      <div class="tstrip9"><button class="tsradio" data-act="nexttask" aria-label="Missions">${C.ico('clip', 34)}${C.msClaimable() ? `<i class="rd">${C.msClaimable()}</i>` : ''}</button>
         ${task ? `<button class="taskstrip ${claim ? 'claim' : ''}" data-act="taskgo"><span class="tst">${C.esc(task)}</span>${claim ? `<span class="tsr">${C.giftIco(17)}</span>` : '<span class="tsg">›</span>'}</button>` : ''}</div>
       ${C.drawerOpen ? drawerHTML() : ''}
     </div>`;
@@ -297,10 +297,14 @@
   // the strip (9t, FEEDBACK 103): rewards to claim first (one at a time), then buildings and research. Recruiting, matches and
   // long-term goals stay on the Missions screen.
   C.stripTask = () => { const car = C.car(), ks = Object.keys(C.BUILDINGS);
-    const mt = [C.recMission && C.recMission(), ...C.MAIN.filter(t => !C.mainDone(t[0]))].find(t => t && t[3](car));
-    if (mt) return { claim: 1, text: `Claim: ${mt[2]}`, t: mt };
-    const di = C.daily().findIndex(t => t.n >= t.goal && !t.claimed); if (di >= 0) { const d = C.daily()[di]; return { claim: 1, text: `Claim: ${d.def[2]}`, daily: di }; }
-    if (C.loClaimable() > 0) return { text: 'Collect your rewards', go: () => C.act('nexttask') };   // 1.02 (FEEDBACK 149): it navigates, so grey
+    // 1.02.06 (FEEDBACK 200): ONE pinned task at a time. The next Main task, in order, stays on the bar until it is done (grey),
+    // then turns green until it is collected (here, or on the Missions page); then the next one, including any already done.
+    // With every Main task collected: today's Daily tasks the same way; then the campus suggestions below.
+    const mt = C.MAIN.find(t => !C.mainDone(t[0]));
+    if (mt) return mt[3](car) ? { claim: 1, text: `Claim: ${mt[2]}`, t: mt } : { text: mt[2], t: mt };
+    const L = C.daily(), di = L.findIndex(t => !t.claimed);
+    if (di >= 0) { const d = L[di], name = d.id === 'login' ? 'Login reward' : d.def[2];
+      return d.n >= d.goal ? { claim: 1, text: `Claim: ${name}`, daily: di } : { text: `${name} (${d.n}/${d.goal})`, go: () => C.act(d.def[4], d.def[5]) }; }
     const done = car.queue.find(q => C.buildReady(q.key)); if (done) return { text: `Complete the ${C.BUILDINGS[done.key].name}`, go: () => C.goToBuilding(done.key) };
     const pd = (car.pbq || []).find(q => q.end <= C.now()); if (pd) return { text: `Complete the research: ${C.pbName(pd.key)}`, go: () => C.act('pbready') };   // 1.01 (FEEDBACK 140)
     const nb = ks.find(C.buildable); if (nb) return { text: `Build the ${C.BUILDINGS[nb].name}`, go: () => C.goToBuilding(nb) };

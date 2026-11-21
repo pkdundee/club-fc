@@ -31,7 +31,8 @@
     const ready = Object.keys(C.BUILDINGS).filter(k => C.readyArrow(k) || (C.newBuildable().includes(k) && C.requirements(k).every(r => r[2])));
     if (!C.loginClaimed()) return ['🎁', 'Claim your login reward.', 'dailytasks', ''];
     if (C.stripTask) { const st = C.stripTask(); if (st && (car.pre || C.meta().main.length < 10 || st.go)) return [st.claim ? '🎯' : '👉', st.text + '.', 'taskgo', '']; }   // same as the campus task strip (9s)
-    if (C.loClaimable()) return ['🎉', `You have ${C.loClaimable()} reward${C.loClaimable() > 1 ? 's' : ''} waiting in Events.`, 'events', ''];
+    if (C.msClaimable()) return ['🎉', `You have ${C.msClaimable()} reward${C.msClaimable() > 1 ? 's' : ''} waiting in Missions.`, 'nexttask', ''];
+    if (C.evOnlyClaimable()) return ['🎉', `You have ${C.evOnlyClaimable()} reward${C.evOnlyClaimable() > 1 ? 's' : ''} waiting in Events.`, 'events', ''];
     if (C.idleBuilders() && ready.length) return ['🔨', `A builder is free: upgrade the ${C.BUILDINGS[ready[0]].name}.`, 'dgo', ready[0]];
     const coll = Object.keys(C.PRODUCERS).filter(k => C.bubble(k));
     if (coll.length) return ['💵', 'Income is waiting on campus: collect it.', 'tab', 'campus'];
@@ -61,12 +62,12 @@
       <div class="htiles">
         ${tile('🏟', 'Matchday', 'tab', 'season')}${tile('<i class="xoi big"></i>', 'Tactics', 'tactics', '')}${tile('🏫', 'Campus', 'tab', 'campus', C.idleBuilders() && C.readyCount() ? '!' : '')}
         ${tile('👕', 'Squad', 'tab', 'squad')}${tile('📝', 'Recruit', 'tab', 'recruit', C.portalOpen() ? '🚪' : '')}${tile('🧢', 'Staff', 'tab', 'staff', S.mNew ? 'NEW' : '')}
-        ${tile('📋', 'Playbook', 'playbook', '', C.pbRunning() ? C.pbRunning() : '')}${tile('🩺', 'Medical', 'medical', '', inj || '')}${tile('🎁', 'Events', 'events', '', C.loClaimable() || '')}
+        ${tile('📋', 'Playbook', 'playbook', '', C.pbRunning() ? C.pbRunning() : '')}${tile('🩺', 'Medical', 'medical', '', inj || '')}${tile('🎁', 'Events', 'events', '', C.evOnlyClaimable() || '')}
         ${tile('✉️', 'Inbox', 'inbox', '', C.inboxUnread() || '')}${tile('🎒', 'Inventory', 'inventory', '')}${tile('🛒', 'Store', 'store', '')}
       </div>
       <div class="deal ${d.deal ? 'done' : ''}"><div class="dl"><small>Today's deal</small><b>${deal.icon} ${C.esc(deal.name)}</b><p>${C.rwText(deal.r)}</p></div>
         ${d.deal ? '<span class="dbought">✔ Bought today</span>' : `<button class="dbuy" data-act="buydeal" data-v="${deal.id}"><s>${deal.was}</s>${deal.price}</button>`}</div>
-      <button class="evbn" data-act="events"><span>${ev.icon}</span><div><b>${ev.name} · free this week</b><small>${ev.desc}</small></div>${C.loClaimable() ? `<em>${C.loClaimable()}</em>` : ''}</button>
+      <button class="evbn" data-act="events"><span>${ev.icon}</span><div><b>${ev.name} · free this week</b><small>${ev.desc}</small></div>${C.evOnlyClaimable() ? `<em>${C.evOnlyClaimable()}</em>` : ''}</button>
       <p class="note" style="text-align:center;padding:8px 16px">🧪 Test build: purchases are simulated.</p></div>`;
   };
   // the one resource bar used on every tab (round 4, item 13): Booster $, Coaching Points, Coins (+ opens the Store)

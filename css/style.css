@@ -1516,3 +1516,16 @@ html.fitband .tabs{padding:5px 6px 5px}
 .tstrip9{isolation:isolate}.tstrip9 .tsradio{position:relative;z-index:2}.tstrip9 .taskstrip{position:relative;z-index:1}
 /* QA-19 follow-up: relative positioning must not re-apply the old strip's absolute offsets */
 .tstrip9 .taskstrip{left:auto;right:auto;top:auto;bottom:auto}
+/* ===== 1.02.06 (FEEDBACK 200) ===== */
+/* task bar: opaque grey while the task is open, a lighter green when it can be collected */
+.tstrip9 .taskstrip{background:#6b7280;border-color:#0f172a}
+.tstrip9 .taskstrip.claim{background:linear-gradient(90deg,#4ade80,#86efac);color:#0f172a}
+.tstrip9 .taskstrip.claim .tst{text-shadow:none}
+/* Events menu: small text tabs in a row that scrolls; the selected tab shows its icon on a raised light card with a pointer */
+.evmenu{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:4px 2px 12px;margin:0 -2px 6px;align-items:flex-end}
+.evmenu::-webkit-scrollbar{display:none}
+.evmenu button{position:relative;flex:none;border:1.5px solid #0f172a;border-radius:8px;background:#334155;color:#e2e8f0;font:900 13px Nunito;padding:8px 14px;cursor:pointer;white-space:nowrap}
+.evmenu button.on{background:linear-gradient(#f8fafc,#dbeafe);padding:4px 18px;min-width:76px}
+.evmenu button.on::after{content:'';position:absolute;left:50%;bottom:-9px;margin-left:-8px;border:8px solid transparent;border-bottom:0;border-top:8px solid #dbeafe}
+.evmenu .evi{font-size:30px;line-height:36px;display:block}
+.evmenu em{position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;font:900 10px/16px Nunito;font-style:normal;min-width:16px;height:16px;border-radius:8px;text-align:center;padding:0 3px}

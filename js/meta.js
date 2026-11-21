@@ -153,31 +153,32 @@
   C.passPts = () => {};   // kept for older callers
   C.evBuy = n => { const X = C.evx(), E = C.curEvent(); if (n === 1) { if (X.has1) return 'owned'; X.has1 = true; } else { if (!X.has1) return 'need1'; if (X.has2) return 'owned'; X.has2 = true; } C.mail('purchases', '🧾', `Purchase: ${E.th.name} ${n === 1 ? '$4.99' : '$9.99'} pack`, 'Rewards up to today can be redeemed in the event. Anything uncollected is mailed when it ends.<br><small>Test store: nothing was charged.</small>', null); C.save(); return true; };
 
-  // ================= Events hub: big tabs (Pass · Missions · Event) =================
-  let evTab = 'missions', msTab = 'daily';
-  C.openEvents = t => { if (t) evTab = t; C.ui.open('Events', eventsHTML); };
+  // ================= 1.02.06 (FEEDBACK 200): Missions is its own page, reached from the task bar's clipboard box;
+  // Events keeps the themed event and the calendar, with a small text menu (the selected tab shows its icon) =================
+  let evTab = 'event', msTab = 'daily';
+  C.openEvents = t => { if (t === 'missions') return C.openMissions(); if (t) evTab = t; C.ui.open('Events', eventsHTML); };
+  C.openMissions = t => { if (t) msTab = t; C.ui.open('Missions', missionsHTML); };
   A.evtab = v => { evTab = v; C.ui.refresh(); };
   A.mstab = v => { msTab = v; C.ui.refresh(); };
-  A.dailytasks = () => { evTab = 'missions'; msTab = 'daily'; C.ui.closeAll(); C.openEvents(); };
+  A.dailytasks = () => { msTab = 'daily'; C.ui.closeAll(); C.openMissions(); };
   A.dailygift = A.dailytasks;
-  // tabs: icon over label, full width, red-dot counts (round 6)
-  function bigTabs() { const E = C.curEvent(), dots = { missions: C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => meta().pts >= p && !meta().chests.includes(i)).length, event: C.evClaimable(), cal: 0 };
-    return `<div class="evtabs">${[['missions', '🎯', 'Missions'], ['event', E.th.icon, E.th.name.replace(' Event', '')], ['cal', '📅', 'Calendar']].map(([k, ic, n]) => `<button class="${evTab === k ? 'on' : ''}" data-act="evtab" data-v="${k}"><span>${ic}</span>${n}${dots[k] ? `<em>${dots[k]}</em>` : ''}</button>`).join('')}</div>`; }
-  function eventsHTML() {
-    if (evTab === 'event') return bigTabs() + eventHTML();
-    if (evTab === 'cal') return bigTabs() + calHTML();
+  // the Events menu: small text tabs in a row that scrolls; the selected one shows its icon instead (red-dot counts kept)
+  function bigTabs() { const E = C.curEvent(), dots = { event: C.evClaimable(), cal: C.isVip() && C.lo().vipDay !== dayKey() ? 1 : 0 };
+    return `<div class="evmenu">${[['event', E.th.icon, E.th.name.replace(' Event', '')], ['cal', '📅', 'Calendar']].map(([k, ic, n]) => `<button class="${evTab === k ? 'on' : ''}" data-act="evtab" data-v="${k}" aria-label="${C.esc(n)}">${evTab === k ? `<span class="evi">${ic}</span>` : `<span class="evt">${C.esc(n)}</span>`}${dots[k] ? `<em>${dots[k]}</em>` : ''}</button>`).join('')}</div>`; }
+  function eventsHTML() { if (evTab === 'cal') return bigTabs() + calHTML(); return bigTabs() + eventHTML(); }
+  function missionsHTML() {
     const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length;
     const sub = `<div class="subtabs">${[['daily', 'Daily tasks', dd], ['main', 'Main tasks', C.mainReady()]].map(([k, n, d]) => `<button class="${msTab === k ? 'on' : ''}" data-act="mstab" data-v="${k}">${n}${d ? ` <em>${d}</em>` : ''}</button>`).join('')}</div>`;
     if (msTab === 'main') {
       const car = C.car(), M = meta(), open = allMain().filter(t => !M.main.includes(t[0])).sort((a, b) => b[3](car) - a[3](car)).slice(0, 6);   // ready to claim first (9t)
       const rows = open.map(t => { const ok = t[3](car); return `<div class="mrow2"><div class="mh"><span>${t[1]}</span><b>${C.esc(t[2])}</b></div><div class="mb">${C.itemTiles(t[4])}${ok ? `<button class="btn sm2 claim" data-act="mainclaim" data-v="${t[0]}">Claim</button>` : `<button class="btn sm2 go" data-act="${t[5]}" data-v="${t[6]}">Go</button>`}</div></div>`; }).join('');
-      return bigTabs() + sub + `<p class="note" style="margin-top:0">${M.main.length} of ${MAIN.length} done. Each one teaches a part of running your program.</p>${rows || '<p class="note">All main tasks done. 🎉</p>'}`;
+      return sub + `<p class="note" style="margin-top:0">${M.main.length} of ${MAIN.length} done. Each one teaches a part of running your program.</p>${rows || '<p class="note">All main tasks done. 🎉</p>'}`;
     }
     const M = meta(), list = C.daily(), max = CHESTS[CHESTS.length - 1][0];
     const track = `<div class="ptrack"><div class="pstar"><i>★</i><b>${M.pts}</b></div><div class="pline"><div class="pfill" style="width:${Math.min(100, M.pts / max * 100)}%"></div>${CHESTS.map(([p], i) => `<button class="pchest ${M.chests.includes(i) ? 'got' : M.pts >= p ? 'ready' : ''}" style="left:${p / max * 100}%" data-act="chestopen" data-v="${i}">${C.chestSVG(M.chests.includes(i) ? 'open' : M.pts >= p ? 'ready' : 'idle', 30)}<small>${p}</small></button>`).join('')}</div></div>`;
     const rows = list.map((t, i) => [t, i]).sort((a, b) => ((b[0].n >= b[0].goal && !b[0].claimed) - (a[0].n >= a[0].goal && !a[0].claimed)) || (a[0].claimed - b[0].claimed)).map(([t, i]) => `<div class="mrow2 ${t.claimed ? 'done' : ''} ${t.id === 'login' && !t.claimed ? 'alert' : ''}"><div class="mh"><span>${t.def[1]}</span><b>${C.esc(t.def[2])}${t.id === 'login' ? '' : ` <small>(${t.n}/${t.goal})</small>`}</b>${t.id === 'login' && !t.claimed ? '<i class="ldot"></i>' : ''}</div><div class="mb">${C.itemTiles(Object.assign({ pts: 20 }, DREW[t.id]))}
       ${t.claimed ? '<span class="donechk">✔</span>' : t.n >= t.goal ? `<button class="btn sm2 claim" data-act="dailyclaim" data-v="${i}">Claim</button>` : `<button class="btn sm2 go" data-act="${t.def[4]}" data-v="${t.def[5]}">Go</button>`}</div></div>`).join('');
-    return bigTabs() + sub + `<div class="nextref">⏱ New tasks in ${C.dur((new Date().setHours(24, 0, 0, 0) - Date.now()) / 1000)}</div>${track}${rows}`;
+    return sub + `<div class="nextref">⏱ New tasks in ${C.dur((new Date().setHours(24, 0, 0, 0) - Date.now()) / 1000)}</div>${track}${rows}`;
   }
   ICON.pts = '<i class="ptsi">★</i>'; TIER.pts = 2; NAME.pts = 'Mission points';
   // the current themed event
@@ -211,7 +212,7 @@
     if (C.evBuy(n) === true) { C.toast('✅ Test purchase complete'); C.ui.refresh(); C.render(); } };
   A.inventory = () => C.openInventory();
   // the comms button: "this is what to do next", straight to Main Tasks
-  A.nexttask = () => { evTab = 'missions'; const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length; msTab = dd || !C.mainReady() ? 'daily' : 'main'; if (!dd && !C.mainReady() && C.evClaimable && C.evClaimable()) evTab = 'event'; C.ui.closeAll(); C.openEvents(); };
+  A.nexttask = () => { const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length; msTab = C.mainReady() && !dd ? 'main' : C.mainNext() && !dd ? 'main' : 'daily'; C.ui.closeAll(); C.openMissions(); };
   // building action buttons open popups over the map
   A.bpop = v => { C.ui.asPopup = true; if (v === 'proginfo') C.openProgramInfo(); else if (v === 'playbook') C.openPlaybook(); else if (v === 'medical') C.openMedical(); else if (v === 'hqstaff') C.openStaffPop(); else if (v === 'kitroom') C.openKitRoom(); else if (v === 'academic') C.openAcademic(); };
   C.openStaffPop = () => C.ui.open('Staff on duty', () => { const S = C.staffState();
@@ -221,6 +222,8 @@
   const oBuyPack = C.buyPack; C.buyPack = id => { const r = oBuyPack(id); if (r !== 'owned' && C.car()) { receipt(C.PACKS[id] ? C.PACKS[id].name || id : id, C.PACKS[id] && C.PACKS[id].r); } return r; };
 
   // claimable count for red dots (replaces the calendar-based count)
+  C.msClaimable = () => { if (!C.car()) return 0; const M = meta(); return C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => M.pts >= p && !M.chests.includes(i)).length; };
+  C.evOnlyClaimable = () => { if (!C.car()) return 0; return C.evClaimable() + (C.isVip() && C.lo().vipDay !== dayKey() ? 1 : 0); };
   C.loClaimable = () => { if (!C.car()) return 0; const M = meta(); return C.evClaimable() + C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => M.pts >= p && !M.chests.includes(i)).length + (C.isVip() && C.lo().vipDay !== dayKey() ? 1 : 0); };
 
   // ================= Inbox: one place for messages, by topic =================
@@ -344,7 +347,7 @@
     const nb = Object.keys(C.BUILDINGS).find(C.buildable), up = Object.keys(C.BUILDINGS).find(k => C.readyArrow(k));
     if (C.freeSlot() && (nb || up)) out.push(['🔨', nb ? `A builder is free: build the ${C.BUILDINGS[nb].name}` : `A builder is free: upgrade the ${C.BUILDINGS[up].name}`, 'dgo', nb || up]);
     if (C.pbRunning() < C.pbSlots()) out.push(['📋', `${C.pbSlots() - C.pbRunning()} research slot${C.pbSlots() - C.pbRunning() > 1 ? 's' : ''} free`, 'playbook', '']);
-    const rw = C.loClaimable() + meta().inbox.filter(x => x.r && !x.claimed).length; if (rw) out.push(['🎁', `${rw} reward${rw > 1 ? 's' : ''} to claim`, C.loClaimable() ? 'nexttask' : 'inbox', '']);
+    const rw = C.loClaimable() + meta().inbox.filter(x => x.r && !x.claimed).length; if (rw) out.push(['🎁', `${rw} reward${rw > 1 ? 's' : ''} to claim`, C.msClaimable() ? 'nexttask' : C.evOnlyClaimable() ? 'events' : 'inbox', '']);
     const tl = C.preTasksLeft(); if (tl) out.push(['🗓', `${tl} pre-season task${tl > 1 ? 's' : ''} not done`, 'preseason', '']);
     return out; };
   A.startseason = () => { const car = C.car(); if (car.squad.length < C.PRE_MIN || !(C.staffState().list || []).length) return; const list = C.readiness();
