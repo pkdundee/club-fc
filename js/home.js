@@ -63,7 +63,7 @@
         ${tile('🏟', 'Matchday', 'tab', 'season')}${tile('<i class="xoi big"></i>', 'Tactics', 'tactics', '')}${tile('🏫', 'Campus', 'tab', 'campus', C.idleBuilders() && C.readyCount() ? '!' : '')}
         ${tile('👕', 'Squad', 'tab', 'squad')}${tile('📝', 'Recruit', 'tab', 'recruit', C.portalOpen() ? '🚪' : '')}${tile('🧢', 'Staff', 'tab', 'staff', S.mNew ? 'NEW' : '')}
         ${tile('📋', 'Playbook', 'playbook', '', C.pbRunning() ? C.pbRunning() : '')}${tile('🩺', 'Medical', 'medical', '', inj || '')}${tile('🎁', 'Events', 'events', '', C.evOnlyClaimable() || '')}
-        ${tile('✉️', 'Inbox', 'inbox', '', C.inboxUnread() || '')}${tile('🎒', 'Inventory', 'inventory', '')}${tile('🛒', 'Store', 'store', '')}
+        ${tile('✉️', 'Inbox', 'inbox', '', C.inboxUnread() || '')}${tile('🗃️', 'Inventory', 'inventory', '')}${tile('🛒', 'Store', 'store', '')}
       </div>
       <div class="deal ${d.deal ? 'done' : ''}"><div class="dl"><small>Today's deal</small><b>${deal.icon} ${C.esc(deal.name)}</b><p>${C.rwText(deal.r)}</p></div>
         ${d.deal ? '<span class="dbought">✔ Bought today</span>' : `<button class="dbuy" data-act="buydeal" data-v="${deal.id}"><s>${deal.was}</s>${deal.price}</button>`}</div>

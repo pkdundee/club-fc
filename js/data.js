@@ -67,18 +67,18 @@
   C.travelCut = l => Math.min(75, 2.5 * l);   // % of the home side's advantage removed on away days
   C.physGrowth = l => 2 * l;                   // % faster Pace and Physical growth from matches
   C.nutMorale = l => l * .05;                  // morale after each match
-  C.STORE_HOURS = l => 6 + l * .2;
+  C.STORE_HOURS = l => C.ECON.prod.storeBase + l * C.ECON.prod.storePerLv;   // 1.03 (B5): 8 h + 0.2 h a level
 
   C.BUILDINGS = {
     hq: { name: "Coaches' Office", icon: '🏛', owner: 'program', start: 0, mult: 1.6,
       desc: 'Your headquarters. Its level caps every other building and unlocks slots. It earns nothing itself.',
-      stats: l => [['🧱', 'Building cap', 'Lv ' + l], ['🔨', 'Build slots', l >= 10 ? '+1 earned' : 'Lv 10: +1'], ['🧢', 'Staff slots', l >= 8 ? '+1 earned' : 'Lv 8: +1']] },
+      stats: l => [['🧱', 'Building cap', 'Lv ' + l], ['🧢', 'Staff slots', l >= 8 ? '+1 earned' : 'Lv 8: +1']] },
     stadium: { name: 'Stadium', icon: '🏟', owner: 'school', start: 0, mult: 1.3,
       desc: 'Seats, gate income and home advantage. Bigger crowds, louder atmosphere.',
       stats: l => [['seat', 'Seats', seats(l).toLocaleString()], ['💵', 'Gate income / home game', C.money(seats(l) * 3)], ['📣', 'Home advantage', pct(1 + .2 * l)]] },
     training: { name: 'Training Ground', icon: '⚽', owner: 'program', start: 0, mult: 1.2,
-      desc: 'Team training quality and how fast players develop.',
-      stats: l => [['📈', 'Team training', '+' + pct(2 * l)], ['🏋️', 'Development speed', '+' + pct(1.5 * l)]] },
+      desc: 'How fast training plans run, and a second training slot at Lv 10.',   // 1.03: the card matches the code (+3% a level; team training comes later)
+      stats: l => [['🏋️', 'Training plan speed', '+' + pct(3 * l)], ['➕', 'Training slots', l >= 10 ? '+1 earned' : 'Lv 10: +1']] },
     gym: { name: 'Gym', icon: '🏋️', owner: 'program', start: 0, mult: 1.1,
       desc: 'Strength and conditioning: faster energy recovery and fewer injuries.',
       stats: l => [['🔋', 'Freshness recovery', '+' + pct(1.5 * l)], ['🩹', 'Injury chance', '−' + pct(l)]] },
@@ -92,8 +92,8 @@
       desc: 'More applications, sharper scouting and more campus jobs to offer recruits.',
       stats: l => [['📨', 'Applications / day', 3 + l], ['🔍', 'Rating range', '±' + Math.max(1, 4 - Math.floor(l / 3))], ['💼', 'Campus jobs / season', 2 + Math.floor(l / 3)]] },
     video: { name: 'Analysis Suite', icon: '🎞', owner: 'program', start: 0, mult: 1.15,
-      desc: "Coaches' film and opponent analysis: reports before matches, sharper scouting and highlight reels for recruits.",
-      stats: l => [['📄', 'Opponent report', l >= 5 ? 'Full (shape, key players)' : l ? 'Basic (shape)' : '—'], ['🎯', 'Match familiarity', '+' + pct(.5 * l)], ['💛', 'Recruit interest', '+' + Math.round(1.5 * l)]] },
+      desc: "Coaches' film and opponent analysis. Opponent reports arrive in a later update.",   // 1.03: listed effects weren't applied; the card shows only the truth
+      stats: l => [['📄', 'Opponent reports', 'Coming in a later update']] },
     media: { name: 'Media Center', icon: '📡', owner: 'school', start: 0, mult: 1.1,
       desc: 'Broadcasts and streams your matches, and gets the program noticed. Earns money after every home match and adds Reputation for every win.',
       stats: l => [['📺', 'Broadcast money / home match', C.money(C.broadcastPay(l, false, C.car ? (C.car() || {}).tier || 5 : 5))], ['🏆', 'After a win', '×1.5'], ['⭐', 'Reputation from wins', '+' + pct(C.mediaRep(l))]] },
@@ -126,27 +126,31 @@
   // Building types for the builders drawer and the full list (FEEDBACK 87)
   C.BTYPE = { hq: 'economy', booster: 'economy', media: 'economy', lab: 'economy', recruit: 'economy', transport: 'economy', academic: 'economy',
     stadium: 'soccer', training: 'soccer', gym: 'soccer', med: 'soccer', video: 'soccer', nutrition: 'soccer', kitroom: 'soccer', dorms: 'soccer', skills: 'soccer' };
-  C.BJOB = { hq: 'Leads the campus: no building goes above it', stadium: 'Seats, gate money and home advantage', training: 'Team training and player growth',
+  C.BJOB = { hq: 'Leads the campus: no building goes above it', stadium: 'Seats, gate money and home advantage', training: 'Training plan speed and a training slot',
     gym: 'Freshness recovery, fewer injuries', med: 'Faster injury recovery', lab: 'Makes Coaching Points', recruit: 'Applications and scouting',
-    video: 'Opponent reports and match familiarity', media: 'Broadcast money and Reputation', dorms: 'Roster size and recruit appeal',
+    video: 'Opponent reports (coming later)', media: 'Broadcast money and Reputation', dorms: 'Roster size and recruit appeal',
     academic: 'Academic aid and player wellbeing', kitroom: 'Gear deliveries and upgrades', booster: 'Fundraising: Booster $ every hour',
     transport: 'Fresher legs on away days', nutrition: 'Faster physical growth', skills: 'Skills mini-games (coming later)' };
 
   // Cost to reach level `to` (Booster $, Coaching Points) and build time in seconds.
   C.costOf = (key, to) => { const m = C.BUILDINGS[key].mult; if (to <= 1) return { cash: 0, cp: 0 };   // first build is free (FEEDBACK 85)
     const B = C.ECON.build; return { cash: Math.round(B.base * m * Math.pow(B.growth, to - 1) / B.round) * B.round, cp: 0 }; };  // buildings cost Booster $ only (Coaching Points are for the Playbook)
-  C.timeOf = (key, to) => to <= 1 ? C.ECON.build.firstBuildSecs : Math.round(C.ECON.build.timeBase * Math.pow(C.ECON.build.timeGrowth, to) * C.BUILDINGS[key].mult);   // first build: a few seconds
+  // 1.03 (PROVISIONAL): the Coaches' Office timer table; other buildings scale by multiplier / 1.6. First build: a few seconds.
+  C.timeOf = (key, to) => { const B = C.ECON.build, T = B.hqSecs; if (to <= 1) return B.firstBuildSecs;
+    const base = to < T.length ? T[to] : T[T.length - 1] * Math.pow(T[T.length - 1] / T[T.length - 2], to - T.length + 1);
+    return Math.round(base * C.BUILDINGS[key].mult / 1.6); };
 
   // Painted art (9p): one render per band of levels. Renders 8 to 10 are for later levels.
   C.renderOf = l => l >= 50 ? 10 : l >= 45 ? 9 : l >= 40 ? 8 : l >= 30 ? 7 : Math.max(1, Math.min(6, Math.floor(l / 5) + 1));
   C.featureAt = (key, l) => l === 30 ? 'New look: gold finish' : C.renderOf(l) !== C.renderOf(l - 1) ? 'New look: a bigger building' : '';
 
-  // Build queue slots (Q21c): 1 free, 2nd VIP, 3rd one-off purchase, 4th progression
+  // Build queue slots. 1.03 (FEEDBACK 212): 4 in all, 1 free + 3 permanent paid, bought in order (Builder Packs I-III).
+  // No earned (Coaches' Office Lv 10) or Coach's Club build slot any more.
   C.SLOTS = [
-    { id: 'free', name: 'Free slot' },
-    { id: 'vip', name: "Coach's Club slot", why: "Join the Coach's Club" },
-    { id: 'iap', name: 'Extra slot', why: 'One-off purchase' },
-    { id: 'prog', name: 'Earned slot', why: "Coaches' Office Lv 10" }
+    { id: 'free', name: 'Free builder' },
+    { id: 'bq1', name: '2nd builder', why: 'Builder Pack I', pack: 'bp1' },
+    { id: 'bq2', name: '3rd builder', why: 'Builder Pack II', pack: 'bp2' },
+    { id: 'bq3', name: '4th builder', why: 'Builder Pack III', pack: 'bp3' }
   ];
 
   // Campus plot layout: s = row down the screen, d = column (honeycomb)

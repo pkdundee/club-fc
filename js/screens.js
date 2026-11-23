@@ -63,7 +63,7 @@
       </div>
       <div class="side br9">
         <div class="mailrow">${C.adWaiting && C.adWaiting() && !C.drawerOpen ? `<button class="adport" data-act="inbox" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}</div>
-        ${sq('inventory', 'bag', 'Items', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
+        ${sq('inventory', 'bag', 'Inventory', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
       </div>
       <div class="tstrip9"><button class="tsradio" data-act="nexttask" aria-label="Missions">${C.ico('clip', 34)}${C.msClaimable() ? `<i class="rd">${C.msClaimable()}</i>` : ''}</button>
         ${task ? `<button class="taskstrip ${claim ? 'claim' : ''}" data-act="taskgo"><span class="tst">${C.esc(task)}</span>${claim ? `<span class="tsr">${C.giftIco(17)}</span>` : '<span class="tsg">›</span>'}</button>` : ''}</div>
@@ -266,24 +266,28 @@
   C.openQueue = () => C.ui.open('Building Queue', () => {
     const car = C.car(), openS = C.SLOTS.filter(x => C.slotOpen(x.id)), rec = C.recommendBuilding();
     const rows = C.SLOTS.map((sl, i) => {
-      if (!C.slotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), `<small>${sl.id === 'prog' ? "Available at Coaches' Office Lv 10" : sl.id === 'vip' ? "Available with the Coach's Club" : 'Buy the pack to unlock it for good'}</small>`, sl.id === 'prog' ? '' : '<button class="btn sm2" data-act="store">Get</button>');
+      if (!C.slotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), `<small>${C.esc(sl.why)}: a permanent builder${C.nextBuilderPack && C.nextBuilderPack() !== sl.pack ? ' (after the packs before it)' : ''}</small>`, '<button class="btn sm2" data-act="storeat" data-v="items">Get</button>');
       const q = car.queue[openS.indexOf(sl)];
       if (q) { const d = C.BUILDINGS[q.key], f = C.buildReady(q.key) ? 1 : 1 - C.remaining(q) / ((q.end - q.start) / 1000);
         return slotRow(i, 'busy', `${C.esc(d.name)} → Lv ${q.to}`, `<div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><small ${C.buildReady(q.key) ? '' : `data-timer="${q.key}"`}>${C.buildReady(q.key) ? 'Finished' : C.dur(C.remaining(q))}</small>`,
           C.buildReady(q.key) ? `<button class="btn sm2 pri" data-act="bdone" data-v="${q.key}">Complete</button>` : `<button class="btn sm2" data-act="bgo" data-v="${q.key}">Go</button>`); }
       return slotRow(i, 'idle', 'Idle', `<small>Next: ${C.esc(C.BUILDINGS[rec].name)}</small>`, `<button class="btn sm2 pri" data-act="bgo" data-v="${rec}">Go</button>`);
     }).join('');
-    return `<p class="note" style="margin-top:0">Each builder works on one building at a time. Tap Go on an idle builder for the recommended next upgrade.</p>${rows}`;
+    // 1.03: a build started in a withdrawn slot (Coaches' Office Lv 10 or Coach's Club) carries on until it finishes
+    const extra = car.queue.slice(openS.length).map((q, j) => slotRow(C.SLOTS.length + j, 'busy', `${C.esc(C.BUILDINGS[q.key].name)} → Lv ${q.to}`, `<small>${C.buildReady(q.key) ? 'Finished' : C.dur(C.remaining(q)) + ' · finishing in a retired slot'}</small>`,
+      C.buildReady(q.key) ? `<button class="btn sm2 pri" data-act="bdone" data-v="${q.key}">Complete</button>` : `<button class="btn sm2" data-act="bgo" data-v="${q.key}">Go</button>`)).join('');
+    return `<p class="note" style="margin-top:0">Each builder works on one building at a time. Tap Go on an idle builder for the recommended next upgrade.</p>${rows}${extra}`;
   });
   C.openResearchQueue = () => C.ui.open('Research Queue', () => {
     const car = C.car(), openS = C.PBSLOTS.filter(x => C.pbSlotOpen(x.id)), q = car.pbq || [];
     const rows = C.PBSLOTS.map((sl, i) => {
-      if (!C.pbSlotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), `<small>${sl.id === 'prog' ? 'Available at Performance Lab Lv 10' : sl.id === 'vip' ? "Available with the Coach's Club" : 'Buy the pack to unlock it for good'}</small>`, sl.id === 'prog' ? '' : '<button class="btn sm2" data-act="store">Get</button>');
+      if (!C.pbSlotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), '<small>Available at Performance Lab Lv 10, or with the Playbook\'s Extra Queue Slot</small>', '');
       const r = q[openS.indexOf(sl)];
       if (r) { const nm = C.pbName ? C.pbName(r.key) : r.key; return slotRow(i, 'busy', `${C.esc(nm)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))}</small>`, '<button class="btn sm2" data-act="playbook">Go</button>'); }
       return slotRow(i, 'idle', 'Idle', '<small>Start the recommended research</small>', '<button class="btn sm2 pri" data-act="playbook">Go</button>');
     }).join('');
-    return `<p class="note" style="margin-top:0">Research runs in the Performance Lab. Each slot researches one Playbook item at a time.</p>${rows}`;
+    const extra = q.slice(openS.length).map((r, j) => slotRow(C.PBSLOTS.length + j, 'busy', `${C.esc(C.pbName ? C.pbName(r.key) : r.key)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))} · finishing in a retired slot</small>`, '<button class="btn sm2" data-act="playbook">Go</button>')).join('');
+    return `<p class="note" style="margin-top:0">Research runs in the Performance Lab. Each slot researches one Playbook item at a time.</p>${rows}${extra}`;
   }, { popup: true });
   // take the player to a building on the campus map: pan to it and select it, ready to upgrade (FEEDBACK 93, 94)
   C.goToBuilding = k => { C.ui.closeAll(); C.drawerOpen = false; C.tab = 'campus'; C.selB = k; C.render();
@@ -383,11 +387,19 @@
     return `<div class="cr ${ok ? '' : 'bad'}"><span class="ic">${icon}</span><span class="ct">${label}</span>${end}</div>`;
   }
   const speedItems = k => C.speedRow ? C.speedRow('b', k) : '';
+  // 1.03 (FEEDBACK 208): a producer can be collected from its card from 1 whole unit; the map bubble waits for 30 minutes' worth
+  function collectRow(k) {
+    if (!C.PRODUCERS[k] || !C.level(k)) return '';
+    const cp = C.PRODUCERS[k] === 'cp', amt = C.stored(k), cap = C.storeCap(k), f = v => cp ? `<i class="cpi"></i> ${C.full(v)}` : C.money(v);
+    return `<div class="collrow" style="display:flex;align-items:center;gap:8px;margin:6px 12px 0;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.08);font-size:13px">
+      <span style="flex:1">${cp ? 'Coaching Points' : 'Booster $'} ready: <b>${f(amt)}</b> <small style="opacity:.75">of ${f(cap)}</small></span>
+      <button class="btn pri" data-act="collect" data-v="${k}" style="padding:6px 12px" ${amt >= 1 ? '' : 'disabled'}>Collect</button></div>`;
+  }
   function upgradeCard(k) {
     const car = C.car(), def = C.BUILDINGS[k], lv = car.b[k], q = C.inQueue(k);
     const head = (lvTxt) => `<div class="uc"><div class="top"><div class="pic">${C.buildingThumb(k, q ? q.to : Math.min(30, lv + (lv < 30 ? 1 : 0)), car, 170, 112)}</div>
       <div class="ttl"><b>${C.esc(def.name)}</b><div class="lv">${lvTxt}</div><div class="xp">${def.owner === 'program' ? '🧳 Your program' : '🏛 School building'}</div></div>
-      <button class="xbtn" data-act="close" aria-label="Close">✕</button></div><div class="desc">${def.desc}</div>`;
+      <button class="xbtn" data-act="close" aria-label="Close">✕</button></div><div class="desc">${def.desc}</div>${collectRow(k)}`;
 
     if (q && C.buildReady(k)) return head(`Lv.${lv} <span class="ar">▶</span> ${q.to}`) + `<div class="tbl">${statRows(k, lv)}</div>
         <div class="orig"><span>✅ Finished: tap Complete</span><span></span></div><div class="bt"><button class="upg" data-act="bdone" data-v="${k}">Complete</button></div></div>`;
@@ -395,8 +407,7 @@
       const rem = C.remaining(q), free = C.isFreeFinish(q), g = C.goldToFinish(q), gems = C.acct().gold;
       return head(`Lv.${lv} <span class="ar">▶</span> ${q.to}`) + `<div class="tbl">${statRows(k, lv)}</div>
         <div class="orig"><span>Under construction · <b data-timer="${k}">${C.dur(rem)}</b> left</span><span>${C.GEM} ${C.short(gems)}</span></div>
-        <div class="bt"><button class="fin" data-act="speed" data-v="${k}">${!free && C.speedPlan && C.speedPlan('b', rem) ? 'Finish Now<br><em>⏩ Speed-ups</em>' : free ? 'Finish<br><em style="color:#15803d">Free</em>' : `Finish Now<br><em class="${gems < g ? 'short' : ''}">${C.GEM} ${g}</em>`}</button>
-        <button class="upg" data-act="inventory">⏩ Speed-ups<br>in Inventory</button></div>${speedItems(k)}</div>`;
+        <div class="bt"><button class="fin" data-act="speed" data-v="${k}" style="flex:1;width:100%;max-width:none">${C.speedButtonHTML('b', k)}</button></div></div>`;   // 1.03 (P8): one recommended button; the popup has every option
     }
     if (lv >= C.topLevel(k)) return head(`Lv.30 <span class="ar">★</span>`) + `<div class="tbl">${statRows(k, lv)}</div><div class="maxed">✨ Fully upgraded</div></div>`;
 
@@ -463,14 +474,14 @@
   C.openStore = () => C.ui.open('Store', () => {
     const a = C.acct(), vip = C.isVip(), L = C.lo(), row = (act, v, icon, name, sub, price, owned) => `<button class="lrow ${owned ? 'lock' : ''}" data-act="${act}" data-v="${v}"><span class="li">${icon}</span><span class="lt"><b>${name}</b><small>${sub}</small></span><span class="lr">${owned ? '✔' : price}</span></button>`;
     return `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store. Purchases are simulated and no money is charged.</div>
-      <div class="vipcard"><b>👑 Coach's Club</b><p>+1 slot in every queue (build, training, research, staff) · +1 career slot</p>
+      <div class="vipcard"><b>👑 Coach's Club</b><p>+1 training slot · +1 staff slot · +1 career slot · 25 Coins a day</p>
         <button class="btn full ${vip ? 'sec2' : 'pri'}" data-act="buy" data-v="vip">${vip ? 'Active · ' + Math.ceil((a.vipUntil - C.now()) / 864e5) + ' days left (extend +30)' : 'Join · $4.99 / month'}</button></div>
       <h3 class="jh">Packs</h3>${row('buypack', 'starter', '🎒', 'Starter Pack', C.rwText(C.PACKS.starter.r) + ' · once only', '$1.99', L.cos.includes('starter'))}
       ${row('buypack', 'pass', '🎟', 'Season Pass premium', 'Premium rewards for this 30-day pass', '$9.99', C.pass().prem)}
       ${row('buypack', 'xp', '📗', 'Coach XP bundle', C.rwText(C.PACKS.xp.r), '$2.99')}${row('buypack', 'clinic', '🎫', 'Clinic Credit pack', C.rwText(C.PACKS.clinic.r), '$2.99')}
       <h3 class="jh">Coins</h3>${['g100', 'g550', 'g1200'].map(k => row('buypack', k, '<i class="coin"></i>', C.PACKS[k].name, 'Speed-ups, coaching searches, agency scouts', C.PACKS[k].price)).join('')}
-      <h3 class="jh">Permanent slots</h3>${row('buy', 'slot3', '🔨', 'Extra build slot', 'A permanent 3rd build slot', '$2.99', a.slot3)}${row('buy', 'tslot3', '🏋️', 'Extra training slot', 'A permanent 3rd training-plan slot', '$2.99', a.tslot3)}
-      ${row('buy', 'pslot3', '📋', 'Extra research slot', 'A permanent 3rd Playbook slot', '$2.99', a.pslot3)}${row('buy', 'sslot3', '🧑‍🏫', 'Extra staff slot', 'A permanent 3rd coach on duty', '$2.99', a.sslot3)}
+      <h3 class="jh">Permanent slots</h3>${row('buy', 'tslot3', '🏋️', 'Extra training slot', 'A permanent 3rd training-plan slot', '$2.99', a.tslot3)}
+      ${row('buy', 'sslot3', '🧑‍🏫', 'Extra staff slot', 'A permanent 3rd coach on duty', '$2.99', a.sslot3)}
       ${row('buy', 'tokens', '🎟', '3 Number Changes', 'Give players the number they want', '$0.99')}
       <h3 class="jh">Kits (cosmetic)</h3>${Object.keys(C.KITS).map(k => row('kit', k, C.KITS[k][0], C.KITS[k][1], C.kit() === k ? 'Wearing now' : L.cos.includes('kit_' + k) || k === 'classic' ? 'Owned: tap to wear' : 'Changes how your team looks, nothing else', C.KITS[k][2] || 'Free', false)).join('')}
       <div class="card fair"><b>⚖️ Fair play promise</b><p>Money buys time and convenience, never results. No paid match wins, no attribute points past a player's potential, no buying players directly. Free players can reach everything.</p></div>`;

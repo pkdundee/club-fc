@@ -126,7 +126,7 @@
   C.slotsBusy = () => { const a = C.acct(), vip = C.isVip();
     C.ui.open('All training slots busy', () => `<p class="note" style="margin-top:0">Every training slot is in use. Wait for one to finish, or open another:</p>
       ${C.level('training') < 10 ? `<button class="lrow" data-act="bldopen" data-v="training"><span class="li">⚽</span><span class="lt"><b>Training Ground Lv 10</b><small>Earns a slot for free · now Lv ${C.level('training')}</small></span><span class="lr">›</span></button>` : ''}
-      ${vip ? '' : `<button class="lrow" data-act="storeat" data-v="passes"><span class="li">👑</span><span class="lt"><b>Coach's Club</b><small>+1 slot in every queue</small></span><span class="lr">$4.99/mo</span></button>`}
+      ${vip ? '' : `<button class="lrow" data-act="storeat" data-v="passes"><span class="li">👑</span><span class="lt"><b>Coach's Club</b><small>+1 training slot and more</small></span><span class="lr">$4.99/mo</span></button>`}
       ${a.tslot3 ? '' : `<button class="lrow" data-act="storeat" data-v="items"><span class="li">🏋️</span><span class="lt"><b>Extra Training Slot</b><small>A permanent extra slot</small></span><span class="lr">$2.99</span></button>`}`, { popup: true }); };
   A2.train = v => { if (!C.devFree()) return C.slotsBusy(); C.openTrain(v); };
   // every selection confirms first

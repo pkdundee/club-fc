@@ -15,18 +15,18 @@
     ['prog', '💵', 'Program', [['Fan Engagement', 'crowd', .01, 10, 'attendance'], ['Boosters', 'gate', .02, 10, 'gate income'], ['Campus Jobs', 'jobs', .2, 5, 'campus jobs']]],
     ['staff', '🧑‍🏫', 'Staff', [['Staff Room', 'cxp', .03, 10, 'coach XP'], ['Extra Queue Slot', 'slot', 1, 1, 'a free 4th research and training slot'], ['Headhunter', 'hunt', .1, 5, 'better coaches in the market']]]
   ];
-  C.PBSLOTS = [{ id: 'free', name: 'Free slot' }, { id: 'vip', name: "Coach's Club slot", why: "Join the Coach's Club" }, { id: 'iap', name: 'Extra research slot', why: 'One-off purchase' }, { id: 'prog', name: 'Earned slot', why: 'Playbook: Extra Queue Slot, or Performance Lab Lv 10' }];
+  C.PBSLOTS = [{ id: 'free', name: 'Free slot' }, { id: 'prog', name: 'Earned slot', why: 'Playbook: Extra Queue Slot, or Performance Lab Lv 10' }];
   const pb = () => { const car = C.car(); if (!car.pb) car.pb = {}; if (!car.pbq) car.pbq = []; return car.pb; };
   const node = key => { const [b, t] = key.split('.'); const B = C.PB.find(x => x[0] === b); return { B, n: B[3][+t], t: +t }; };
   C.pbLv = key => pb()[key] || 0;
   // total bonus for an effect key
   C.pbv = k => { const P = pb(); let v = 0; for (const B of C.PB) B[3].forEach((n, t) => { if (n[1] === k) v += (P[B[0] + '.' + t] || 0) * n[2]; }); return v; };
   C.pbTotal = () => Object.values(pb()).reduce((s, v) => s + v, 0);
-  C.pbSlotOpen = id => id === 'free' || (id === 'vip' && C.isVip()) || (id === 'iap' && C.acct().pslot3) || (id === 'prog' && (C.pbv('slot') >= 1 || C.eff('lab') >= 10));
+  C.pbSlotOpen = id => id === 'free' || (id === 'prog' && (C.pbv('slot') >= 1 || C.eff('lab') >= 10));   // 1.03 (FEEDBACK 170): research capped at 2 slots
   C.pbSlots = () => C.PBSLOTS.filter(s => C.pbSlotOpen(s.id)).length;
   C.pbRunning = () => { pb(); return C.car().pbq.length; };
   C.pbUnlocked = key => { const { B, t } = node(key); return t === 0 || C.pbLv(B[0] + '.' + (t - 1)) >= 5; };
-  C.pbCost = (key, to) => { const t = node(key).t, E = C.ECON.research; return { cp: Math.round(E.cpBase * Math.pow(E.cpGrowth, to + t * E.cpTierStep) / 5) * 5, cash: t ? Math.round(E.cashBase * Math.pow(E.cashGrowth, to + t * E.cashTierStep) / 100) * 100 : to >= E.cashT0FromLv ? Math.round(E.cashT0Base * Math.pow(E.cashGrowth, to) / 100) * 100 : 0 }; };
+  C.pbCost = (key, to) => { const t = node(key).t, E = C.ECON.research; return { cp: Math.round(E.cpBase * Math.pow(E.cpGrowth, to + t * E.cpTierStep) * (E.cpMult || 1) / 5) * 5, cash: t ? Math.round(E.cashBase * Math.pow(E.cashGrowth, to + t * E.cashTierStep) / 100) * 100 : to >= E.cashT0FromLv ? Math.round(E.cashT0Base * Math.pow(E.cashGrowth, to) / 100) * 100 : 0 }; };
   C.pbTime = (key, to) => { const E = C.ECON.research; return Math.min(E.timeCap, Math.round(E.timeBase * Math.pow(E.timeGrowth, to + node(key).t * E.timeTierStep) * (1 - C.eff('lab') * .01))); };
   C.pbInQueue = key => C.car().pbq.find(q => q.key === key);
   C.pbStart = key => {

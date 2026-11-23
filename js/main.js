@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.02.06 · 21 Nov 2026';
+  C.BUILD = 'CLUB FC 1.03 · 22 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -65,7 +65,7 @@
       case 'queue': C.openQueue(); break;
       case 'blist': C.openBuildList(); break;
       case 'blisttab': C.blistTab = v; C.ui.refresh(); break;
-      case 'slotinfo': { const s = C.SLOTS.find(x => x.id === v); C.toast(`🔒 ${s.name}: ${s.why}`); if (v !== 'prog') C.openStore(); break; }
+      case 'slotinfo': { const s = C.SLOTS.find(x => x.id === v); C.toast(`🔒 ${s.name}: ${s.why}`); C.openStoreAt ? C.openStoreAt('items') : C.openStore(); break; }
       // careers
       case 'careers': C.openCareers(); break;
       case 'newcar': if (!C.car() && !C.introSeen()) C.openIntro(() => C.openMarket(true)); else C.openMarket(C.ui.isOpen()); break;
@@ -196,7 +196,7 @@
       case 'chest': { const r = C.chestClaim(); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
       case 'vipdaily': { const r = C.vipDaily(); if (r) { C.toast('👑 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
       case 'passclaim': { const [t, i] = v.split('|'); const r = C.passClaim(t, +i); if (r === 'prem') C.toast('Unlock the premium track first'); else if (r) { C.toast('🎟 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
-      case 'buypack': { const r = C.buyPack(v); C.toast(r === 'owned' ? 'Already bought' : '✅ Test purchase complete'); C.ui.refresh(); C.render(); break; }
+      case 'buypack': { const r = C.buyPack(v); C.toast(r === 'owned' ? 'Already bought' : r === 'order' ? 'Builder Packs are bought in order' : '✅ Test purchase complete'); C.ui.refresh(); C.render(); break; }
       case 'kit': C.buyKit(v); C.toast(`${C.KITS[v][0]} ${C.KITS[v][1]}`); C.ui.refresh(); C.render(); break;
       // fitness and injuries (phase-9c)
       case 'medical': C.openMedical(); break;
@@ -223,7 +223,7 @@
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
       case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Coins and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
       case 'wipeyes': C.wipe(); location.reload(); break;
-      case 'imp9t': C.ui.open('Import 9t save', () => `<p class="note" style="font-size:14px">Copies your phase-9t save into CLUB FC 1.02 for testing. <b>Your 9t save is not changed.</b> It replaces everything currently saved in 1.02, and can be done once (again only after Delete all data).</p><button class="btn full pri" data-act="imp9tyes">Import the 9t save</button>`, { popup: true }); break;
+      case 'imp9t': C.ui.open('Import 9t save', () => `<p class="note" style="font-size:14px">Copies your phase-9t save into CLUB FC 1.03 for testing. <b>Your 9t save is not changed.</b> It replaces everything currently saved in 1.02, and can be done once (again only after Delete all data).</p><button class="btn full pri" data-act="imp9tyes">Import the 9t save</button>`, { popup: true }); break;
       case 'imp9tyes': { const r = C.import9t(); if (r === true) location.reload(); else C.toast(r === 'none' ? 'No phase-9t save on this device' : r === 'done' ? 'Already imported' : 'Import failed'); break; }
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();

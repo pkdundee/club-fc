@@ -11,19 +11,26 @@
   // ================= items and rewards =================
   // new reward keys: speed-ups (minutes) and Booster crates; everything else still goes through liveops
   // speed-ups have types: general work on anything, the others only on their own queue (round 6). [icon, name, minutes, type]
-  const XN = { sp5: ['⏩', '5m speed-up', 5, 'g'], sp15: ['⏩', '15m speed-up', 15, 'g'], sp60: ['⏩', '1h speed-up', 60, 'g'], sp180: ['⏩', '3h speed-up', 180, 'g'],
-    spb15: ['🔨', '15m building speed-up', 15, 'b'], spb60: ['🔨', '1h building speed-up', 60, 'b'], spt15: ['🏋️', '15m training speed-up', 15, 't'], spt60: ['🏋️', '1h training speed-up', 60, 't'], spr15: ['📋', '15m research speed-up', 15, 'r'], spr60: ['📋', '1h research speed-up', 60, 'r'],
-    crate: ['📦', 'Booster crate ($5K)'], badge: ['🏅', 'Coaching Badge'] };
+  // 1.03: 1-minute (P9), 8 h and 24 h general items; 3 h and 8 h building and research items; Booster Crates (FEEDBACK 213, 215, PROVISIONAL)
+  const XN = { sp1: ['⏩', '1m speed-up', 1, 'g'], sp5: ['⏩', '5m speed-up', 5, 'g'], sp15: ['⏩', '15m speed-up', 15, 'g'], sp60: ['⏩', '1h speed-up', 60, 'g'], sp180: ['⏩', '3h speed-up', 180, 'g'],
+    sp480: ['⏩', '8h speed-up', 480, 'g'], sp1440: ['⏩', '24h speed-up', 1440, 'g'],
+    spb15: ['🔨', '15m building speed-up', 15, 'b'], spb60: ['🔨', '1h building speed-up', 60, 'b'], spb180: ['🔨', '3h building speed-up', 180, 'b'], spb480: ['🔨', '8h building speed-up', 480, 'b'],
+    spt15: ['🏋️', '15m training speed-up', 15, 't'], spt60: ['🏋️', '1h training speed-up', 60, 't'],
+    spr15: ['📋', '15m research speed-up', 15, 'r'], spr60: ['📋', '1h research speed-up', 60, 'r'], spr180: ['📋', '3h research speed-up', 180, 'r'], spr480: ['📋', '8h research speed-up', 480, 'r'],
+    crate: ['📦', 'Booster crate ($5K)'], badge: ['🏅', 'Coaching Badge'],
+    crb1: ['📦', 'Common Booster Crate'], crb2: ['📦', 'Rare Booster Crate'], crb3: ['📦', 'Epic Booster Crate'], crb4: ['📦', 'Legendary Booster Crate'], crc2: ['🎁', 'Rare Choice Crate'] };
+  // a Crate holds hours of production, sized when it's opened: Booster Crates = Clubhouse output; the Choice Crate = Clubhouse or Performance Lab
+  const CRH = { crb1: 1, crb2: 4, crb3: 8, crb4: 24, crc2: 4 }; C.CRH = CRH;
   C.XN = XN;
   C.speedKeys = type => Object.keys(XN).filter(k => XN[k][3] && (XN[k][3] === 'g' || XN[k][3] === type));
   const ICON = { gold: '<i class="coin"></i>', cash: '💵', cp: '<i class="cpi"></i>', manual: '📗', credits: '🎫', kit: '🧴', books: '📕', tokens: '🎟', rare: '🎁', coach: '🧑‍🏫' };
   const NAME = { gold: 'Coins', cash: 'Booster $', cp: 'Coaching Points', manual: 'Coaching manual', credits: 'Clinic Credits', kit: 'Recovery kit', books: 'Trait Book', tokens: 'Number Change', rare: 'Rare recruit', coach: 'Rare coach' };
-  const TIER = { spb15: 2, spb60: 3, spt15: 2, spt60: 3, spr15: 2, spr60: 3, badge: 3, gold: 3, coach: 4, rare: 4, books: 3, sp60: 3, sp180: 4, crate: 2, sp15: 2, cash: 1, cp: 1, manual: 1, credits: 1, kit: 1, tokens: 2, sp5: 1 };
+  const TIER = { sp1: 1, sp480: 4, sp1440: 4, spb180: 3, spb480: 4, spr180: 3, spr480: 4, crb1: 1, crb2: 2, crb3: 3, crb4: 4, crc2: 3, spb15: 2, spb60: 3, spt15: 2, spt60: 3, spr15: 2, spr60: 3, badge: 3, gold: 3, coach: 4, rare: 4, books: 3, sp60: 3, sp180: 4, crate: 2, sp15: 2, cash: 1, cp: 1, manual: 1, credits: 1, kit: 1, tokens: 2, sp5: 1 };
   const oText = C.rwText, oGive = C.giveReward;
   C.rwText = r => { const a = {}, b = []; for (const k in r) { if (XN[k]) b.push(`${XN[k][0]} ${r[k] > 1 ? r[k] + '× ' : ''}${XN[k][1]}`); else a[k] = r[k]; } return [Object.keys(a).length ? oText(a) : '', ...b].filter(Boolean).join(' · '); };
   C.giveReward = r => { const a = {}, inv = C.car() ? meta().inv : null; for (const k in r) { if (XN[k]) { if (inv) inv[k] = (inv[k] || 0) + r[k]; } else a[k] = r[k]; } oGive(a); C.save(); };
   // rewards as item tiles (Last War style): icon, amount, colour by value
-  C.itemTiles = r => `<span class="itiles">${Object.keys(r).map(k => { const v = r[k], ic = XN[k] ? XN[k][0] : ICON[k] || '🎁', lab = k === 'cash' ? C.full(v) : XN[k] && XN[k][2] ? (XN[k][2] >= 60 ? XN[k][2] / 60 + 'h' : XN[k][2] + 'm') + (v > 1 ? ' ×' + v : '') : k === 'crate' ? '$5K' + (v > 1 ? ' ×' + v : '') : v;
+  C.itemTiles = r => `<span class="itiles">${Object.keys(r).map(k => { const v = r[k], ic = XN[k] ? XN[k][0] : ICON[k] || '🎁', lab = k === 'cash' ? C.full(v) : XN[k] && XN[k][2] ? (XN[k][2] >= 60 ? XN[k][2] / 60 + 'h' : XN[k][2] + 'm') + (v > 1 ? ' ×' + v : '') : k === 'crate' ? '$5K' + (v > 1 ? ' ×' + v : '') : CRH[k] ? CRH[k] + 'h' + (v > 1 ? ' ×' + v : '') : v;
     return `<span class="itile t${TIER[k] || 1}" title="${C.esc(XN[k] ? XN[k][1] : NAME[k] || k)}">${ic}<b>${lab}</b></span>`; }).join('')}</span>`;
 
   // use a speed-up on something running: b = building, t = training, r = research
@@ -31,6 +38,20 @@
   C.useSpeed = (kind, id, key) => { const inv = meta().inv, q = target(kind, id), x = XN[key]; if (!q || !(inv[key] > 0) || !(x[3] === 'g' || x[3] === kind)) return false; inv[key]--; q.end -= x[2] * 60000; C.save(); if (kind === 'b') C.tick(); return true; };
   C.speedRow = (kind, id) => { const inv = meta().inv, ks = C.speedKeys(kind).filter(k => inv[k] > 0); return ks.length ? `<div class="spitems">${ks.map(k => `<button data-act="usespeed" data-v="${kind}|${id}|${k}">${XN[k][0]} ${XN[k][2] >= 60 ? XN[k][2] / 60 + 'h' : XN[k][2] + 'm'}<em>×${inv[k]}</em></button>`).join('')}</div>` : ''; };
   C.openCrate = () => { const inv = meta().inv; if (!(inv.crate > 0)) return false; inv.crate--; C.car().cash += 5000; C.save(); return true; };
+  // 1.03: Crates open for hours of production at the building's level now (shown before opening); storage limits don't apply
+  C.crateAmount = (k, res) => { const lvB = Math.max(1, C.level('booster') || 0), lvL = Math.max(1, C.level('lab') || 0);
+    return Math.floor((res === 'cp' ? C.prod.lab(lvL) : C.prod.booster(lvB)) * CRH[k]); };
+  C.openCrateX = (k, res) => { const inv = meta().inv; if (!CRH[k] || !(inv[k] > 0)) return 0; const amt = C.crateAmount(k, res); inv[k]--;
+    C.car()[res === 'cp' ? 'cp' : 'cash'] += amt; C.save(); return amt; };
+  A.invcratex = k => { const inv = meta().inv; if (!(inv[k] > 0)) return;
+    const b = C.crateAmount(k, 'cash'), cp = C.crateAmount(k, 'cp');
+    if (k === 'crc2') return C.ui.open(XN[k][1], () => `<p class="note" style="margin-top:0">Choose what it holds: ${CRH[k]} hours of production at your current level.</p>
+      <button class="btn full pri" data-act="cratepick" data-v="${k}|cash">💵 ${C.money(b)} Booster $</button>
+      <button class="btn full pri" style="margin-top:8px" data-act="cratepick" data-v="${k}|cp"><i class="cpi"></i> ${C.full(cp)} Coaching Points</button>`, { popup: true });
+    C.ui.open(XN[k][1], () => `<p class="note" style="margin-top:0">${CRH[k]} hours of Clubhouse output at Lv ${Math.max(1, C.level('booster'))}.</p>
+      <button class="btn full pri" data-act="cratepick" data-v="${k}|cash">Open for 💵 ${C.money(b)}</button>`, { popup: true }); };
+  A.cratepick = v => { const [k, res] = v.split('|'), amt = C.openCrateX(k, res); if (!amt) return; C.ui.back();
+    C.toast(`📦 +${res === 'cp' ? '<i class="cpi"></i> ' + C.full(amt) : C.money(amt)}`); C.ui.refresh(); C.render(); };
 
   // ================= Inventory =================
   let invTab = 'speed';
@@ -41,7 +62,7 @@
     let body = '';
     if (invTab === 'speed') body = Object.keys(XN).filter(k => XN[k][3]).map(k => cell(XN[k][0], inv[k] || 0, XN[k][1].replace(' speed-up', ''), 'invspeed', k, 't' + TIER[k])).join('');
     if (invTab === 'gear') return `<div class="res hres inv">${C.resBar()}</div><div class="bigtabs">${tabs.map(([k, n]) => `<button class="${invTab === k ? 'on' : ''}" data-act="invtab" data-v="${k}">${n}</button>`).join('')}</div>${C.kitRoomHTML ? C.kitRoomHTML() : ''}<p class="note">Equip gear from a player's card. It returns here when a player leaves. Gear comes from Missions, chests and the free Pass track.</p>`;
-    if (invTab === 'res') body = cell('📦', inv.crate || 0, '$5K crate', 'invcrate', '', 't2') + cell('🏅', inv.badge || 0, 'Coaching Badges', 'tab', 'staff', 't3') + cell('📗', S.items.manual, 'Manuals', 'tab', 'staff') + cell('📕', S.items.books, 'Trait Books', 'tab', 'staff', 't3') + cell('🎫', S.items.credits, 'Clinic Credits', 'tab', 'staff');
+    if (invTab === 'res') body = ['crb1', 'crb2', 'crb3', 'crb4', 'crc2'].map(k => cell(XN[k][0], inv[k] || 0, XN[k][1].replace(' Crate', '') + ` (${CRH[k]}h)`, 'invcratex', k, 't' + TIER[k])).join('') + (inv.crate ? cell('📦', inv.crate, '$5K crate', 'invcrate', '', 't2') : '') + cell('🏅', inv.badge || 0, 'Coaching Badges', 'tab', 'staff', 't3') + cell('📗', S.items.manual, 'Manuals', 'tab', 'staff') + cell('📕', S.items.books, 'Trait Books', 'tab', 'staff', 't3') + cell('🎫', S.items.credits, 'Clinic Credits', 'tab', 'staff');
     if (invTab === 'special') body = cell('🧴', it.kit || 0, 'Recovery kits', 'medical', '') + cell('🎁', it.rareRecruit || 0, 'Rare recruit', 'rare', '', 't4') + cell('🎟', car.tokens || 0, 'Number Changes', 'tab', 'squad', 't2');
     return `<div class="res hres inv">${C.resBar()}</div><div class="bigtabs">${tabs.map(([k, n]) => `<button class="${invTab === k ? 'on' : ''}" data-act="invtab" data-v="${k}">${n}</button>`).join('')}</div>
       <div class="invg">${body}</div><p class="note">${invTab === 'speed' ? 'Tap a speed-up, then pick a building that is being built. Speed-ups come from Missions, events and the Store.' : 'Tap an item to use it or go to where it is used.'}</p>`;
@@ -62,7 +83,7 @@
     ['bhq', '🏛', "Build the Coaches' Office", c => c.b.hq >= 1, { gold: 10 }, 'dgo', 'hq'],
     ['bcamp', '🏗', 'Build your 7 starting buildings', c => ['stadium','training','med','lab','recruit','media','dorms'].every(k => c.b[k] >= 1), { cash: 2000 }, 'tab', 'campus'],
     ['coach', '🧢', 'Hire your first assistant coach', c => (C.staffState().list || []).length >= 1, { cash: 2000 }, 'tab', 'staff'],
-    ['hq2', '🏛', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2, { gold: 20, sp15: 1 }, 'dgo', 'hq'],
+    ['hq2', '🏛', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2, { gold: 20, sp15: 1, sp1: 6 }, 'dgo', 'hq'],
     ['offer', '✉️', 'Make a scholarship offer to a recruit', c => (meta().ms.offers || 0) >= 1, { cp: 30 }, 'tab', 'recruit'],
     ['sign', '✍️', 'Sign a recruit', c => (c.rec && c.rec.signed || 0) >= 1, { cash: 3000 }, 'tab', 'recruit'],
     ['collect', '💵', 'Collect income on campus', c => (meta().ms.collect || 0) >= 1, { crate: 1 }, 'tab', 'campus'],
@@ -219,7 +240,11 @@
     return `<div class="hgrid" style="padding:0">${S.list.map(c => `<button class="hcard" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><span class="hlv">Lv.${c.level}</span>${S.on.includes(c.id) ? '<em class="hon">ON</em>' : ''}<div class="hpic">${C.coachFace(c)}</div><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]}</small></button>`).join('')}</div>
       <div class="jbtns" style="grid-template-columns:1fr 1fr;margin-top:10px"><button class="btn sec2" data-act="market">🧑‍🏫 Market</button><button class="btn sec2" data-act="search">🎲 Search</button></div>`; });
   A.preseason = () => C.openPreseason();
-  const oBuyPack = C.buyPack; C.buyPack = id => { const r = oBuyPack(id); if (r !== 'owned' && C.car()) { receipt(C.PACKS[id] ? C.PACKS[id].name || id : id, C.PACKS[id] && C.PACKS[id].r); } return r; };
+  // 1.03: Builder Packs I-III, in order; each card lists its contents (Last War style tiles) and its builder
+  C.builderPacksHTML = () => { const nxt = C.nextBuilderPack(); return ['bp1', 'bp2', 'bp3'].map(k => { const P = C.PACKS[k], own = C.acct()['bq' + P.queue], can = nxt === k;
+    return `<div class="pack"><div class="pkh"><b>${P.icon} ${P.name}</b><span class="ptag">${['2nd', '3rd', '4th'][P.queue - 1]} builder, permanent</span></div>${C.itemTiles(P.r)}
+      <div class="packft"><small>${own ? 'Owned' : can ? 'Adds a permanent builder' : 'After ' + C.PACKS[nxt].name}</small><button class="btn sm2 ${own || !can ? 'sec2' : 'pri'}" data-act="buypack" data-v="${k}" ${own || !can ? 'disabled' : ''}>${own ? '✔' : P.price}</button></div></div>`; }).join(''); };
+  const oBuyPack = C.buyPack; C.buyPack = id => { const r = oBuyPack(id); if (r !== 'owned' && r !== 'order' && C.car()) { receipt(C.PACKS[id] ? C.PACKS[id].name || id : id, C.PACKS[id] && C.PACKS[id].r); } return r; };
 
   // claimable count for red dots (replaces the calendar-based count)
   C.msClaimable = () => { if (!C.car()) return 0; const M = meta(); return C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => M.pts >= p && !M.chests.includes(i)).length; };
@@ -237,7 +262,10 @@
   function receipt(name, r) { C.mail('purchases', '🧾', 'Purchase: ' + name, `Thanks for your purchase. ${r ? 'Received: ' + C.rwText(r) + '.' : ''}<br><small>Test store: nothing was charged.</small>`, null); }
   const FOLDERS = [['match', '📋', 'Match reports'], ['director', '🏛', 'Director'], ['rewards', '🎁', 'Rewards'], ['purchases', '🧾', 'Purchases'], ['system', '⚙️', 'News & updates'], ['fav', '⭐', 'Favourites']];
   C.inboxUnread = () => { const car = C.car(); if (!car) return 0; sysMail(); return meta().inbox.filter(x => !x.read || (x.r && !x.claimed)).length; };   // 1.01: mail only (the Director's notes are mail now)
-  function sysMail() { C.syncADMail && C.syncADMail(C.car()); const M = meta(); if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `Ray here. A few changes around the office:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
+  function sysMail() { C.syncADMail && C.syncADMail(C.car()); const M = meta();
+    // 1.03 (FEEDBACK 170, 212): research is capped at 2 slots, so a bought research slot is refunded once in Coins; build slots are now Builder Packs
+    { const a = C.acct(); if (a.pslot3Refund === 'due') { a.pslot3Refund = 'done'; C.mail('system', '📋', 'Research slots: two for everyone', 'Research now runs in 2 slots: the free one and the one you earn at Performance Lab Lv 10. Your extra research slot has been withdrawn, and here is a refund. Anything already researching finishes as normal.', { gold: 360 }); } }
+    if (!M.seenSys.includes('103q')) { M.seenSys.push('103q'); C.mail('system', '🔨', 'Builders: one free, three to buy', `You have one free builder. Builder Packs I, II and III each add a permanent builder, in that order, with speed-ups and Booster Crates to get it working.${C.acct().bq1 ? ' Your extra build slot is now your 2nd builder.' : ''} The Coach's Club and Coaches' Office Lv 10 no longer add a builder; any build already running in those slots finishes as normal. Free finishes are now earned: the Coaches' Office and Performance Lab give a longer free window as they level up. Here are some 1-minute speed-ups to start with.`, { sp1: 10 }); } if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `Ray here. A few changes around the office:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
   // 1.02 (FEEDBACK 157): Inbox menu → folder page (headlines) → message page. Back goes up one level each time.
   const folderName = k => (FOLDERS.find(f => f[0] === k) || [0, '', 'Inbox'])[2];
   const inFolder = k => meta().inbox.filter(x => k === 'fav' ? x.fav : x.f === k);
@@ -315,14 +343,15 @@
         ${C.piggyHTML ? C.piggyHTML() : ''}<h3 class="jh">Weekly deals <small class="devp">${fmt(new Date(weekKey()))} – ${fmt(wkEnd() - 1)}</small></h3>
         ${WEEKLY.map(w => { const n = M.wbuy[w.id] || 0, left = w.lim - n; return `<div class="pack"><div class="pkh"><b>${w.icon} ${w.name}</b><span class="ptag t-${w.tag.toLowerCase()}">${w.tag}</span></div>${C.itemTiles(w.r)}<div class="packft"><small>${left} of ${w.lim} purchase${w.lim > 1 ? 's' : ''} left</small><button class="btn sm2 ${left ? 'pri' : 'sec2'}" data-act="buyweekly" data-v="${w.id}" ${left ? '' : 'disabled'}>${left ? w.price : 'Sold out'}</button></div></div>`; }).join('')}
         ${row('buypack', 'starter', '🎒', 'Starter Pack', C.rwText(C.PACKS.starter.r) + ' · once only', '$1.99', L.cos.includes('starter'))}`; }
-    if (stTab === 'passes') body = `<div class="vipcard"><b>👑 Coach's Club</b><p>+1 slot in every queue (build, training, research, staff) · +1 career slot</p>
+    if (stTab === 'passes') body = `<div class="vipcard"><b>👑 Coach's Club</b><p>+1 training slot · +1 staff slot · +1 career slot · 25 Coins a day</p>
         <button class="btn full ${vip ? 'sec2' : 'pri'}" data-act="buy" data-v="vip">${vip ? 'Active · ' + Math.ceil((a.vipUntil - C.now()) / 864e5) + ' days left (extend +30)' : 'Join · $4.99 / month'}</button></div>
       <h3 class="jh">${C.curEvent().th.icon} ${C.curEvent().th.name}</h3><button class="lrow" data-act="evopen"><span class="li">${C.curEvent().th.icon}</span><span class="lt"><b>Event packs</b><small>$4.99, then $9.99: open the premium tracks</small></span><span class="lr">›</span></button>`;
     if (stTab === 'coins') body = ['g100', 'g550', 'g1200'].map(k => row('buypack', k, '<i class="coin"></i>', C.PACKS[k].name, 'Speed-ups, coaching searches, agency scouts', C.PACKS[k].price)).join('');
     if (stTab === 'items') body = `<h3 class="jh" style="margin-top:2px">Themed packs</h3>${['packTrain', 'packCoach', 'packBuild', 'packRec'].map(k => `<div class="pack"><div class="pkh"><b>${C.PACKS[k].icon} ${C.PACKS[k].name}</b></div>${C.itemTiles(C.PACKS[k].r)}<div class="packft"><small></small><button class="btn sm2 pri" data-act="buypack" data-v="${k}">${C.PACKS[k].price}</button></div></div>`).join('')}
       ${row('buypack', 'xp', '📗', 'Coach XP bundle', C.rwText(C.PACKS.xp.r), '$2.99')}${row('buypack', 'clinic', '🎫', 'Clinic Credit pack', C.rwText(C.PACKS.clinic.r), '$2.99')}
-      <h3 class="jh">Permanent slots</h3>${row('buy', 'slot3', '🔨', 'Extra build slot', 'A permanent 3rd build slot', '$2.99', a.slot3)}${row('buy', 'tslot3', '🏋️', 'Extra training slot', 'A permanent 3rd training-plan slot', '$2.99', a.tslot3)}
-      ${row('buy', 'pslot3', '📋', 'Extra research slot', 'A permanent 3rd Playbook slot', '$2.99', a.pslot3)}${row('buy', 'sslot3', '🧑‍🏫', 'Extra staff slot', 'A permanent 3rd coach on duty', '$2.99', a.sslot3)}
+      <h3 class="jh">Builders</h3>${C.builderPacksHTML()}
+      <h3 class="jh">Booster Crates</h3>${['crR', 'crE', 'crL'].map(k => row('buypack', k, '📦', C.PACKS[k].name, `${C.CRH[C.PACKS[k].r && Object.keys(C.PACKS[k].r)[0]]} hours of Clubhouse output at your level, sized when opened`, C.PACKS[k].price)).join('')}
+      <h3 class="jh">Permanent slots</h3>${row('buy', 'tslot3', '🏋️', 'Extra training slot', 'A permanent 3rd training-plan slot', '$2.99', a.tslot3)}${row('buy', 'sslot3', '🧑‍🏫', 'Extra staff slot', 'A permanent 3rd coach on duty', '$2.99', a.sslot3)}
       ${row('buy', 'tokens', '🎟', '3 Number Changes', 'Give players the number they want', '$0.99')}
       <h3 class="jh">Kits (cosmetic)</h3>${Object.keys(C.KITS).map(k => row('kit', k, C.KITS[k][0], C.KITS[k][1], C.kit() === k ? 'Wearing now' : L.cos.includes('kit_' + k) || k === 'classic' ? 'Owned: tap to wear' : 'Changes how your team looks, nothing else', C.KITS[k][2] || 'Free', false)).join('')}`;
     return `<div class="res hres inv">${C.resBar()}</div>${tabs}${test}${body}<div class="card fair"><b>⚖️ Fair play promise</b><p>Money buys time and convenience, never results. No paid match wins, no attribute points past a player's potential, no buying players directly.</p></div>`;

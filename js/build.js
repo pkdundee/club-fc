@@ -1,6 +1,6 @@
 // Club FC: base building (Phase 1). Upgrade rules, the build queue, speed-ups and production.
 (function (C) {
-  const E = C.ECON, FREE_FINISH = E.finish.freeSecs; // builds with 2 minutes or less left can be finished free
+  const E = C.ECON, FREE_FINISH = E.finish.freeSecs; // 9t's universal 2 minutes; 1.03 replaces C.isFreeFinish with the earned window (speedup.js)
 
   C.level = k => C.car().b[k];
   // Locked buildings (9p, FEEDBACK 65): every building starts at Lv 1, but some stay locked until the Coaches' Office reaches their level.
@@ -10,7 +10,7 @@
   C.inQueue = k => C.car().queue.find(q => q.key === k);
 
   // Slots: free, VIP (Coach's Club), one-off purchase, earned at Coaches' Office Lv 10
-  C.slotOpen = id => id === 'free' || (id === 'vip' && C.isVip()) || (id === 'iap' && C.acct().slot3) || (id === 'prog' && C.level('hq') >= 10);
+  C.slotOpen = id => id === 'free' || !!C.acct()[id];   // 1.03: bq1-bq3 come from Builder Packs I-III
   C.openSlots = () => C.SLOTS.filter(s => C.slotOpen(s.id)).length;
   C.freeSlot = () => C.car().queue.length < C.openSlots();
 
@@ -50,7 +50,12 @@
   C.upgradeReward = (k, to) => Math.round((k === 'hq' ? 20 : 5) * to);
   C.remaining = q => Math.max(0, (q.end - C.now()) / 1000);
   // Coins: 1 per minute left for the first hour, then 1 per 2 minutes (see ECONOMY.md)
-  C.coinsFor = secs => { const F = E.finish, m = Math.ceil(secs / 60); return m <= F.firstHourMins ? Math.max(1, m * F.perMinute) : F.firstHourMins * F.perMinute + Math.ceil((m - F.firstHourMins) / F.afterHourMinsPerCoin); };
+  // 1.03 (P7, PROVISIONAL): Coins per minute fall from 1.6 (5 minutes or less) through the verified Last War points to 1.0 from 8 hours
+  C.coinRate = m => { const F = E.finish, P = F.points, ks = Object.keys(P).map(Number).sort((a, b) => a - b);
+    if (m <= ks[0]) return F.shortRate; if (m >= ks[ks.length - 1]) return F.longRate;
+    let lo = ks[0]; for (const k of ks) if (k <= m) lo = k; const hi = ks.find(k => k > m), rl = P[lo] / lo, rh = P[hi] / hi, f = (Math.log(m) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
+    return rl * (1 - f) + rh * f; };
+  C.coinsFor = secs => { const m = Math.ceil(secs / 60); return m > 0 ? Math.max(E.finish.minCoins, Math.ceil(Math.round(m * C.coinRate(m) * 10) / 10)) : 0; };
   C.goldToFinish = q => C.coinsFor(C.remaining(q));
   C.isFreeFinish = q => C.remaining(q) <= FREE_FINISH;
   C.finishNow = (q, pay) => {
@@ -85,10 +90,14 @@
     const hrs = Math.min((C.now() - car.store[k]) / 3.6e6, C.STORE_HOURS(lv));
     return Math.floor(C.prod[k](lv) * hrs);
   };
+  // 1.03 (FEEDBACK 208): collecting takes whole units only and KEEPS the fraction: the clock moves on by the time those units took
+  // (when storage was full, the clock restarts from the full point, keeping the part-unit). Collectible from 1 unit.
   C.collect = k => {
-    const car = C.car(), amt = C.stored(k); if (amt <= 0) return 0;
-    car[C.PRODUCERS[k]] += amt; car.store[k] = C.now(); C.save(); return amt;
+    const car = C.car(), lv = C.level(k), amt = C.stored(k); if (amt <= 0) return 0;
+    const rate = C.prod[k](lv), held = Math.min((C.now() - car.store[k]) / 3.6e6, C.STORE_HOURS(lv));
+    car[C.PRODUCERS[k]] += amt; car.store[k] = C.now() - Math.max(0, held - amt / rate) * 3.6e6; C.save(); return amt;
   };
-  // Show a collect bubble once there's something worth tapping
-  C.bubble = k => { const a = C.stored(k); return a >= (C.PRODUCERS[k] === 'cp' ? 5 : 250) ? a : 0; };
+  C.storeCap = k => Math.floor(C.prod[k](C.level(k)) * C.STORE_HOURS(C.level(k)));
+  // 1.03 (FEEDBACK 208): the map bubble appears at 30 minutes of production (kept apart from "collectible"); it stays and counts up live
+  C.bubble = k => { const a = C.stored(k), lv = C.level(k); return lv && a >= Math.max(1, Math.ceil(C.prod[k](lv) * C.ECON.prod.bubbleMins / 60)) ? a : 0; };
 })(window.CFC);

@@ -72,12 +72,21 @@
     starter: { name: 'Starter Pack', icon: '🎒', price: '$1.99', once: true, r: { gold: 500, manual: 3, credits: 20, cash: 20000, coach: 1 } },
     g100: { name: '100 Coins', icon: '<i class="coin"></i>', price: '$0.99', r: { gold: 100 } }, g550: { name: '550 Coins', icon: '<i class="coin"></i>', price: '$4.99', r: { gold: 550 } }, g1200: { name: '1,200 Coins', icon: '<i class="coin"></i>', price: '$9.99', r: { gold: 1200 } },
     xp: { name: 'Coach XP bundle', icon: '📗', price: '$2.99', r: { manual: 10, books: 2 } }, clinic: { name: 'Clinic Credit pack', icon: '🎫', price: '$2.99', r: { credits: 60 } },
-    pass: { name: 'Season Pass: premium track', icon: '🎟', price: '$9.99', pass: true }
+    pass: { name: 'Season Pass: premium track', icon: '🎟', price: '$9.99', pass: true },
+    // 1.03 (FEEDBACK 212, 215 s4.2, PROVISIONAL contents): each adds a permanent builder, sold in order; no production bonus (FEEDBACK 218)
+    bp1: { name: 'Builder Pack I', icon: '🔨', price: '$1.99', queue: 1, r: { spb15: 3, spb60: 2, crb2: 1 } },
+    bp2: { name: 'Builder Pack II', icon: '🔨', price: '$9.99', queue: 2, r: { gold: 500, spb180: 2, spb480: 1, crb3: 2, crc2: 1 } },
+    bp3: { name: 'Builder Pack III', icon: '🔨', price: '$19.99', queue: 3, r: { gold: 1000, spb180: 2, spb480: 2, crb4: 2 } },
+    // 1.03 test-store Booster Crates, so extra builders can be tested with bought Booster $ (prices PROVISIONAL, about 2x their Coin value)
+    crR: { name: 'Rare Booster Crate', icon: '📦', price: '$0.99', r: { crb2: 1 } }, crE: { name: 'Epic Booster Crate', icon: '📦', price: '$1.99', r: { crb3: 1 } },
+    crL: { name: 'Legendary Booster Crate', icon: '📦', price: '$4.99', r: { crb4: 1 } }
   };
+  C.nextBuilderPack = () => ['bp1', 'bp2', 'bp3'].find(k => !C.acct()['bq' + C.PACKS[k].queue]) || null;
   C.KITS = { classic: ['👕', 'Classic home kit', ''], alt: ['🔄', 'Alternate kit (colours swapped)', '$1.99'], retro: ['📼', 'Retro kit (white with school trim)', '$1.99'] };
   C.kit = () => lo().kit || 'classic';
   C.kitColours = (c1, c2) => C.kit() === 'alt' ? [c2, c1] : C.kit() === 'retro' ? ['#f8fafc', c1] : [c1, c2];
   C.buyPack = id => { const P = C.PACKS[id], L = lo(); if (!P) return false; if (P.once && L.cos.includes(id)) return 'owned';
+    if (P.queue) { const a = C.acct(); if (a['bq' + P.queue]) return 'owned'; if (C.nextBuilderPack() !== id) return 'order'; a['bq' + P.queue] = true; }
     if (P.pass) { passCheck().prem = true; } else C.giveReward(P.r); if (P.once) L.cos.push(id); C.save(); return true; };
   C.buyKit = id => { const L = lo(); if (id !== 'classic' && !L.cos.includes('kit_' + id)) L.cos.push('kit_' + id); L.kit = id; C.save(); };
 

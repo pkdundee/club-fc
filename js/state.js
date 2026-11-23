@@ -1,20 +1,23 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc_v102';   // CLUB FC 1.02: its own save; carries over the 1.01 save on first open (never writes 1.01's)
-  const KEY_PREV = 'clubfc_v101';
+  const KEY = 'clubfc_v103';   // CLUB FC 1.03: its own save; carries over the 1.02 save on first open (never writes 1.02's)
+  const KEY_PREV = 'clubfc_v102';
   const KEY_9T = 'clubfc2_p9t'; // phase-9t's save: read only, never written by 1.00
   const FREE_SLOTS = 2;
 
   // Account-wide: Coins and purchases are shared across careers.
-  const freshAccount = () => ({ gold: 150, vipUntil: 0, slot3: false, tslot3: false, sslot3: false, pslot3: false, sound: false, extraCareer: false, adDay: '', adsUsed: 0, theme: 'auto', testCap: 0 });
+  const freshAccount = () => ({ gold: 150, vipUntil: 0, slot3: false, bq1: false, bq2: false, bq3: false, tslot3: false, sslot3: false, pslot3: false, sound: false, extraCareer: false, adDay: '', adsUsed: 0, theme: 'auto', testCap: 0 });
 
   C.db = { v: 2, account: freshAccount(), careers: [], active: -1 };
 
   C.load = () => {
-    // first open: copy the 1.01 save (and its intro flag) so playtest progress carries over. 1.01's save is only read.
+    // first open: copy the 1.02 save (and its intro flag) so playtest progress carries over. 1.02's save is only read.
     try { if (!localStorage.getItem(KEY)) { const old = localStorage.getItem(KEY_PREV); if (old) { localStorage.setItem(KEY, old); if (localStorage.getItem(KEY_PREV + '_intro')) localStorage.setItem(KEY + '_intro', '1'); } } } catch (e) { }
     try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.v === 2) C.db = d; } } catch (e) { /* storage blocked: play without saving */ }
     C.db.account = Object.assign(freshAccount(), C.db.account);
+    // 1.03 (FEEDBACK 212): the $2.99 build slot becomes Builder Pack I's queue. The bought research slot is withdrawn (FEEDBACK 170):
+    // its test purchase is refunded in Coins once (mailed when a career is open; see meta.js).
+    { const a = C.db.account; if (a.slot3 && !a.bq1) a.bq1 = true; if (a.pslot3 && !a.pslot3Refund) { a.pslot3Refund = 'due'; } }
     C.db.careers.forEach(c => { if (c.job && !c.job.mix) { c.job.rating = { 3: 46, 2: 42, 1: 38 }[c.job.stars] + 1; c.job.mix = [6, 6, 5, 4]; } C.ensureSquad(c);
       // 9c: Video Room and Media Center are new; the Coaches' Office no longer earns
       if (c.b.video == null) c.b.video = 0; if (c.b.media == null) c.b.media = 1; c.store = c.store || {}; if (c.store.media == null) c.store.media = C.now(); delete c.store.hq;

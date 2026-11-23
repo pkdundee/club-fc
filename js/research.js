@@ -38,10 +38,10 @@
   const openSlots = () => C.PBSLOTS.filter(s => C.pbSlotOpen(s.id));
   const slotOf = key => pbq().findIndex(q => q.key === key);
   const nextLv = key => { const { n } = node(key); return `${Math.min(n[3], C.pbLv(key) + 1)}/${n[3]}`; };
-  C.pbSlotsHTML = () => { const q = pbq(), n = Math.max(2, openSlots().length);
+  C.pbSlotsHTML = () => { const q = pbq(), n = Math.max(2, openSlots().length, q.length);   // 1.03: research from a withdrawn slot still shows until it ends
     const tile = key => `<span class="pbtile">${tileSVG}${key ? `<span class="art">${node(key).B[1]}</span><span class="cnt">${nextLv(key)}</span>` : ''}</span>`;
     const out = []; for (let i = 0; i < n; i++) { const r = q[i], tw = k => `<span class="pbtw">${tile(k)}${hn(i)}</span>`;
-      if (i >= openSlots().length) { out.push(`<button class="pbslot2" data-act="pbslot" data-v="prog">${tw(null)}<span class="msg lock">Locked until Performance Lab Lv 10</span></button>`); continue; }
+      if (i >= openSlots().length && !r) { out.push(`<button class="pbslot2" data-act="pbslot" data-v="prog">${tw(null)}<span class="msg lock">Locked until Performance Lab Lv 10</span></button>`); continue; }
       if (!r) { out.push(`<button class="pbslot2" data-act="pbrec">${tw(null)}<span class="msg">Idle</span></button>`); continue; }
       if (r.end <= C.now()) { out.push(`<div class="pbslot2">${tw(r.key)}<button class="cbtn" data-act="pbdone" data-v="${r.key}">Completed</button></div>`); continue; }
       const f = Math.max(0, Math.min(1, 1 - C.remaining(r) / ((r.end - r.start) / 1000)));
