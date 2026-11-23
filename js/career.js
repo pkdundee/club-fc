@@ -12,22 +12,21 @@
   C.rep = (car = C.car()) => Math.round(C.clamp(car.rep ?? 10, 0, 100));
   C.programLevel = (car = C.car()) => Math.round(PROGRAM.reduce((s, k) => s + car.b[k], 0) / PROGRAM.length * 10) / 10;
   C.band = (car = C.car()) => car.band ?? 0;
-  C.tierLabel = (car = C.car()) => `${C.TIERS[car.tier].n} · ${C.BANDS[C.band(car)]}`;
+  C.tierLabel = (car = C.car()) => `${C.TIERS[car.tier].n} · ${C.TIERS[car.tier].name}`;   // 1.04: no bands
   // reclassification: what your own college needs to move up a division
   C.reclassReqs = (car = C.car()) => {
     const cap = C.TIERS[car.tier].cap, S = car.sea;
     return [['🏛', `Coaches' Office Lv ${cap}`, car.b.hq >= cap], ['🏟', `Stadium Lv ${Math.max(3, cap - 1)}`, car.b.stadium >= Math.max(3, cap - 1)], ['🏠', `Dorms Lv ${Math.max(3, cap - 1)}`, car.b.dorms >= Math.max(3, cap - 1)],
       ['🏆', 'A top-2 finish', (car.best || 9) <= 2], ['🏛', 'Director confidence 60+', (car.adConf ?? 50) >= 60]];
   };
-  C.canReclass = (car = C.car()) => car.tier > 1 && !car.reclass && C.reclassReqs(car).every(r => r[2]);
+  C.canReclass = () => false;   // 1.04: reclassification removed
 
   // ---------- season end: reputation, offers (called from finishSeason) ----------
   C.careerSeasonEnd = () => {
     const car = C.car(), S = car.sea, e = S.end; if (!e || S.offersMade) return; S.offersMade = 1;
     car.rep = C.clamp((car.rep ?? 10) + (e.met ? 10 : -8) + (e.champ ? 15 : e.final ? 6 : 0) + Math.min(6, C.programLevel() - 2), 0, 100);
     car.best = Math.min(car.best || 9, e.pos);
-    if (car.reclass && car.reclass.season === S.n) { car.reclass.done = true; }
-    car.offers = makeOffers(car);
+    car.offers = [];   // 1.04 (FEEDBACK 108): no job offers, bands or reclassification; promotion comes from results and the HQ (season.js)
   };
   function makeOffers(car) {
     const r = C.rng((car.created & 0xffff) * 31 + car.season * 7), rep = C.rep(car), pl = C.programLevel(car), out = [];
@@ -100,10 +99,14 @@
       <button class="btn full pri" data-act="domove" data-v="${idx}" style="margin-top:12px">🚚 Move to ${C.esc(c.short)} (${invite.length} invited)</button>`; }); };
 
   // career panel for the AD office / season end
+  // 1.04 (SCOPE_1.04 s1-s2): the career card shows your tier and what promotion needs
   C.careerCardHTML = () => {
-    const car = C.car(), reqs = C.reclassReqs(car);
-    return `<div class="card career"><div class="srow"><span>Tier</span><b>${C.tierLabel(car)}</b></div><div class="srow"><span>Reputation</span><b>${C.rep()} / 100</b></div><div class="srow"><span>Program level</span><b>${C.programLevel()}</b></div>${car.loyal ? `<div class="srow"><span>Loyalty</span><b>${'❤️'.repeat(Math.min(5, car.loyal))}</b></div>` : ''}
-      ${car.tier > 1 ? `<h4 class="rch">Move ${C.esc(C.college().short)} up a division</h4>${reqs.map(r => `<div class="cr2 ${r[2] ? 'ok' : ''}">${r[2] ? '✔' : '○'} ${r[0]} ${r[1]}</div>`).join('')}
-        ${car.reclass ? `<p class="note">${car.reclass.done ? '✔ Transition season complete: the step up happens when the next season starts.' : `🔁 Transition season ${car.reclass.season}: no postseason, then ${C.TIERS[car.tier - 1].n}.`}</p>` : `<button class="btn full ${C.canReclass() ? 'pri' : 'sec2'}" data-act="reclass" ${C.canReclass() ? '' : 'disabled'} style="margin-top:8px">Apply to reclassify</button>`}` : ''}</div>`;
+    const car = C.car(), up = car.tier > 1 ? car.tier - 1 : null, need = up ? C.TIER_GATE[up] : null, ok = up ? C.hqOkFor(up) : false;
+    return `<div class="card career"><div class="srow"><span>Tier</span><b>${C.tierLabel(car)}</b></div><div class="srow"><span>Reputation</span><b>${C.rep()} / 100</b></div>
+      ${up ? `<h4 class="rch">Promotion to ${C.esc(C.TIERS[up].name)}</h4>
+        <div class="cr2 ${ok ? 'ok' : ''}">${ok ? '✔' : '○'} ${C.BUILDINGS.hq.name} Lv ${need} (now Lv ${C.level('hq')})</div>
+        <div class="cr2">○ Finish 1st or 2nd, or win the 3rd v 4th play-off</div>
+        <p class="note">Without the ${C.BUILDINGS.hq.name} level there's no promotion that season, and the result isn't saved for later. You're never relegated.</p>`
+      : '<p class="note">You are in the top college tier. Going pro comes in a later update.</p>'}</div>`;
   };
 })(window.CFC);

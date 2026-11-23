@@ -165,7 +165,7 @@
     const S = C.sea(), f = C.myFixture();
     if (!f) return `<div class="gameday"><span class="gdc">🏆</span><div class="vs"><div><small>SEASON ${S.n} · ${S.end ? 'FINISHED ' + C.ord(S.end.pos).toUpperCase() : 'WAITING'}</small>${S.end && S.end.champ ? 'Conference champions!' : 'Season review'}</div></div><button class="go" data-act="tab" data-v="season">Review</button></div>`;
     const opp = S.teams[f.h === 0 ? f.a : f.h], xi = C.tac().xi.map(C.P).filter(Boolean), e = Math.round(xi.reduce((s, p) => s + p.energy, 0) / (xi.length || 1));
-    return `<div class="gameday">${C.crestSVG(opp.c1, opp.c2, opp.abbr.slice(0, 2), 34)}<div class="vs"><div><small>${f.md === 0 ? 'HOMECOMING' : f.md <= 14 ? 'MATCH ' + f.md + ' OF 14' : f.md === 15 ? 'SEMI-FINAL' : 'FINAL'} · ${f.h === 0 ? 'HOME' : 'AWAY'} · 🔋 ${e}%</small>vs ${C.esc(opp.name)}</div></div><button class="gotac" data-act="tactics" aria-label="Tactics"><i class="xoi"></i></button><button class="go" data-act="prematch">▶ Play</button></div>`;
+    return `<div class="gameday">${C.crestSVG(opp.c1, opp.c2, opp.abbr.slice(0, 2), 34)}<div class="vs"><div><small>${C.fxLabel(f).up} · ${f.n ? 'NEUTRAL' : f.h === 0 ? 'HOME' : 'AWAY'} · 🔋 ${e}%</small>vs ${C.esc(opp.name)}</div></div><button class="gotac" data-act="tactics" aria-label="Tactics"><i class="xoi"></i></button><button class="go" data-act="prematch">▶ Play</button></div>`;
   }
 
   let dragged = false;

@@ -223,7 +223,7 @@
       if (o && (o.has1 || o.has2)) { const T = THEMES[o.idx % THEMES.length], got = {}; const add = r => { for (const k in r) got[k] = (got[k] || 0) + r[k]; }; for (let i = 0; i < EV_DAYS; i++) { if (o.has1 && !o.p1.includes(i)) add(T.p1(i)); if (o.has2 && !o.p2.includes(i)) add(T.p2(i)); } if (Object.keys(got).length) C.mail('rewards', T.icon, `${T.name}: your uncollected rewards`, 'Your premium rewards from the event that just ended.', got); }
       M.evx = { idx: E.idx, from: E.today, f: [], p1: [], p2: [], has1: false, has2: false }; } return M.evx; };
   const trackOf = (th, tr, i) => tr === 'f' ? th.free(i) : tr === 'p1' ? th.p1(i) : th.p2(i);
-  C.evCanClaim = (tr, i) => { const X = C.evx(), E = C.curEvent(); if (X[tr].includes(i)) return false; if (tr === 'f') return i === E.today; if (i > E.today) return false; return tr === 'p1' ? X.has1 : X.has2; };
+  C.evCanClaim = (tr, i) => { const X = C.evx(), E = C.curEvent(); if (X[tr].includes(i)) return false; if (tr === 'f') return i === E.today || (!!X.has1 && i < E.today && i >= (X.from || 0)); /* 1.04 (QA-28): Advanced unlocks missed free days */ if (i > E.today) return false; return tr === 'p1' ? X.has1 : X.has2; };
   C.evClaim = (tr, i) => { if (!C.evCanClaim(tr, i)) return null; const X = C.evx(), r = trackOf(C.curEvent().th, tr, i); X[tr].push(i); C.giveReward(r); return r; };
   C.evClaimAll = () => { const E = C.curEvent(), got = {}; for (let i = 0; i <= E.today; i++) for (const tr of ['f', 'p1', 'p2']) { const r = C.evClaim(tr, i); if (r) for (const k in r) got[k] = (got[k] || 0) + r[k]; } return Object.keys(got).length ? got : null; };
   C.evClaimable = () => { const E = C.curEvent(); let n = 0; for (let i = 0; i <= E.today; i++) for (const tr of ['f', 'p1', 'p2']) if (C.evCanClaim(tr, i)) n++; return n; };
@@ -427,17 +427,34 @@
   const oDeal = C.buyDeal; C.buyDeal = () => { const r = oDeal(); if (r === true) receipt(C.todayDeal().name, C.todayDeal().r); return r; };
 
   // ================= pre-season (round 5): recruit, build and hire before the first match =================
-  C.PRE_MIN = 22;   // the starting roster is 21: sign at least one recruit before the season
+  C.PRE_MIN = 22;   // 22 players to start the season
+  // 1.04 (SCOPE_1.04 s6; FEEDBACK 205, 224): a new career's Pre-season tasks, all needed before Start Season.
+  // Later seasons: Pre-season is the 5 friendlies only. [id, icon, text, done(car), act, value]
+  const PRE = [
+    ['bhq', '🏛', "Build the Coaches' Office", c => c.b.hq >= 1, 'dgo', 'hq'],
+    ['bcamp', '🏗', 'Build your 7 starting buildings', c => ['stadium', 'training', 'med', 'lab', 'recruit', 'media', 'dorms'].every(k => c.b[k] >= 1), 'tab', 'campus'],
+    ['hq5', '🏛', "Upgrade the Coaches' Office to Lv 5", c => c.b.hq >= 5, 'dgo', 'hq'],
+    ['research', '📋', 'Start Playbook research', c => (meta().ms.research || 0) >= 1, 'playbook', ''],
+    ['coach2', '🧢', 'Hire 2 coaches', c => (C.staffState().list || []).length >= 2, 'tab', 'staff'],
+    ['squadrev', '👀', 'Review your squad', c => !!meta().ms.squadview, 'tab', 'squad'],
+    ['offer', '✉️', 'Make a scholarship offer to a recruit', c => (meta().ms.offers || 0) >= 1, 'tab', 'recruit'],
+    ['roster', '👕', 'Sign to 22 with every position covered', c => c.squad.length >= C.PRE_MIN && C.coverageOK(c), 'tab', 'recruit'],
+    ['lineup', '📋', 'Set your line-up', c => !!meta().ms.lineup, 'tactics', ''],
+    ['friendlies', '⚽', 'Play the 5 pre-season friendlies', c => C.friendliesLeft(c) === 0, 'prematch', '']];
+  const preList = car => car.season > 1 || car.preLite ? PRE.filter(t => t[0] === 'friendlies') : PRE;
+  C.preTasksLeft = () => { const car = C.car(); return preList(car).filter(t => !t[3](car)).length; };
+  const preReady = car => preList(car).every(t => t[3](car)) && (car.season > 1 || car.preLite || ((C.staffState().list || []).length >= 2 && car.squad.length >= C.PRE_MIN && C.coverageOK(car)));
   C.openPreseason = () => C.ui.open('Pre-season', () => {
-    const car = C.car(), n = car.squad.length, coach = (C.staffState().list || []).length >= 1, ok = n >= C.PRE_MIN && coach, steps = MAIN.slice(0, 8), cap = C.rosterCap(car), left = Math.max(0, cap - n);
-    return `<div class="card prehd3"><b>🗓 Pre-season</b><p>Real college programs finish recruiting before the season starts: by then almost nobody has a roster spot left. Use pre-season to hire your staff, build your campus and fill your roster. Player training starts with the season.</p></div>
-      <div class="card">${steps.map(t => { const done = meta().main.includes(t[0]) || t[3](car); return `<div class="pstep ${done ? 'done' : ''}"><span>${done ? '✔' : t[1]}</span><b>${C.esc(t[2])}</b>${done ? '' : `<button class="btn sm2 go" data-act="${t[5]}" data-v="${t[6]}">Go</button>`}</div>`; }).join('')}</div>
-      <div class="card preroster"><div class="srow"><span>👕 Roster</span><b class="${n >= C.PRE_MIN ? '' : 'short'}">${n} players · ${C.PRE_MIN} needed</b></div><div class="srow"><span>Places left</span><b>${left} (up to ${cap})</b></div>${car.job.eq ? `<div class="srow"><span>🎓 Scholarships left</span><b>${C.money(C.poolLeft())}</b></div>` : ''}<p class="note" style="margin:4px 0 0">${C.PRE_MIN} is the minimum to start. ${left ? 'You can sign more, up to the Dorms limit.' : 'The roster is full: upgrade the Dorms for more places.'}</p></div>
-      <button class="btn full ${ok ? 'pri' : 'sec2'}" data-act="startseason" ${ok ? '' : 'disabled'}>${ok ? '🏁 Start the season' : !coach ? 'Hire an assistant coach to start' : `Sign ${C.PRE_MIN - n} more player${C.PRE_MIN - n > 1 ? 's' : ''} to start`}</button>
-      <p class="note">${ok ? 'Once the season starts, matches open and training plans begin.' : 'Not enough players? Walk-on tryouts fill the gaps if you start short later on.'}</p>`;
+    const car = C.car(), n = car.squad.length, ok = preReady(car), cap = C.rosterCap(car), left = Math.max(0, cap - n), cv = C.coverage(car), first = !(car.season > 1 || car.preLite);
+    const cov = Object.keys(C.COVER).map(k => `<span class="${cv[k] >= C.COVER[k] ? '' : 'short'}">${({ gk: 'GK', def: 'DEF', mid: 'MID', fwd: 'FWD' })[k]} ${cv[k]}/${C.COVER[k]}</span>`).join(' · ');
+    return `<div class="card prehd3"><b>🗓 Pre-season · Season ${car.season}</b><p>${first ? 'Build your campus, hire your staff, fill your roster, then play 5 friendlies. Every task is needed before the season starts. Player training starts with the season.' : 'Five friendlies to get ready, then the season starts. Friendlies don\'t count in the table and don\'t tire or injure anyone.'}</p></div>
+      <div class="card">${preList(car).map(t => { const done = t[3](car); return `<div class="pstep ${done ? 'done' : ''}"><span>${done ? '✔' : t[1]}</span><b>${C.esc(t[2])}${t[0] === 'friendlies' && !done ? ` (${5 - C.friendliesLeft(car)}/5)` : ''}</b>${done ? '' : `<button class="btn sm2 go" data-act="${t[4]}" data-v="${t[5]}">Go</button>`}</div>`; }).join('')}</div>
+      ${C.friendliesLeft(car) ? `<button class="btn full sec2" data-act="simfr">⏩ Simulate the remaining friendlies</button>` : ''}
+      ${first ? `<div class="card preroster"><div class="srow"><span>👕 Roster</span><b class="${n >= C.PRE_MIN ? '' : 'short'}">${n} players · ${C.PRE_MIN} needed</b></div><div class="srow"><span>Positions</span><b class="covl">${cov}</b></div><div class="srow"><span>Places left</span><b>${left} (up to ${cap})</b></div>${car.job.eq ? `<div class="srow"><span>🎓 Scholarships left</span><b>${C.money(C.poolLeft())}</b></div>` : ''}</div>` : ''}
+      <button class="btn full ${ok ? 'pri' : 'sec2'}" data-act="startseason" ${ok ? '' : 'disabled'}>${ok ? '🏁 Start the season' : `Finish the pre-season tasks to start (${C.preTasksLeft()} left)`}</button>`;
   });
-  // 1.02 (FEEDBACK 156.4): a readiness check before the season starts. Advice only: it never blocks (the 1.01 rule stands: 22 players and a coach).
-  C.preTasksLeft = () => { const car = C.car(); return MAIN.slice(0, 8).filter(t => !(meta().main.includes(t[0]) || t[3](car))).length; };
+  A.simfr = () => { C.simFriendlies(); C.toast('⚽ Friendlies simulated'); C.ui.refresh(); C.render(); };
+  // 1.02 (FEEDBACK 156.4): a readiness check before the season starts. Advice only.
   C.readiness = () => { const car = C.car(), out = [], cap = C.rosterCap(car), n = car.squad.length;
     if (cap > n) out.push(['👕', `${cap - n} roster place${cap - n > 1 ? 's' : ''} left`, 'tab', 'recruit']);
     if (car.job.eq && C.poolLeft() > 0) out.push(['🎓', `${C.money(C.poolLeft())} of scholarships unspent`, 'tab', 'recruit']);
@@ -445,17 +462,19 @@
     if (C.freeSlot() && (nb || up)) out.push(['🔨', nb ? `A builder is free: build the ${C.BUILDINGS[nb].name}` : `A builder is free: upgrade the ${C.BUILDINGS[up].name}`, 'dgo', nb || up]);
     if (C.pbRunning() < C.pbSlots()) out.push(['📋', `${C.pbSlots() - C.pbRunning()} research slot${C.pbSlots() - C.pbRunning() > 1 ? 's' : ''} free`, 'playbook', '']);
     const rw = C.loClaimable() + meta().inbox.filter(x => x.r && !x.claimed).length; if (rw) out.push(['🎁', `${rw} reward${rw > 1 ? 's' : ''} to claim`, C.msClaimable() ? 'nexttask' : C.evOnlyClaimable() ? 'events' : 'inbox', '']);
-    const tl = C.preTasksLeft(); if (tl) out.push(['🗓', `${tl} pre-season task${tl > 1 ? 's' : ''} not done`, 'preseason', '']);
     return out; };
-  A.startseason = () => { const car = C.car(); if (car.squad.length < C.PRE_MIN || !(C.staffState().list || []).length) return; const list = C.readiness();
+  A.startseason = () => { const car = C.car(); if (!preReady(car)) return C.openPreseason(); const list = C.readiness();
     C.ui.open('Ready for the season?', () => `${list.length ? `<p class="note" style="margin-top:0">You can still do these before your first match:</p>${list.map(([ic, txt, act, v]) => `<div class="pstep"><span>${ic}</span><b>${txt}</b><button class="btn sm2 go" data-act="${act}" data-v="${v}">Go</button></div>`).join('')}` : '<p class="note" style="margin-top:0">Everything is ready.</p>'}
-      <p class="note">Once the season starts, matches open and training plans begin. Pre-season can't be reopened.</p><div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Not yet</button><button class="btn pri" data-act="startseasonok">🏁 Start the season</button></div>`, { popup: true }); };
-  A.startseasonok = () => { const car = C.car(); if (car.squad.length < C.PRE_MIN || !(C.staffState().list || []).length) return; car.pre = false; C.mail('director', '🏁', 'The season is under way', 'Good luck out there, Coach.', null); C.save(); C.ui.closeAll(); C.toast('🏁 The season has started!'); C.render(); };
-  // matches and player training wait for the season
-  const oPre = C.openPreMatch; C.openPreMatch = () => { const car = C.car(); if (car && car.pre) return C.openPreseason(); return oPre(); };
+      <p class="note">Once the season starts, league matches open and training plans begin.</p><div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Not yet</button><button class="btn pri" data-act="startseasonok">🏁 Start the season</button></div>`, { popup: true }); };
+  A.startseasonok = () => { const car = C.car(); if (!preReady(car)) return; car.pre = false; if (C.releaseBatch) C.releaseBatch(); if (car.sea && car.sea.md < 1) car.sea.md = 1;
+    C.mail('director', '🏁', 'The season is under way', 'Good luck out there, Coach.', null); C.save(); C.ui.closeAll(); C.toast('🏁 The season has started!'); C.render(); };
+  // matches wait for the season, except the friendlies; player training waits too
+  const oPre = C.openPreMatch; C.openPreMatch = () => { const car = C.car(); if (car && car.pre) { if (C.friendliesLeft(car) && C.myFixture()) return oPre(); return C.openPreseason(); } return oPre(); };
   const oPlan = C.startPlan; C.startPlan = (...a) => { const car = C.car(); if (car && car.pre) return 'pre'; const r = oPlan(...a); if (r === true) { meta().ms.train = (meta().ms.train || 0) + 1; C.dailyEvent('train'); } return r; };
   const oGameday = C.gamedayHTML; C.gamedayHTML = () => { const car = C.car(); if (!car || !car.pre) return oGameday();
-    const n = car.squad.length; return `<div class="gameday pre"><span class="gdc">🗓</span><div class="vs"><div><small>PRE-SEASON · ROSTER ${n}/${C.PRE_MIN}</small>Build your program</div></div><button class="go" data-act="preseason">${C.preTasksLeft() ? `See tasks (${C.preTasksLeft()} left)` : n >= C.PRE_MIN && (C.staffState().list || []).length ? '🏁 Start the season' : 'See tasks'}</button></div>`; };
+    if (C.friendliesLeft(car) && C.myFixture()) return oGameday();
+    const n = car.squad.length; return `<div class="gameday pre"><span class="gdc">🗓</span><div class="vs"><div><small>PRE-SEASON · SEASON ${car.season}</small>${car.season > 1 || car.preLite ? 'Ready for the season' : 'Build your program'}</div></div><button class="go" data-act="preseason">${C.preTasksLeft() ? `See tasks (${C.preTasksLeft()} left)` : '🏁 Start the season'}</button></div>`; };
+  const oTac = C.openTactics; C.openTactics = (...a) => { if (C.car()) meta().ms.lineup = 1; return oTac(...a); };   // 1.04: "Set your line-up"
   // a brand-new career starts in pre-season (older saves are already mid-season)
   const oNew = C.newCareer; C.newCareer = o => { const car = oNew(o); car.pre = true; C.save(); return car; };
 

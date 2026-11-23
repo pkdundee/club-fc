@@ -73,7 +73,7 @@
 
   // ================= pre-match (Q20a) =================
   const host = () => C.$('#matchv');
-  const label = f => f.md === 0 ? 'Homecoming friendly' : f.md <= 14 ? `Conference · Match ${f.md}` : f.md === 15 ? 'Conference semi-final' : 'Conference final';
+  const label = f => C.fxLabel(f).long;   // 1.04: friendlies, 14/18/22 matches, the play-off
   C.openPreMatch = () => {
     const f = C.myFixture(); if (!f) return C.toast('No match to play');
     const rot = C.autoRotate(); if (rot) C.toast(`🔄 Auto-manage rested ${rot} tired player${rot > 1 ? 's' : ''}`);
@@ -83,7 +83,7 @@
     M.att = C.attendance(f); M.locals = t.xi.map(C.P).filter(p => p && C.isLocal(p)).length;
     C.ui.closeAll(); drawPre(); countdown();
   };
-  function teamPair() { const me = C.myTeam(M.my === 0), A = M.my === 0 ? me : M.opp, B = M.my === 0 ? M.opp : me; A.home = true; B.home = false; return [A, B]; }
+  function teamPair() { const me = C.myTeam(M.my === 0), A = M.my === 0 ? me : M.opp, B = M.my === 0 ? M.opp : me; A.home = !(M.f && M.f.n); B.home = false; return [A, B]; }   // 1.04: the play-off is on neutral ground
   function drawPre() {
     const car = C.car(), f = M.f, t = C.tac(), S = C.sea(), oppT = S.teams[M.my === 0 ? f.a : f.h], col = C.college(), w = C.WEATHER[f.wx];
     const avgE = Math.round(t.xi.map(C.P).reduce((s, p) => s + p.energy, 0) / 11);

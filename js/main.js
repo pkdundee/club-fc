@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.03.01 · 23 Nov 2026';
+  C.BUILD = 'CLUB FC 1.04 · 23 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -43,7 +43,7 @@
     if (C.drawerOpen && a !== 'drawer' && a !== 'drawertab') { C.drawerOpen = false; const d = C.$('.drawer'); if (d) d.remove(); }   // any action from the drawer closes it
     if (C.ACTS[a]) return C.ACTS[a](v, el);   // actions registered by later modules (meta.js)
     switch (a) {
-      case 'tab': C.tab = v; C.selB = null; C.ui.closeAll(); C.render(); break;
+      case 'tab': if (v === 'squad' && C.car() && C.meta) C.meta().ms.squadview = 1; C.tab = v; C.selB = null; C.ui.closeAll(); C.render(); break;
       case 'proginfo': C.openProgramInfo(); break;
       case 'back': C.ui.back(); break;
       case 'close': C.ui.closeAll(); if (C.car() && C.tab === 'campus') C.render(); break;
@@ -69,7 +69,7 @@
       case 'slotinfo': { const s = C.SLOTS.find(x => x.id === v); C.toast(`🔒 ${s.name}: ${s.why}`); C.openStoreAt ? C.openStoreAt('items') : C.openStore(); break; }
       // careers
       case 'careers': C.openCareers(); break;
-      case 'newcar': if (!C.car() && !C.introSeen()) C.openIntro(() => C.openMarket(true)); else C.openMarket(C.ui.isOpen()); break;
+      case 'newcar': if (!C.car() && !C.introSeen()) C.openIntro(() => C.openProgram()); else C.openProgram(); break;   // 1.04: Your program replaces the job market
       case 'intronext': C.introNext(); break;
       case 'introskip': C.introDone(); break;
       case 'replayintro': C.openIntro(); break;
@@ -224,7 +224,7 @@
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
       case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Coins and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
       case 'wipeyes': C.wipe(); location.reload(); break;
-      case 'imp9t': C.ui.open('Import 9t save', () => `<p class="note" style="font-size:14px">Copies your phase-9t save into CLUB FC 1.03 for testing. <b>Your 9t save is not changed.</b> It replaces everything currently saved in 1.02, and can be done once (again only after Delete all data).</p><button class="btn full pri" data-act="imp9tyes">Import the 9t save</button>`, { popup: true }); break;
+      case 'imp9t': C.ui.open('Import 9t save', () => `<p class="note" style="font-size:14px">Copies your phase-9t save into CLUB FC 1.04 for testing. <b>Your 9t save is not changed.</b> It replaces everything currently saved in 1.02, and can be done once (again only after Delete all data).</p><button class="btn full pri" data-act="imp9tyes">Import the 9t save</button>`, { popup: true }); break;
       case 'imp9tyes': { const r = C.import9t(); if (r === true) location.reload(); else C.toast(r === 'none' ? 'No phase-9t save on this device' : r === 'done' ? 'Already imported' : 'Import failed'); break; }
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();
@@ -239,10 +239,11 @@
     }
   }
 
+  C.welcome = () => welcome();
   function welcome() {
     const col = C.college();
     C.ui.open('Welcome', () => `<div class="scenebn">${C.artSlot('arrival', C.sceneArrival(col.c1, col.c2))}</div><div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(col.full)}</b><br><small style="color:var(--mute);font-weight:800">${C.esc(col.mascot)} · ${col.state} · Tier 5</small></div></div>
-      <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Welcome, Coach. ${C.esc(C.STORIES[C.car().job.story].title)}.<br><br>🏛 Start with your Coaches' Office: tap the green badge on its plot to build it. Then the rest of your campus follows, one tap each.<br>💵 Tap the bubbles to collect Booster $ and <i class="cpi"></i> Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
+      <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Welcome to ${C.esc(col.full)}, Coach. I'm your Athletic Director. We start as an entry college with a squad of 16, so recruiting comes first.<br><br>🏛 Start with your Coaches' Office: tap the green badge on its plot to build it. Then the rest of your campus follows, one tap each.<br>💵 Tap the bubbles to collect Booster $ and <i class="cpi"></i> Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
       <button class="btn full pri" data-act="prefirst">See your pre-season plan</button>`);
   }
 

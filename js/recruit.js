@@ -24,7 +24,7 @@
   const rivals = () => C.COLLEGES.filter(c => c.id !== C.car().college && Math.abs(c.tier - C.car().tier) <= 1).map(c => c.short);
 
   // ---------- generation ----------
-  function genRecruit(r, src, sub) {
+  function genRecruit(r, src, sub, posFix) {
     const car = C.car(), j = car.job, lvR = C.level('recruit');
     let year = 1, base = j.rating - 7 + r() * 10 + lvR * .6, rar = r() < .05 + lvR * .01 ? (r() < .2 ? 2 : 1) : 0, pool, from = '';
     if (src === 'camp') base += 2;
@@ -36,7 +36,7 @@
       else { year = 2 + Math.floor(r() * 2); base = j.rating - 2 + r() * 6; from = rivals()[Math.floor(r() * rivals().length)]; }
     }
     if (isJC() && year > 2) year = 2;
-    const pos = POSLIST[Math.floor(r() * POSLIST.length)];
+    const pos = posFix || POSLIST[Math.floor(r() * POSLIST.length)];
     const p = C.genPlayer(r, { gender: car.gender, pos, rating: Math.round(base), rar, year, pool });
     const rel = p.rating - j.rating;
     let ask = isAcad() ? C.clamp(.08 + rel * .01 + r() * .15, .05, .35) : C.clamp(.2 + rel * .035 + rar * .08 + r() * .15 + (year >= 3 ? .05 : 0), .05, 1);
@@ -50,6 +50,12 @@
     if (r() < (src === 'portal' ? .6 : .35)) { p.rival = { c: rivals()[Math.floor(r() * rivals().length)], end: t + (4 + r() * 16) * H }; p.ask = Math.min(1, p.ask + .08); }
     return p;
   }
+  // 1.04: a one-off batch of 12 freshman applications for a new career's Pre-season, with at least 2 defenders and 2 forwards.
+  // While you're in Pre-season they don't expire and have no rivals; at Start Season they become ordinary applications (48 hours).
+  C.genBatch = () => { const R = rec(), r = newRng(), fix = ['CB', 'LB', 'ST', 'LW'];
+    for (let i = 0; i < 12; i++) { const p = genRecruit(r, 'inbox', null, fix[i]); p.year = 1; delete p.exp; delete p.rival; p.batch = 1; R.list.push(p); }
+    R.nextApp = C.now() + appEvery(); C.save(); };
+  C.releaseBatch = () => { const R = rec(), t = C.now(); R.list.forEach(p => { if (p.batch) { delete p.batch; p.exp = t + 48 * H; } }); C.save(); };
   const newRng = () => C.rng((C.now() ^ Math.floor(Math.random() * 1e9)) & 0x7fffffff);
 
   // ---------- clock: new applications, expiries, rivals, the JC list, the portal closing ----------

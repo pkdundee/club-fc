@@ -17,8 +17,8 @@
   C.LICENCE = ['D', 'C', 'B', 'A', 'Pro'];
   const LV_CAP = [20, 30, 40, 50, 60];
   const ODDS = [35, 30, 20, 10, 5], SEARCH_GOLD = 100;
-  C.STAFFSLOTS = [{ id: 'free', name: 'Free slot' }, { id: 'vip', name: "Coach's Club slot", why: "Join the Coach's Club" }, { id: 'iap', name: 'Extra staff slot', why: 'One-off purchase' }, { id: 'prog', name: 'Earned slot', why: "Coaches' Office Lv 8" }];
-  C.staffSlotOpen = id => id === 'free' || (id === 'vip' && C.isVip()) || (id === 'iap' && C.acct().sslot3) || (id === 'prog' && C.level('hq') >= 8);
+  C.STAFFSLOTS = [{ id: 'free', name: 'Free slot' }, { id: 'vip', name: "Coach's Club slot", why: "Join the Coach's Club" }, { id: 'iap', name: 'Extra staff slot', why: 'One-off purchase' }, { id: 'prog', name: 'Earned slot', why: "Coaches' Office Lv 5" }];
+  C.staffSlotOpen = id => id === 'free' || (id === 'vip' && C.isVip()) || (id === 'iap' && C.acct().sslot3) || (id === 'prog' && C.level('hq') >= 5);   // 1.04 (FEEDBACK 224): the earned staff slot opens at HQ 5, so 2 coaches can work from Pre-season
 
   // ---------- state ----------
   const st = () => { const car = C.car(); if (!car.staff) { car.staff = { list: [ray()], on: ['ray'], market: [], mNext: 0, items: { manual: 5, credits: 10, books: 2 } }; } return car.staff; };

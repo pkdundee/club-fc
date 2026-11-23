@@ -1,7 +1,7 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc_v103';   // CLUB FC 1.03: its own save; carries over the 1.02 save on first open (never writes 1.02's)
-  const KEY_PREV = 'clubfc_v102';
+  const KEY = 'clubfc_v104';   // CLUB FC 1.04: its own save; carries over the 1.03 save on first open (never writes 1.03's)
+  const KEY_PREV = 'clubfc_v103';
   const KEY_9T = 'clubfc2_p9t'; // phase-9t's save: read only, never written by 1.00
   const FREE_SLOTS = 2;
 
@@ -11,7 +11,7 @@
   C.db = { v: 2, account: freshAccount(), careers: [], active: -1 };
 
   C.load = () => {
-    // first open: copy the 1.02 save (and its intro flag) so playtest progress carries over. 1.02's save is only read.
+    // first open: copy the 1.03 save (and its intro flag) so playtest progress carries over. 1.03's save is only read.
     try { if (!localStorage.getItem(KEY)) { const old = localStorage.getItem(KEY_PREV); if (old) { localStorage.setItem(KEY, old); if (localStorage.getItem(KEY_PREV + '_intro')) localStorage.setItem(KEY + '_intro', '1'); } } } catch (e) { }
     try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.v === 2) C.db = d; } } catch (e) { /* storage blocked: play without saving */ }
     C.db.account = Object.assign(freshAccount(), C.db.account);
@@ -29,7 +29,9 @@
       if (!c.m9q) { c.m9q = 1; for (const k in C.BUILDINGS) { const n = C.BUILDINGS[k].needHQ; if (n && c.b.hq < n && c.b[k] <= 1) { c.b[k] = 0; c.queue = (c.queue || []).filter(q => q.key !== k); } } } for (const k in C.PRODUCERS) if (c.store[k] == null) c.store[k] = C.now();
       if (c.job && c.job.style == null) c.job.style = '';
       c.queue = (c.queue || []).filter(q => C.BUILDINGS[q.key]); (c.squad || []).forEach(C.ensureAlts);
-      if (!c.num9m && c.squad) { C.tidyNumbers(c.squad); c.num9m = 1; } });
+      if (!c.num9m && c.squad) { C.tidyNumbers(c.squad); c.num9m = 1; }
+      if (c.myCol && C.registerCustomCollege) C.registerCustomCollege(c);
+      if (!c.m104) { c.m104 = 1; c.offers = []; delete c.reclass; delete c.band; if (!c.myCol) c.renameFree = true; if (c.pre) c.preLite = 1; } });   // 1.04 (SCOPE_1.04 s8)
   };
   // Delete all data (Settings): leave an empty save in place. Also clears the 9t-import flag, so the import can be tried again after a wipe.
   C.wipe = () => { try { localStorage.setItem(KEY, JSON.stringify({ v: 2, account: freshAccount(), careers: [], active: -1 })); localStorage.removeItem(KEY + '_intro'); localStorage.removeItem(KEY + '_import9t'); } catch (e) { } };
@@ -49,12 +51,13 @@
   C.college = (car = C.car()) => C.COLLEGES[car.college];
 
   // ---- new career ----
-  C.newCareer = ({ coach, pron, job }) => {
+  C.newCareer = ({ coach, pron, job, myCol }) => {
     const t = C.now();
-    const car = { id: 'c' + t, coach, pron, gender: job.gender, college: job.college, tier: 5, created: t,
-      job: { story: job.story, style: job.style, type: job.type, stars: job.stars, coa: job.coa, eq: job.eq, limit: job.limit, pool: job.pool, rating: job.rating, mix: job.mix },
+    const car = { id: 'c' + t, coach, pron, gender: job.gender, college: job.college, tier: 5, created: t, myCol: myCol || undefined,   // 1.04: your own college (program.js)
+      job: { story: job.story, style: job.style, type: job.type, stars: job.stars, coa: job.coa, eq: job.eq, limit: job.limit, pool: job.pool, rating: job.rating, mix: job.mix, squad16: job.squad16 || undefined },
       cash: job.cash, cp: 60, b: Object.assign({}, job.b), queue: [], store: { booster: t, lab: t },
       gameDay: 1, season: 1, realDay: C.todayKey(), seen: {} };
+    if (car.myCol && C.registerCustomCollege) C.registerCustomCollege(car);
     C.db.careers.push(car); C.db.active = C.db.careers.length - 1; C.ensureSquad(car); C.save(); return car;
   };
   C.deleteCareer = i => { C.db.careers.splice(i, 1); if (C.db.active >= C.db.careers.length) C.db.active = C.db.careers.length - 1; C.save(); };

@@ -9,26 +9,50 @@
   const pois = (r, l) => { let k = 0, p = Math.exp(-l), s = p, u = r(); while (u > s && k < 9) { k++; p *= l / k; s += p; } return k; };
 
   // ---------- setup ----------
+  // 1.04 (SCOPE_1.04 s1, s4): your conference. Each tier keeps its conference size in AI colleges, and one of them sits out (the spare)
+  // while you're in it, so no AI college ever moves between tiers. The spare changes only through the faux AI promotion (startNextSeason).
+  C.ensureConf = car => {
+    if (car.conf && car.conf.tier === car.tier) return car.conf;
+    const N = C.CONF_SIZE[car.tier] || 8, r = C.rng(((car.created & 0xffffff) ^ (car.tier * 92821)) >>> 0);
+    let ids = C.COLLEGES.filter(c => c.tier === car.tier && c.id !== car.college).map(c => c.id).map(v => [r(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]).slice(0, N);
+    if (ids.length < N) ids = ids.concat(C.collegesAt(car.tier, [car.college, ...ids]).map(c => c.id).slice(0, N - ids.length));
+    car.conf = { tier: car.tier, ids, out: ids[Math.floor(r() * ids.length)], name: CONF[(car.tier * 3 + (car.created % 97)) % CONF.length] + ' Conference' };
+    return car.conf;
+  };
+  C.hqOkFor = tier => C.level('hq') >= (C.TIER_GATE[tier] || 0);
   C.ensureSeason = (car = C.car()) => {
     if (!car || car.sea) return;
-    const r = C.rng((car.created & 0xffffff) ^ 0x2545f491 ^ (car.season * 7919)), col = C.college(car);
-    const others = C.collegesAt(car.tier, [car.college]).sort(() => r() - .5).slice(0, 7);   // conference rivals come from your tier
+    const r = C.rng((car.created & 0xffffff) ^ 0x2545f491 ^ (car.season * 7919)), col = C.college(car), conf = C.ensureConf(car), N = C.CONF_SIZE[car.tier] || 8;
+    const others = conf.ids.filter(id => id !== conf.out).slice(0, N - 1).map(id => C.COLLEGES[id]);
     const teams = [{ me: 1, col: car.college, name: col.short, abbr: col.abbr, c1: col.c1, c2: col.c2, rating: car.job.rating }]
-      .concat(others.map((c, i) => ({ col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: car.job.rating,   /* parity (9p): every team in the league starts equal */ form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 1 + Math.floor(r() * 3), seed: Math.floor(r() * 1e9) })));
-    // double round robin, circle method
-    const ids = teams.map((_, i) => i), fx = [];
-    for (let rd = 0; rd < 7; rd++) { for (let i = 0; i < 4; i++) { const a = ids[i], b = ids[7 - i]; fx.push({ md: rd + 1, h: rd % 2 ? b : a, a: rd % 2 ? a : b }); } ids.splice(1, 0, ids.pop()); }
-    fx.slice().forEach(f => fx.push({ md: f.md + 7, h: f.a, a: f.h }));
+      .concat(others.map(c => ({ col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: car.job.rating,   /* parity (9p): every team in the league starts equal */ form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 1 + Math.floor(r() * 3), seed: Math.floor(r() * 1e9) })));
+    // double round robin, circle method: 8 teams = 14 matches, 10 = 18, 12 = 22
+    const n = teams.length, R = 2 * (n - 1), ids = teams.map((_, i) => i), fx = [];
+    for (let rd = 0; rd < n - 1; rd++) { for (let i = 0; i < n / 2; i++) { const a = ids[i], b = ids[n - 1 - i]; fx.push({ md: rd + 1, h: rd % 2 ? b : a, a: rd % 2 ? a : b }); } ids.splice(1, 0, ids.pop()); }
+    fx.slice().forEach(f => fx.push({ md: f.md + n - 1, h: f.a, a: f.h }));
     fx.forEach(f => f.wx = Math.floor(r() * 5));
-    car.sea = { n: car.season, conf: CONF[(car.college + car.season) % CONF.length] + ' Conference', teams, fx: fx.sort((a, b) => a.md - b.md), md: 1, phase: 'reg', reports: {}, end: null };
-    if (car.homecoming != null && car.hcDone !== car.season) { const o = C.COLLEGES[car.homecoming];  // Homecoming: a friendly at your old college (Q27)
-      teams.push({ guest: 1, col: o.id, name: o.short, abbr: o.abbr, c1: o.c1, c2: o.c2, rating: Math.round(car.job.rating - 6), form: '4-4-2', ment: 2, seed: Math.floor(r() * 1e9) });
-      car.sea.fx.unshift({ md: 0, h: teams.length - 1, a: 0, friendly: 1, wx: 4 }); car.sea.md = 0; car.hcDone = car.season; }
+    car.sea = { n: car.season, conf: conf.name, R, teams, fx: fx.sort((a, b) => a.md - b.md), md: 1, phase: 'reg', reports: {}, end: null };
+    // 1.04 (SCOPE_1.04 s6): Pre-season = 5 friendlies (matchdays -4 to 0) against colleges from your tier and the tier above
+    if (car.pre) { const pick = (t, k) => C.COLLEGES.filter(c => c.tier === t && c.id !== car.college && !conf.ids.includes(c.id)).concat(C.COLLEGES.filter(c => c.tier === t && conf.ids.includes(c.id) && c.id !== car.college))
+        .map(v => [r(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]).slice(0, k);
+      const up = car.tier > 1 ? car.tier - 1 : car.tier, guests = pick(car.tier, 3).map(c => [c, 0]).concat(pick(up, 2).map(c => [c, up < car.tier ? 4 : 0]));
+      guests.forEach(([c, plus], k) => { teams.push({ guest: 1, col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: car.job.rating + plus, form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 2, seed: Math.floor(r() * 1e9) });
+        car.sea.fx.push({ md: k - 4, h: k % 2 ? teams.length - 1 : 0, a: k % 2 ? 0 : teams.length - 1, friendly: 1, wx: Math.floor(r() * 5) }); });
+      car.sea.fx.sort((a, b) => a.md - b.md); car.sea.md = -4; }
+    if (car.homecoming != null && car.hcDone !== car.season) car.hcDone = car.season;   // 1.04: no job moves, so no homecoming friendly
     if (car.adConf == null) car.adConf = 50;
     car.restAt = car.restAt || C.now();
     C.save();
   };
-  C.sea = () => { C.ensureSeason(); return C.car().sea; };
+  C.friendliesLeft = (car = C.car()) => { if (car && !car.sea) C.ensureSeason(car); const S = car && car.sea;   // 1.04: build the season first, so a new career counts its 5 friendlies
+    return S ? S.fx.filter(f => f.friendly && f.md < 1 && f.hs == null).length : 0; };
+  // labels for a fixture: 'long' for the match screen, 'short' for the calendar strip
+  C.fxLabel = f => { const S = C.sea(), R = S.R || 14;
+    if (f.friendly) return f.md <= 0 && f.md >= -4 ? { long: `Pre-season friendly ${f.md + 5} of 5`, short: 'F' + (f.md + 5), up: `FRIENDLY ${f.md + 5} OF 5` } : { long: 'Friendly', short: 'FR', up: 'FRIENDLY' };
+    if (f.po) return { long: 'Promotion play-off', short: 'PO', up: 'PROMOTION PLAY-OFF' };
+    if (f.ko) return f.md === R + 1 ? { long: 'Conference semi-final', short: 'SF', up: 'SEMI-FINAL' } : { long: 'Conference final', short: 'F', up: 'FINAL' };
+    return { long: `Conference · Match ${f.md}`, short: 'M' + f.md, up: `MATCH ${f.md} OF ${R}` }; };
+  C.sea = () => { C.ensureSeason(); const S = C.car().sea; if (S && !S.R) { S.R = 14; S.legacy = 1; } return S; };   // 1.04: a season begun under 1.03 rules finishes under them
   C.myFixture = () => { const S = C.sea(); return S.fx.find(f => f.md === S.md && (f.h === 0 || f.a === 0) && f.hs == null) || null; };
   C.teamOf = i => C.sea().teams[i];
 
@@ -64,6 +88,7 @@
   C.applyResult = (m, f) => {
     const car = C.car(), S = car.sea, my = f.h === 0 ? 0 : 1, r = C.rng(m.events.length * 977 + S.md);
     f.hs = m.score[0]; f.as = m.score[1]; if (m.pens) f.pens = m.pens;
+    const keep = f.friendly ? car.squad.map(p => [p, p.energy, p.inj, p.injury, p.ban, p.reinj]) : null;   // 1.04 (SCOPE_1.04 s6)
     const rated = C.rateMatch(m), potm = rated[0], mine = rated.filter(x => x.e.side === my);
     const res = Math.sign(m.score[my] - m.score[1 - my]) || (m.pens ? Math.sign(m.pens[my] - m.pens[1 - my]) * .5 : 0);
     const played = new Set(), gains = [], nut = 1 + C.physGrowth(C.eff('nutrition')) / 100, nutMor = C.nutMorale(C.eff('nutrition'));
@@ -96,57 +121,78 @@
     const flu = C.afterMatchMedical(m, my, played, r);
     // money and the AD
     let gate = 0;
-    if (f.h === 0) { gate = Math.round(C.attendance(f) * 3 * (1 + C.pbv('gate'))); car.cash += gate; }
+    const paid = !f.friendly && !f.n;   // 1.04: friendlies and neutral play-offs earn no gate or broadcast money
+    if (f.h === 0 && paid) { gate = Math.round(C.attendance(f) * 3 * (1 + C.pbv('gate'))); car.cash += gate; }
     // Media Center (9p): broadcast money after home matches, and extra Reputation for every win
-    const bc = f.h === 0 ? C.broadcastPay(C.eff('media'), res > 0, car.tier) : 0; car.cash += bc;
-    const repUp = res > 0 ? C.WIN_REP * (1 + C.mediaRep(C.eff('media')) / 100) : 0; if (repUp) car.rep = C.clamp((car.rep ?? 10) + repUp, 0, 100);
-    const staffUps = C.staffAfterMatch(res); car.cp += res > 0 ? 15 : res === 0 ? 8 : 5;
-    const exp = car.job.stars, conf0 = car.adConf; car.adConf = C.clamp(car.adConf + (res > 0 ? 3 + (exp === 1 ? 1 : 0) : res < 0 ? -3 - (exp === 3 ? 1 : 0) : 0), 0, 100);
+    const bc = f.h === 0 && paid ? C.broadcastPay(C.eff('media'), res > 0, car.tier) : 0; car.cash += bc;
+    const repUp = res > 0 && !f.friendly ? C.WIN_REP * (1 + C.mediaRep(C.eff('media')) / 100) : 0; if (repUp) car.rep = C.clamp((car.rep ?? 10) + repUp, 0, 100);
+    const staffUps = f.friendly ? [] : C.staffAfterMatch(res); if (!f.friendly) car.cp += res > 0 ? 15 : res === 0 ? 8 : 5;
+    const exp = car.job.stars, conf0 = car.adConf; if (!f.friendly) car.adConf = C.clamp(car.adConf + (res > 0 ? 3 + (exp === 1 ? 1 : 0) : res < 0 ? -3 - (exp === 3 ? 1 : 0) : 0), 0, 100);
+    if (keep) keep.forEach(([p, en, inj, injury, ban, reinj]) => { p.energy = en; p.inj = inj; p.injury = injury; p.ban = ban; p.reinj = reinj; });
     // the rest of the matchday
     const rr = C.rng(S.md * 1013 + S.n);
     S.fx.filter(x => x.md === S.md && x !== f && x.hs == null).forEach(x => quickResult(x, rr, x.ko));
     const rep = { md: S.md, h: f.h, a: f.a, hs: f.hs, as: f.as, pens: f.pens, stats: m.st, ev: m.events.filter(e => ['goal', 'red', 'yellow', 'injury', 'penalty'].includes(e.type)).map(e => ({ min: e.min, side: e.side, type: e.type, who: e.who ? e.who.p.fn[0] + '. ' + e.who.p.ln : '' })),
       rated: rated.slice(0, 22).map(x => ({ side: x.e.side, id: x.e.p.id, n: x.e.p.fn[0] + '. ' + x.e.p.ln, pos: x.e.slot.pos, r: x.r, g: x.e.st.g, a: x.e.st.a, mins: Math.round(x.e.st.mins) })), potm: potm ? { side: potm.e.side, n: potm.e.p.fn + ' ' + potm.e.p.ln } : null,
-      gains, gate, bc, repUp, conf: car.adConf - conf0, my, staffUps, flu, injuries: m.ents.filter(e => e.side === my && e.injured).map(e => { const p = C.P(e.p.id); return p && p.injury ? [p.fn[0] + '. ' + p.ln, p.injury.icon, p.injury.name, p.injury.season ? 'season' : p.inj] : null; }).filter(Boolean), cp: res > 0 ? 15 : res === 0 ? 8 : 5, bonus: C.bonusLines() };
+      gains, gate, bc, repUp, conf: car.adConf - conf0, my, staffUps, flu, injuries: m.ents.filter(e => e.side === my && e.injured).map(e => { const p = C.P(e.p.id); return p && p.injury ? [p.fn[0] + '. ' + p.ln, p.injury.icon, p.injury.name, p.injury.season ? 'season' : p.inj] : null; }).filter(Boolean), cp: f.friendly ? 0 : res > 0 ? 15 : res === 0 ? 8 : 5, friendly: !!f.friendly, bonus: C.bonusLines() };
     S.reports[S.md] = rep; car.restAt = C.now();
     advance(); C.save(); return rep;
   };
 
   // ---------- after each matchday ----------
   function advance() {
-    const car = C.car(), S = car.sea; S.md++;
-    if (S.md === ROUNDS + 1 && S.phase === 'reg' && C.isTransition(car)) { S.regPos = C.myPos(); finishSeason(); }
-    else if (S.md === ROUNDS + 1 && S.phase === 'reg') {
-      const t = C.table(), top = t.slice(0, 4).map(x => x.i);
-      S.fx.push({ md: 15, h: top[0], a: top[3], ko: 1, wx: 0 }, { md: 15, h: top[1], a: top[2], ko: 1, wx: 1 }); S.phase = 'tourn'; S.regPos = C.myPos();
-      if (!top.includes(0)) { simKO(); finishSeason(); }
-    } else if (S.md === ROUNDS + 2 && S.phase === 'tourn') {
-      const semis = S.fx.filter(f => f.md === 15), a = winnerOf(semis[0]), b = winnerOf(semis[1]);
-      S.fx.push({ md: 16, h: a, a: b, ko: 1, wx: 2 });
-      if (a !== 0 && b !== 0) { simKO(); finishSeason(); }
-    } else if (S.md === ROUNDS + 3) finishSeason();
+    const car = C.car(), S = car.sea, R = S.R || 14; S.md++;
+    if (S.phase === 'reg' && S.md === R + 1) {
+      if (C.isTransition && C.isTransition(car)) { S.regPos = C.myPos(); return finishSeason(); }
+      const t = C.table(), top = t.slice(0, 4).map(x => x.i); S.regTable = t.map(x => x.i);
+      S.fx.push({ md: R + 1, h: top[0], a: top[3], ko: 1, wx: 0 }, { md: R + 1, h: top[1], a: top[2], ko: 1, wx: 1 }); S.phase = 'tourn'; S.regPos = C.myPos();
+      if (!top.includes(0)) { simKO(); playoff(); }
+    } else if (S.phase === 'tourn' && S.md === R + 2) {
+      const semis = S.fx.filter(f => f.md === R + 1 && f.ko), a = winnerOf(semis[0]), b = winnerOf(semis[1]);
+      S.fx.push({ md: R + 2, h: a, a: b, ko: 1, wx: 2 });
+      if (a !== 0 && b !== 0) { simKO(); playoff(); }
+    } else if (S.phase === 'tourn' && S.md === R + 3) playoff();
+    else if (S.phase === 'po' && S.md >= R + 4) finishSeason();
   }
-  function simKO() { const S = C.sea(), r = C.rng(S.n * 4441); for (let md = S.md; md <= 16; md++) {
-    S.fx.filter(f => f.md === md && f.hs == null).forEach(f => quickResult(f, r, true));
-    if (md === 15 && !S.fx.some(f => f.md === 16)) { const s = S.fx.filter(f => f.md === 15); S.fx.push({ md: 16, h: winnerOf(s[0]), a: winnerOf(s[1]), ko: 1, wx: 2 }); }
-  } S.md = 17; }
+  function simKO() { const S = C.sea(), R = S.R || 14, r = C.rng(S.n * 4441); for (let md = S.md; md <= R + 2; md++) {
+    S.fx.filter(f => f.md === md && f.hs == null && f.ko && !f.po).forEach(f => quickResult(f, r, true));
+    if (md === R + 1 && !S.fx.some(f => f.md === R + 2 && f.ko)) { const s = S.fx.filter(f => f.md === R + 1 && f.ko); S.fx.push({ md: R + 2, h: winnerOf(s[0]), a: winnerOf(s[1]), ko: 1, wx: 2 }); }
+  } S.md = R + 3; }
+  // 1.04 (SCOPE_1.04 s2; FEEDBACK 108, 118, 119): 3rd v 4th, one match on neutral ground, straight to penalties. The winner goes up.
+  // Without the HQ level for the tier above, your play-off is a walkover to the AI side. No play-off at T1 (going pro comes later).
+  function playoff() { const car = C.car(), S = car.sea, R = S.R || 14; S.md = R + 3; S.phase = 'po';
+    if (car.tier <= 1 || S.legacy || !S.regTable) { S.md = R + 4; return finishSeason(); }
+    const f = { md: R + 3, h: S.regTable[2], a: S.regTable[3], ko: 1, po: 1, n: 1, wx: 3 }; S.fx.push(f);
+    if (f.h === 0 || f.a === 0) { if (C.hqOkFor(car.tier - 1)) return;   // you play it
+      const ai = f.h === 0 ? f.a : f.h; f.wo = ai; f.hs = f.h === ai ? 3 : 0; f.as = f.a === ai ? 3 : 0; S.md = R + 4; return finishSeason(); }
+    quickResult(f, C.rng(S.n * 733), true); S.md = R + 4; finishSeason(); }
   function finishSeason() {
-    const car = C.car(), S = car.sea; if (S.end) return;
-    const fin = S.fx.find(f => f.md === 16), champ = fin && fin.hs != null ? winnerOf(fin) : null;
+    const car = C.car(), S = car.sea, R = S.R || 14; if (S.end) return;
+    const fin = S.fx.find(f => f.md === R + 2 && f.ko && !f.po), champ = fin && fin.hs != null ? winnerOf(fin) : null, po = S.fx.find(f => f.po);
     const pos = S.regPos || C.myPos(), st = { pos, final: !!(fin && (fin.h === 0 || fin.a === 0)), champ: champ === 0 };
-    const goal = GOALS[car.job.stars], met = C.isTransition(car) ? pos <= 4 : goal[1](st);
+    const goal = GOALS[car.job.stars], met = C.isTransition && C.isTransition(car) ? pos <= 4 : goal[1](st);
     car.adConf = C.clamp(car.adConf + (met ? 15 : -15) + (st.champ ? 10 : 0), 0, 100);
     // prize money from the Director (ECONOMY.md): goal met, conference final, champions
     const k = 6 - car.tier, prize = (met ? 5000 * k : 0) + (st.final ? 3000 * k : 0) + (st.champ ? 8000 * k : 0); car.cash += prize;
-    S.end = { pos, met, champ: st.champ, final: st.final, champName: champ != null ? S.teams[champ].name : '', prize };
-    S.phase = 'done'; S.md = 17;
+    // 1.04: promotion. 1st or 2nd go up with the HQ level for the tier above; 3rd or 4th through the play-off. Not banked; no relegation.
+    let promo = false, why = '';
+    if (car.tier > 1 && !S.legacy) { const ok = C.hqOkFor(car.tier - 1);
+      if (pos <= 2) { promo = ok; if (!ok) why = 'hq'; }
+      else if (po && (po.h === 0 || po.a === 0)) { if (po.wo != null) why = 'hq'; else { promo = winnerOf(po) === 0; why = promo ? '' : 'playoff'; } } }
+    // the AI college shown as promoted (faux, SCOPE_1.04 s4): the best-placed AI in the top 2, otherwise an AI play-off winner
+    let aiUp = null; if (car.tier > 1 && !S.legacy && S.regTable) { const c = S.regTable.slice(0, 2).find(i => i !== 0); aiUp = c != null ? c : po && po.hs != null && winnerOf(po) !== 0 ? winnerOf(po) : null; }
+    S.end = { pos, met, champ: st.champ, final: st.final, champName: champ != null ? S.teams[champ].name : '', prize, promo, why, aiUp: aiUp != null ? S.teams[aiUp].col : null, aiUpName: aiUp != null ? S.teams[aiUp].name : '', toTier: promo ? car.tier - 1 : null };
+    S.phase = 'done'; S.md = R + 5;
     if (!C.portalOpen()) C.openPortalWindow();
     C.careerSeasonEnd();
   }
+  // 1.04 (SCOPE_1.04 s6): "Simulate the rest" of the Pre-season friendlies: results only
+  C.simFriendlies = () => { const S = C.sea(), r = C.rng(S.n * 977 + 5); S.fx.filter(f => f.friendly && f.md < 1 && f.hs == null).forEach(f => quickResult(f, r)); if (S.md < 1) S.md = 1; C.save(); };
   C.simRestOfSeason = () => { // used by the "skip" test tool
     const S = C.sea(), r = C.rng(S.n * 8191);
-    while (S.phase === 'reg') { S.fx.filter(f => f.md === S.md && f.hs == null).forEach(f => quickResult(f, r)); C.car().squad.forEach(p => { if (p.ban) p.ban--; else if (p.inj) p.inj--; }); advance(); }
-    if (S.phase === 'tourn') { simKO(); finishSeason(); } C.save();
+    while (S.phase === 'reg') { S.fx.filter(f => f.md === S.md && f.hs == null).forEach(f => quickResult(f, r, f.ko)); if (S.md >= 1) C.car().squad.forEach(p => { if (p.ban) p.ban--; else if (p.inj) p.inj--; }); advance(); }
+    if (S.phase === 'tourn') { simKO(); playoff(); }
+    if (S.phase === 'po' && !S.end) { const f = S.fx.find(x => x.po && x.hs == null); if (f) quickResult(f, r, true); S.md = (S.R || 14) + 4; finishSeason(); } C.save();
   };
 
   // ---------- next season: graduation, class years, raises, walk-on tryouts ----------
@@ -164,8 +210,16 @@
     const walk = []; const r = C.rng(C.now() & 0xffffff);
     while (car.squad.length < 22) { const pos = ['GK', 'CB', 'CM', 'ST', 'LB', 'RB', 'LW', 'RW', 'DM'][car.squad.length % 9]; const p = C.genPlayer(r, { gender: car.gender, pos, rating: car.job.rating - 7, year: 1 }); p.from = 'Walk-on tryout'; car.squad.push(p); walk.push(p); }
     C.assignNumbers(car.squad);
-    const up = C.reclassStep(car);
+    // 1.04 (SCOPE_1.04 s2-s4): promotion, or the faux AI promotion (that college sits out as the spare and the old spare comes back)
+    const e = car.sea && car.sea.end; let up = null;
+    if (e && e.promo) { car.tier--; up = car.tier; car.conf = null; car.job.rating = C.ECON.tierRating[car.tier] + 2; if (!car.renamed) car.renameFree = true;
+      C.mail && C.mail('director', '🏆', `Promoted to ${C.TIERS[car.tier].name}`, `Congratulations, Coach. Next season we play in ${C.TIERS[car.tier].name}. ${car.renameFree ? 'As a promoted program you can rename it once for free: Your college, then Rename.' : ''}`); }
+    else if (e && e.aiUp != null && car.conf && car.conf.ids.includes(e.aiUp)) car.conf.out = e.aiUp;
+    // each season uses its tier's cost to attend and funded scholarships (working values, FEEDBACK 205, 207)
+    if (C.TIER_COA[car.tier]) { car.job.coa = C.TIER_COA[car.tier]; car.job.eq = car.job.limit = C.TIER_FUNDED[car.tier]; car.job.pool = car.job.coa * car.job.eq; }
+    delete car.reclass; delete car.band;
     car.season++; car.sea = null; if (car.tac) { car.tac.xi = []; car.tac.bench = []; } car.offers = [];
+    car.pre = true;   // 1.04 (SCOPE_1.04 s6): every season opens with Pre-season and its 5 friendlies
     const budget = C.SEASON_BUDGET[car.tier] || 8000; car.cash += budget;
     if (car.rec) car.rec.jobsUsed = 0;
     C.ensureSeason(car); C.save();
@@ -199,7 +253,7 @@
     const S = C.sea(), mine = S.fx.filter(f => f.h === 0 || f.a === 0);
     const cell = f => { const opp = S.teams[f.h === 0 ? f.a : f.h], done = f.hs != null, gf = f.h === 0 ? f.hs : f.as, ga = f.h === 0 ? f.as : f.hs;
       const res = done ? (Math.sign(gf - ga) || (f.pens ? Math.sign(f.h === 0 ? f.pens[0] - f.pens[1] : f.pens[1] - f.pens[0]) * .5 : 0)) : null;
-      const lab = f.md === 0 ? 'HC' : f.md <= 14 ? 'M' + f.md : f.md === 15 ? 'SF' : 'F';
+      const lab = C.fxLabel(f).short;
       return `<button class="calc ${f.md === S.md && !done ? 'next' : ''} ${res == null ? '' : res > 0 ? 'w' : res < 0 ? 'l' : 'd'}" ${done && S.reports[f.md] ? `data-act="report" data-v="${f.md}"` : ''}><small>${lab}</small>${C.crestSVG(opp.c1, opp.c2, opp.abbr.slice(0, 2), 26)}<b>${done ? gf + '–' + ga : f.h === 0 ? 'H' : 'A'}</b></button>`; };
     return `<div class="calstrip" id="calstrip">${mine.map(cell).join('')}</div>`;
   }
@@ -221,23 +275,26 @@
     if (view === 'fix') {
       const mds = [...new Set(S.fx.map(f => f.md))];
       body = mds.map(md => { const f = S.fx.find(x => x.md === md && (x.h === 0 || x.a === 0)); const others = S.fx.filter(x => x.md === md && x !== f);
-        const label = md === 0 ? '🏠 Homecoming (friendly)' : md <= ROUNDS ? 'Match ' + md : md === 15 ? 'Conference semi-final' : 'Conference final';
+        const label = (f || S.fx.find(x => x.md === md)) ? (C.fxLabel(f || S.fx.find(x => x.md === md)).long) : 'Match ' + md;
         const row = x => { const me = x.h === 0 || x.a === 0, done = x.hs != null; const res = done && me ? (x.h === 0 ? Math.sign(x.hs - x.as) : Math.sign(x.as - x.hs)) || (x.pens ? (x.h === 0 ? Math.sign(x.pens[0] - x.pens[1]) : Math.sign(x.pens[1] - x.pens[0])) * .5 : 0) : null;
           return `<button class="fxrow ${me ? 'me' : ''}" ${done && me && S.reports[x.md] ? `data-act="report" data-v="${x.md}"` : ''}><span class="ft">${crest(x.h, 22)}<b>${C.esc(nm(x.h))}</b></span><span class="fs ${res == null ? '' : res > 0 ? 'w' : res < 0 ? 'l' : 'd'}">${done ? `${x.hs}–${x.as}${x.pens ? `<small>p ${x.pens[0]}–${x.pens[1]}</small>` : ''}` : md === S.md && me ? 'Next' : 'v'}</span><span class="ft r"><b>${C.esc(nm(x.a))}</b>${crest(x.a, 22)}</span></button>`; };
         return `<div class="fxmd ${md === S.md ? 'fxnow' : ''}"><h4>${label}</h4>${f ? row(f) : ''}${others.length ? `<details><summary>Other results</summary>${others.map(row).join('')}</details>` : ''}</div>`; }).join('');
     }
     if (view === 'table') body = `<div class="card tbl2"><div class="tr2 th"><span>#</span><span></span><span>P</span><span>W</span><span>D</span><span>L</span><span>GD</span><span>Pts</span></div>
       ${T.map((t, i) => `<div class="tr2 ${t.i === 0 ? 'me' : ''} ${i === 3 ? 'cut' : ''} ${i < 4 ? 'top4' : ''}"><span>${i + 1}</span><span class="tn">${crest(t.i, 18)}<em>${C.esc(nm(t.i))}</em></span><span>${t.p}</span><span>${t.w}</span><span>${t.d}</span><span>${t.l}</span><span>${t.gf - t.ga > 0 ? '+' : ''}${t.gf - t.ga}</span><b>${t.pts}</b></div>`).join('')}
-      <p class="note">Top 4 reach the conference tournament.</p></div>`;
+      <p class="note">Top 4 reach the conference tournament.${car.tier > 1 ? ` 1st and 2nd are promoted (${C.BUILDINGS.hq.name} Lv ${C.TIER_GATE[car.tier - 1]} needed); 3rd plays 4th for one more place.` : ''}</p></div>`;
     if (view === 'stats') { const sq = car.squad.filter(p => p.ss && p.ss.apps);
       const top = (k, f, n = 5) => sq.slice().sort((a, b) => f(b) - f(a)).filter(p => f(p) > 0).slice(0, n);
       const list = (title, arr, f, fmt) => `<h3 class="jh">${title}</h3><div class="card">${arr.length ? arr.map(p => `<button class="srow" data-act="player" data-v="${p.id}" style="width:100%"><span>${C.esc(p.fn[0] + '. ' + p.ln)} <small class="mutey">${p.pos}</small></span><b>${fmt(f(p))}</b></button>`).join('') : '<p class="note" style="margin:0">No matches yet.</p>'}</div>`;
       body = list('⚽ Goals', top('g', p => p.ss.g), p => p.ss.g, v => v) + list('🅰️ Assists', top('a', p => p.ss.a), p => p.ss.a, v => v) + list('⭐ Average rating', top('r', p => p.ss.apps >= 2 ? p.ss.rs / p.ss.apps : 0), p => p.ss.rs / p.ss.apps, v => v.toFixed(2)) + list('🏆 Player of the Match', top('p', p => p.ss.potm), p => p.ss.potm, v => v); }
     const endCard = S.end ? `<div class="card seasonend">${S.end.champ ? `<div class="scenebn" style="margin:-14px -14px 10px">${C.artSlot('trophy', C.sceneTrophy(col.c1, col.c2))}</div>` : ''}<b>${S.end.champ ? '🏆 Conference champions!' : `Season ${S.n} over · finished ${C.ord(S.end.pos)}`}</b><p>${S.end.met ? '✔ Director\'s goal met' : '✖ Director\'s goal missed'}: ${GOALS[car.job.stars][0]}.${S.end.prize ? ` 💵 Prize money: <b>${C.full(S.end.prize)}</b>.` : ''}${S.end.champName && !S.end.champ ? ' Champions: ' + C.esc(S.end.champName) + '.' : ''}</p>
       <p class="note" style="margin:6px 0">${C.portalOpen() ? '🚪 The transfer window is open. Seniors graduate when the new season starts.' : 'Seniors graduate when the new season starts.'}</p>
-      ${car.offers && car.offers.length ? `<button class="btn full offbn" data-act="offers">📨 ${car.offers.length} job offer${car.offers.length > 1 ? 's' : ''}</button>` : ''}${C.careerCardHTML()}<button class="btn full pri" data-act="nextseason">Start Season ${S.n + 1}${C.portalOpen() ? ' (closes the window)' : ''}</button></div>` : '';
-    return `<div class="view scrolly">${C.topBar(false)}<div class="phdr9 tall"><div class="row1"><div><b>Matchday</b><small>Season ${S.n} · ${C.esc(S.conf)}${C.isTransition(car) ? ' · 🔁 Transition' : ''} · ${S.end ? 'Finished' : C.table()[0].p ? 'Pos ' + C.ord(C.myPos()) : 'Preseason'} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div></div>
-      <div class="homebn">${C.gamedayHTML()}</div><button class="mapbn" data-act="collegemap" data-v=""><span>🗺</span><div><b>College Map</b><small>${C.COLLEGES.length} programs across 5 tiers${(car.offers || []).length ? ' · 🔔 job offers waiting' : ''}</small></div><em>›</em></button>${C.streakHTML ? `<div style="margin:10px 16px 0">${C.streakHTML()}</div>` : ''}${calStrip()}${formCard()}
+      ${S.end.promo ? `<div class="card" style="background:#dcfce7;color:#14532d;font-weight:900;margin:6px 0">🏆 Promoted! Next season: ${C.esc(C.TIERS[car.tier - 1].name)}</div>`
+        : S.end.why === 'hq' ? `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;margin:6px 0">A promotion place, but ${C.BUILDINGS.hq.name} Lv ${C.TIER_GATE[car.tier - 1]} is needed. No promotion this season.</div>`
+        : S.end.why === 'playoff' ? `<p class="note">Lost the promotion play-off.</p>` : ''}
+      ${S.end.aiUpName && !S.end.promo ? `<p class="note">📰 ${C.esc(S.end.aiUpName)} were promoted.</p>` : ''}${C.careerCardHTML()}<button class="btn full pri" data-act="nextseason">Start Season ${S.n + 1}${C.portalOpen() ? ' (closes the window)' : ''}</button></div>` : '';
+    return `<div class="view scrolly">${C.topBar(false)}<div class="phdr9 tall"><div class="row1"><div><b>Matchday</b><small>Season ${S.n} · ${C.esc(S.conf)} · ${S.end ? 'Finished' : C.table()[0].p ? 'Pos ' + C.ord(C.myPos()) : 'Preseason'} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div></div>
+      <div class="homebn">${C.gamedayHTML()}</div><button class="mapbn" data-act="collegemap" data-v=""><span>🗺</span><div><b>College Map</b><small>${C.COLLEGES.length} programs across 5 tiers</small></div><em>›</em></button>${C.streakHTML ? `<div style="margin:10px 16px 0">${C.streakHTML()}</div>` : ''}${calStrip()}${formCard()}
       ${endCard}<div class="filters">${[['fix', '📅 Fixtures'], ['table', '📊 Table'], ['stats', '⭐ Stats']].map(([k, n]) => `<button class="f ${view === k ? 'on' : ''}" data-act="seav" data-v="${k}">${n}</button>`).join('')}</div>
       <div style="padding:0 16px 16px">${body}</div></div>`;
   };

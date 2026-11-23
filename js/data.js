@@ -36,7 +36,11 @@
       ['Bluebonnet College', 'Bluebonnet', 'Armadillos', 'BBC', 'TX', '#4338ca', '#fde047', false], ['Gristmill College', 'Gristmill', 'Millers', 'GMC', 'IA', '#92400e', '#f8fafc', true],
       ['Shady Grove College', 'Shady Grove', 'Possums', 'SGC', 'MS', '#14532d', '#d9f99d', false], ['Sagebrush State', 'Sagebrush State', 'Wranglers', 'SBS', 'WY', '#713f12', '#93c5fd', true],
       ['Lighthouse Point College', 'Lighthouse Point', 'Keepers', 'LPC', 'DE', '#b91c1c', '#f8fafc', false], ['Orchard Hill College', 'Orchard Hill', 'Pippins', 'OHC', 'WA', '#15803d', '#fca5a5', true],
-      ['Kiln Creek College', 'Kiln Creek', 'Potters', 'KCC', 'AL', '#7c2d12', '#67e8f9', true]]]
+      ['Kiln Creek College', 'Kiln Creek', 'Potters', 'KCC', 'AL', '#7c2d12', '#67e8f9', true]]],
+   // 1.04 (SCOPE_1.04 s1): T2 conferences have 10 teams and T1 12, so one more T2 and three more T1 colleges (original names)
+   [2, [['Ridgeline State', 'Ridgeline State', 'Ridgerunners', 'RLS', 'CO', '#0f766e', '#fde68a', true]]],
+   [1, [['Granite Peak University', 'Granite Peak', 'Summiteers', 'GPK', 'NH', '#334155', '#facc15', false], ['Cascade Falls University', 'Cascade Falls', 'Otters', 'CFU', 'OR', '#075985', '#f1f5f9', true],
+      ['Prairie Wind University', 'Prairie Wind', 'Twisters', 'PWU', 'KS', '#6d28d9', '#fcd34d', true]]]
   ].forEach(([tier, list]) => list.forEach(([full, short, mascot, abbr, state, c1, c2, pub]) => C.COLLEGES.push({ id: C.COLLEGES.length, full, short, mascot, abbr, state, c1, c2, pub, tier })));
   // colleges at a tier (with neighbours if a tier ever runs short)
   C.collegesAt = (tier, skip = []) => { let out = C.COLLEGES.filter(c => c.tier === tier && !skip.includes(c.id)); for (let d = 1; out.length < 8 && d < 5; d++) out = out.concat(C.COLLEGES.filter(c => Math.abs(c.tier - tier) === d && !skip.includes(c.id) && !out.includes(c))); return out; };
@@ -44,12 +48,18 @@
   // ---- tiers (Q27): each caps building levels ----
   C.TIERS = [
     null,
-    { n: 'Tier 1', name: 'Power conference', cap: 30 },
-    { n: 'Tier 2', name: 'Division I mid-major', cap: 24 },
-    { n: 'Tier 3', name: 'Division I low-major', cap: 18 },
-    { n: 'Tier 4', name: 'Division II', cap: 12 },
-    { n: 'Tier 5', name: 'Small college', cap: 6 }
+    { n: 'Tier 1', name: 'NCAA Division I', cap: 30 },      // 1.04 (FEEDBACK 108): the five college tiers
+    { n: 'Tier 2', name: 'NCAA Division II', cap: 24 },
+    { n: 'Tier 3', name: 'NCAA Division III', cap: 18 },
+    { n: 'Tier 4', name: 'Developing college', cap: 12 },
+    { n: 'Tier 5', name: 'Entry college', cap: 6 }
   ];
+  // 1.04 (FEEDBACK 108, 207, 212): conference size (matches = 2 x (size - 1)), the Campus HQ level needed to be promoted INTO a tier,
+  // and each tier's cost to attend and funded scholarships (working values, 205/207)
+  C.CONF_SIZE = { 5: 8, 4: 8, 3: 8, 2: 10, 1: 12 };
+  C.TIER_GATE = { 4: 10, 3: 15, 2: 20, 1: 25 };
+  C.TIER_COA = { 5: 30000, 4: 31500, 3: 33000, 2: 34500, 1: 36000 };
+  C.TIER_FUNDED = { 5: 6, 4: 8, 3: 10, 2: 12, 1: 14 };
 
   // ---- buildings (Q25c, Q27): owner 'program' moves with the coach, 'school' stays ----
   const pct = v => (Math.round(v * 10) / 10) + '%';
@@ -72,7 +82,7 @@
   C.BUILDINGS = {
     hq: { name: "Coaches' Office", icon: '🏛', owner: 'program', start: 0, mult: 1.6,
       desc: 'Your headquarters. Its level caps every other building and unlocks slots. It earns nothing itself.',
-      stats: l => [['🧱', 'Building cap', 'Lv ' + l], ['🧢', 'Staff slots', l >= 8 ? '+1 earned' : 'Lv 8: +1']] },
+      stats: l => [['🧱', 'Building cap', 'Lv ' + l], ['🧢', 'Staff slots', l >= 5 ? '+1 earned' : 'Lv 5: +1']] },
     stadium: { name: 'Stadium', icon: '🏟', owner: 'school', start: 0, mult: 1.3,
       desc: 'Seats, gate income and home advantage. Bigger crowds, louder atmosphere.',
       stats: l => [['seat', 'Seats', seats(l).toLocaleString()], ['💵', 'Gate income / home game', C.money(seats(l) * 3)], ['📣', 'Home advantage', pct(1 + .2 * l)]] },

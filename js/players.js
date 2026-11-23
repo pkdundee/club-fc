@@ -4,6 +4,7 @@
   const POS = { GK: [.5, .02], LB: [.12, .22], CB: [.5, .18], RB: [.88, .22], DM: [.5, .36], LM: [.12, .5], CM: [.5, .48], RM: [.88, .5], AM: [.5, .64], LW: [.15, .78], RW: [.85, .78], ST: [.5, .86] };
   C.POSGROUP = p => p === 'GK' ? 'gk' : ['CB', 'LB', 'RB'].includes(p) ? 'def' : ['DM', 'CM', 'LM', 'RM', 'AM'].includes(p) ? 'mid' : 'fwd';
   C.POSNAME = { GK: 'Goalkeeper', CB: 'Center back', LB: 'Left back', RB: 'Right back', DM: 'Defensive mid', CM: 'Central mid', LM: 'Left mid', RM: 'Right mid', AM: 'Attacking mid', LW: 'Left wing', RW: 'Right wing', ST: 'Striker' };
+  const SQUAD16 = ['GK', 'GK', 'CB', 'CB', 'CB', 'LB', 'RB', 'DM', 'CM', 'CM', 'AM', 'LM', 'RM', 'ST', 'LW', 'RW'];   // 1.04 (FEEDBACK 205): 2 GK, 5 DEF, 6 MID, 3 FWD
   const SQUAD = ['GK', 'GK', 'CB', 'CB', 'CB', 'CB', 'LB', 'RB', 'DM', 'CM', 'CM', 'CM', 'LM', 'RM', 'AM', 'LW', 'RW', 'ST', 'ST', 'CM', 'ST'];
 
   // ---------- attributes (Q15b, Q29) ----------
@@ -72,11 +73,11 @@
   };
 
   C.genSquad = (car, seed) => {
-    const r = C.rng(seed), j = car.job, size = Math.min(C.rosterCap(car), SQUAD.length);
+    const r = C.rng(seed), j = car.job, LIST = j.squad16 ? SQUAD16 : SQUAD, size = j.squad16 ? 16 : Math.min(C.rosterCap(car), SQUAD.length);   // 1.04: new careers start with 16, no freshmen
     const years = []; j.mix.forEach((n, y) => { for (let i = 0; i < n; i++) years.push(y + 1); });
     while (years.length < size) years.push(1 + Math.floor(r() * 2));
     const yrs = years.map(v => [r(), v]).sort((x, y) => x[0] - y[0]).map(v => v[1]);
-    const sq = SQUAD.slice(0, size).map((pos, i) => {
+    const sq = LIST.slice(0, size).map((pos, i) => {
       const rar = r() < .08 * j.stars ? (r() < .25 ? 2 : 1) : 0;
       const rating = Math.round(j.rating - 4 + r() * 8 + rar * 3 + (yrs[i] - 2) * 1.5);
       return C.genPlayer(r, { gender: car.gender, pos, rating, rar, year: yrs[i], pool: r() < .82 ? wpick(r, { us: 30, us_hisp: 12, us_irish: 6, us_ital: 6, us_mw: 8 }) : undefined });
@@ -123,6 +124,9 @@
   C.squad = () => C.car().squad;
   C.P = id => C.car().squad.find(p => p.id === id);
   C.ensureSquad = car => { if (!car || car.squad) return; car.squad = C.genSquad(car, (car.created & 0xffffff) ^ 0x5bd1e995); car.captains = []; car.tokens = 2; car.devq = []; C.save(); };
+  C.coverage = (car = C.car()) => { const n = { gk: 0, def: 0, mid: 0, fwd: 0 }; car.squad.forEach(p => n[C.POSGROUP(p.pos)]++); return n; };
+  C.COVER = { gk: 2, def: 6, mid: 6, fwd: 4 };   // 1.04: at least 2 GK, 6 defenders, 6 midfielders and 4 forwards in the 22
+  C.coverageOK = (car = C.car()) => { const n = C.coverage(car); return Object.keys(C.COVER).every(k => n[k] >= C.COVER[k]); };
   C.committed = () => C.squad().reduce((s, p) => s + (p.schol || 0), 0);
   C.poolLeft = () => Math.max(0, C.car().job.pool - C.committed());
 

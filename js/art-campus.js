@@ -143,6 +143,12 @@ function barrier(I,x,y,S,front){let s='';const a=x+S*.04,b=x+S*.96,c=y+S*.04,d=y
  if(front){const e=edges[0][1];s+=I.line([e[0],e[1],0],[e[0],e[1],H+.8],'#475569',.9);const k=I.K;
   [[a+S*.2,d],[b,c+S*.3],[b,d-S*.15]].forEach(([px,py],i)=>{const [u,v]=I.P(px,py,H+2);s+=`<circle class="cpuff" style="animation-delay:${i*.9}s" cx="${u.toFixed(1)}" cy="${v.toFixed(1)}" r="${(3.2*k).toFixed(1)}" fill="#e5e7eb"/>`;});}
  return s}
+// 1.04 (QA-41): fireworks inside the building's tile at Lv 5, 10, 15 ...: rockets rise from the plot and burst, never above the tile's height
+function fireworks(I,x,y,S){let s='';const k=I.K,cols=['#facc15','#f472b6','#60a5fa','#4ade80','#fb923c'];
+ [[.3,.35],[.7,.3],[.5,.6],[.25,.7],[.75,.7]].forEach(([fx,fy],i)=>{const [bx,by]=I.P(x+S*fx,y+S*fy,0),top=(S*.42)*k,d=(i*.55).toFixed(2),c=cols[i%cols.length];
+  s+=`<g class="fwk" style="animation-delay:${d}s"><line class="fwr" style="--h:${(-top).toFixed(1)}px;animation-delay:${d}s" x1="${bx.toFixed(1)}" y1="${by.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${(by-4*k).toFixed(1)}" stroke="${c}" stroke-width="${(1.4*k).toFixed(1)}" stroke-linecap="round"/>`;
+  for(let j=0;j<10;j++){const a=j*Math.PI/5,r=(7+3*(j%2))*k;s+=`<circle class="fwp" style="--dx:${(Math.cos(a)*r).toFixed(1)}px;--dy:${(Math.sin(a)*r).toFixed(1)}px;animation-delay:${(+d+.55).toFixed(2)}s" cx="${bx.toFixed(1)}" cy="${(by-top).toFixed(1)}" r="${(1.3*k).toFixed(1)}" fill="${c}"/>`}
+  s+='</g>'});return s}
 function decor(I,x,y,S,kind){let out='';
  if(kind==='water'){const k=I.K;for(const [a,b] of [[18,18],[28,18],[18,28],[28,28]])out+=I.box(x+a,y+b,0,1.4,1.4,40,{base:'#94a3b8'});const [tx,ty]=I.P(x+24,y+24,40);const r=11*k;
   out+=`<rect x="${tx-r}" y="${ty-r*1.1}" width="${2*r}" height="${r*1.1}" fill="${C1}"/><ellipse cx="${tx}" cy="${ty}" rx="${r}" ry="${r*.42}" fill="${sh(C1,-.2)}"/><ellipse cx="${tx}" cy="${ty-r*1.1}" rx="${r}" ry="${r*.42}" fill="${sh(C1,.2)}"/><path d="M${tx-r} ${ty-r*1.1} Q${tx} ${ty-r*2.3} ${tx+r} ${ty-r*1.1}" fill="${sh(C1,.05)}"/><text x="${tx}" y="${ty-r*.3}" text-anchor="middle" font-family="Graduate,serif" font-size="${6*k}" fill="#fff">CFC</text>`;
@@ -252,6 +258,7 @@ function renderBase(I,car,opts){const C=window.CFC;const col=C.college(car);C1=c
   if(o.lvl>0)g=drawBuilding(I,o.k,x,y,sz,o.lvl);
   else g=envTile(I,x,y,sz,'plot_build',()=>plotTile(I,x,y,sz,'plot_empty',()=>emptyPlot(I,x,y,sz,'')));   // blank prepared ground until it's built (FEEDBACK 84, 88)
   if(o.q&&!(o.q.ready||o.q.end<=window.CFC.now()))g=barrier(I,x,y,sz,false)+`<g class="bglow">${g}</g>`+barrier(I,x,y,sz,true);   // 1.03.01 (QA-40): barrier and puffs, not a crane; a finished job shows the gift (FEEDBACK 145)
+  {const F=window.CFC.fireworks;if(F&&F.k===o.k&&F.until>Date.now()&&o.lvl>0)g+=fireworks(I,x,y,sz);}
   items.push([o.depth,g])}
   // the campus edge (FEEDBACK 84): a wall round the outside of the road grid, with the gate at the front
  if(probe(`img/campus/env/wall_${wn}_l.webp`)!=='bad'){const occS=new Set(occ.map(([s,d])=>((s+d)/2)+','+((s-d)/2)));const has=(i,j)=>occS.has(i+','+j);

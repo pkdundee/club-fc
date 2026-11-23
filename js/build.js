@@ -81,6 +81,7 @@
     car.b[q.key] = q.to; if (q.key in car.store) car.store[q.key] = Math.min(car.store[q.key], C.now());
     // every finished upgrade gives Coaching Points, more for the Coaches' Office (FEEDBACK 76); first builds give nothing
     q.cp = q.to <= 1 ? 0 : C.upgradeReward(q.key, q.to); car.cp += q.cp; (C.lvlQueue = C.lvlQueue || []).push(q);
+    if (q.to >= 5 && q.to % 5 === 0) C.fireworks = { k: q.key, until: Date.now() + 6000 };   // 1.04 (QA-41)
     car.queue = car.queue.filter(x => x !== q); C.save(); C.nextLevelUp && C.nextLevelUp(); return true;
   };
 
