@@ -20,6 +20,7 @@ window.CFC.ECON = {
   research: { cpBase: 8, cpGrowth: 1.32, cpTierStep: 4, cashBase: 1500, cashGrowth: 1.3, cashTierStep: 3, cashT0Base: 600, cashT0FromLv: 5, timeBase: 60, timeGrowth: 2.0, timeTierStep: 3, timeCap: 259200, cpMult: 4.5 },   // PROVISIONAL 1.03 (P5): 9t growth 1.55, cap 1 day, CP x1
   seasonBudget: { 5: 8000, 4: 20000, 3: 45000, 2: 90000, 1: 160000 },                                    // Booster $ each new season, by 9t tier
   tierRating: { 5: 40, 4: 48, 3: 55, 2: 62, 1: 69 },                                                      // recruit and opponent quality, by 9t tier
+  training: { speedPerLv: 0.015 },   // 1.03.01 (QA-27): Training Ground +1.5% plan speed a level (9t: 3%)
   recruit: { jobValue: 4000, houseValue: 2500, scoutCP: 10, agencyCoins: 60, portalDays: 3 },
   treat: { spec: 40, rush: 20, kit: 15, team: 30 }                                                        // Coins
 };

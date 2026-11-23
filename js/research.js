@@ -110,17 +110,27 @@
     C.confirmCoins(C.goldToFinish(q), () => { const g = C.goldToFinish(q); if (C.acct().gold < g) return C.toast('Not enough Coins'); C.acct().gold -= g; q.end = C.now(); done(); }); };
 
   // ---------- Missing resources (Obtain) and Replenish All ----------
+  // 1.03.01 (QA answer 2): when you're short, crates you hold can be opened here: Booster Crates (and the old $5K crate) for Booster $,
+  // the Choice Crate for either. Replenish All opens the fewest crates, smallest first, to cover the gap.
+  const CR = () => { const inv = C.meta().inv; return ['crate', 'crb1', 'crb2', 'crb3', 'crb4', 'crc2'].filter(k => inv[k] > 0); };
+  const crateGives = (k, kind) => k === 'crate' ? (kind === 'cash' ? 5000 : 0) : k === 'crc2' ? C.crateAmount(k, kind) : kind === 'cash' ? C.crateAmount(k, 'cash') : 0;
+  const openOne = (k, kind) => k === 'crate' ? (C.openCrate() ? 5000 : 0) : C.openCrateX(k, kind);
   C.openMissing = (kind, need) => C.ui.open('Missing Resources', () => { const car = C.car(), inv = C.meta().inv, have = kind === 'cp' ? car.cp : car.cash, f = Math.min(1, have / need);
-    const rows = kind === 'cash' ? (inv.crate ? `<div class="mrw"><span class="itile t2">📦<b>$5K</b></span><div><b>Booster crate</b><small>Owned: ${inv.crate}</small></div><button class="btn sm2 pri" data-act="mruse" data-v="crate">Use</button></div>` : '') : '';
+    const ks = CR().filter(k => crateGives(k, kind) > 0);
+    const rows = ks.map(k => `<div class="mrw">${C.itemTiles({ [k]: 1 })}<div><b>${C.esc(C.XN[k][1])}</b><small>Owned: ${inv[k]} · gives ${kind === 'cp' ? C.full(crateGives(k, kind)) + ' CP' : C.money(crateGives(k, kind))}</small></div><button class="btn sm2 pri" data-act="mruse" data-v="${k}|${kind}">Use</button></div>`).join('');
     return `<div class="mrhd"><p>Need <b class="short">${C.full(Math.max(0, need - have))}</b> ${kind === 'cp' ? 'Coaching Points' : 'Booster $'} to proceed.</p><div class="bq-bar big"><i style="width:${Math.round(f * 100)}%"></i><span>${C.full(have)} / ${C.full(need)}</span></div></div>
-      ${rows || `<p class="note">${kind === 'cp' ? 'Coaching Points come from the Performance Lab (collect them on campus), matches and Missions.' : 'No Booster crates in your Items. Booster $ come from the Clubhouse, home matches and Missions.'}</p>`}
-      ${rows ? `<button class="btn full pri" data-act="mrall" data-v="${kind}|${need}" style="background:#16a34a">Replenish All</button>` : `<button class="btn full sec2" data-act="${kind === 'cp' ? 'bgo' : 'store'}" data-v="${kind === 'cp' ? 'lab' : ''}">${kind === 'cp' ? 'Go to the Performance Lab' : 'Store'}</button>`}`; }, { popup: true });
+      ${rows || `<p class="note">${kind === 'cp' ? 'Coaching Points come from the Performance Lab (collect them on campus), matches and Missions.' : 'No Booster Crates in your Inventory. Booster $ come from the Clubhouse, home matches and Missions.'}</p>`}
+      ${rows ? `<button class="btn full pri" data-act="mrall" data-v="${kind}|${need}" style="background:#16a34a">Replenish All</button>` : `<button class="btn full sec2" data-act="${kind === 'cp' ? 'bgo' : 'storeat'}" data-v="${kind === 'cp' ? 'lab' : 'items'}">${kind === 'cp' ? 'Go to the Performance Lab' : 'Store'}</button>`}`; }, { popup: true });
   A.pbobtain = v => { const [k, n] = v.split('|'); C.openMissing(k, +n); };
-  A.mruse = () => { if (C.openCrate()) { congrats('+$5K Booster $'); C.ui.refresh(); } };
-  A.mrall = v => { const [k, n] = v.split('|'), car = C.car(), inv = C.meta().inv, need = Math.max(0, +n - car.cash), use = Math.min(inv.crate || 0, Math.ceil(need / 5000));
-    if (!use) return; C.ui.open('Use Items', () => `<div class="useit"><span class="itile t2">📦<b>$5K</b><em>×${use}</em></span></div><p class="note" style="text-align:center"><b style="color:var(--fit5)">+${C.full(use * 5000)}</b> / ${C.full(need)} needed</p>
-      <div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Cancel</button><button class="btn pri" data-act="mrok" data-v="${use}">Confirm</button></div>`, { popup: true }); };
-  A.mrok = v => { for (let i = 0; i < +v; i++) C.openCrate(); C.ui.back(); congrats(`+${C.full(+v * 5000)} Booster $`); C.ui.refresh(); };
+  A.mruse = v => { const [k, kind] = String(v || 'crate|cash').split('|'), got = openOne(k, kind); if (got) { congrats(`+${kind === 'cp' ? C.full(got) + ' Coaching Points' : C.money(got)}`); C.ui.refresh(); } };
+  const plan = (kind, short) => { const inv = C.meta().inv, ks = CR().filter(k => crateGives(k, kind) > 0).sort((a, b) => crateGives(a, kind) - crateGives(b, kind)), use = {}; let got = 0;
+    for (const k of ks) for (let i = 0; i < inv[k] && got < short; i++) { use[k] = (use[k] || 0) + 1; got += crateGives(k, kind); }
+    return { use, got }; };
+  A.mrall = v => { const [kind, n] = v.split('|'), car = C.car(), short = Math.max(0, +n - (kind === 'cp' ? car.cp : car.cash)), P = plan(kind, short);
+    if (!Object.keys(P.use).length) return; C.ui.open('Use Items', () => `<div class="useit">${C.itemTiles(P.use)}</div><p class="note" style="text-align:center"><b style="color:var(--fit5)">+${C.full(P.got)}</b> / ${C.full(short)} needed</p>
+      <div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Cancel</button><button class="btn pri" data-act="mrok" data-v="${kind}|${n}">Confirm</button></div>`, { popup: true }); };
+  A.mrok = v => { const [kind, n] = v.split('|'), car = C.car(), P = plan(kind, Math.max(0, +n - (kind === 'cp' ? car.cp : car.cash))); let t = 0;
+    for (const k in P.use) for (let i = 0; i < P.use[k]; i++) t += openOne(k, kind); C.ui.back(); congrats(`+${C.full(t)} ${kind === 'cp' ? 'Coaching Points' : 'Booster $'}`); C.ui.refresh(); };
   function congrats(t) { const el = document.createElement('div'); el.className = 'congr'; el.innerHTML = `<div class="lu-rib">CONGRATULATIONS!</div><div class="cg-t">${C.esc(t)}</div>`; (document.getElementById('app') || document.body).appendChild(el); setTimeout(() => el.remove(), 1400); }
 
   // ---------- actions ----------

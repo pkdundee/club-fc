@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.03 · 22 Nov 2026';
+  C.BUILD = 'CLUB FC 1.03.01 · 23 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -52,11 +52,12 @@
       case 'zoom': C.zoomBy(+v); break;
       // buildings
       // tap selects a building (name, level, big action button); tapping it again or the button opens the upgrade card
-      case 'bdone': C.selB = null; if (C.completeBuild(v)) { C.render(); if (C.ui.isOpen()) C.ui.closeAll(); } break;
+      case 'bdone': C.selB = null; if (C.completeBuild(v)) { const inQ = C.ui.topTitle() === 'Building Queue'; C.render(); if (inQ) { C.ui.refresh(); C.nextLevelUp(); } else if (C.ui.isOpen()) C.ui.closeAll(); } break;   // 1.03.01 (QA Q1): the queue popup stays, the banner plays over it
       case 'bld': if (C.mapDragged()) return; if (C.buildReady(v)) return act('bdone', v); if (C.selB === v || C.buildable(v)) { C.selB = null; C.openBuilding(v); C.redrawMap(); } else { C.selB = v; C.redrawMap(); } break;   // a blank plot ready to build opens its card straight away (one-tap build)
       case 'bldopen': if (C.mapDragged()) return; C.openBuilding(v); break;
       case 'land': break;   // locked land: nothing to explain on the map (round 5)
-      case 'upgrade': if (C.startUpgrade(v)) { C.selB = null; C.fwEvent('upgrade'); C.toast(`🔨 ${LEVEL_NAMES(v)} upgrade started`); C.ui.closeAll(); C.render(); } break;
+      case 'upgrade': if (C.level(v) > 0 && !C.freeSlot() && C.canUpgradeIgnoringSlot(v)) { const nb = C.nextBuilderPack && C.nextBuilderPack(); if (nb) C.openBuilderOffer(nb); else C.openQueue(); break; }   // 1.03.01 (QA-30)
+        if (C.startUpgrade(v)) { C.selB = null; C.fwEvent('upgrade'); C.toast(`🔨 ${LEVEL_NAMES(v)} upgrade started`); C.ui.closeAll(); C.render(); } break;
       case 'instant': if (!C.ok2spend) { const lv0 = car.b[v]; return C.confirmCoins(C.coinsFor(C.timeOf(v, lv0 + 1)), () => C.act('instant', v)); } C.ok2spend = 0; if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } break;
       case 'speed': { const q = C.inQueue(v); if (!q) break; return C.finishRunning('b', v, () => { if (C.completeBuild(v)) { C.fwEvent('speed'); C.ui.closeAll(); C.render(); } }); }
       case 'speedold': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
@@ -196,7 +197,7 @@
       case 'chest': { const r = C.chestClaim(); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
       case 'vipdaily': { const r = C.vipDaily(); if (r) { C.toast('👑 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
       case 'passclaim': { const [t, i] = v.split('|'); const r = C.passClaim(t, +i); if (r === 'prem') C.toast('Unlock the premium track first'); else if (r) { C.toast('🎟 ' + C.rwText(r)); C.ui.refresh(); C.render(); } break; }
-      case 'buypack': { const r = C.buyPack(v); C.toast(r === 'owned' ? 'Already bought' : r === 'order' ? 'Builder Packs are bought in order' : '✅ Test purchase complete'); C.ui.refresh(); C.render(); break; }
+      case 'buypack': { const r = C.buyPack(v); if (r === true && C.PACKS[v] && C.PACKS[v].queue && C.ui.topTitle() === C.PACKS[v].name) C.ui.back(); C.toast(r === 'owned' ? 'Already bought' : r === 'order' ? 'Builder Packs are bought in order' : '✅ Test purchase complete'); C.ui.refresh(); C.render(); break; }
       case 'kit': C.buyKit(v); C.toast(`${C.KITS[v][0]} ${C.KITS[v][1]}`); C.ui.refresh(); C.render(); break;
       // fitness and injuries (phase-9c)
       case 'medical': C.openMedical(); break;
@@ -252,7 +253,8 @@
   let lastTouchEnd = 0; document.addEventListener('touchend', e => { const t = Date.now(); if (t - lastTouchEnd < 320 && !e.target.closest('#map, input, textarea')) e.preventDefault(); lastTouchEnd = t; }, { passive: false });
   // one tap handler for everything
   document.addEventListener('click', e => {
-    const el = e.target.closest('[data-act]');
+    let el = e.target.closest('[data-act]');
+    if (el && el.dataset.act === 'itemdet') { const p = el.parentElement && el.parentElement.closest('[data-act]'); if (p) el = p; }   // 1.03.01: tiles inside a button keep the button's action
     // the build drawer closes on any tap outside it (FEEDBACK 101)
     if (C.drawerOpen && !e.target.closest('.drawer') && !(el && el.dataset.act === 'drawer')) { C.drawerOpen = false; C.render(); if (!el) return; }
     if (!el) { if (C.selB && e.target.closest('#map') && !C.mapDragged()) { C.selB = null; C.redrawMap(); } return; }
@@ -281,6 +283,8 @@
     const rt = C.tickRecruit(); rt.msgs.forEach(m => C.toast(m)); if (rt.changed && !C.ui.isOpen() && C.tab !== 'campus') C.render();
     C.$$('[data-until]').forEach(e => { const d = C.dur((+e.dataset.until - C.now()) / 1000); e.textContent = e.dataset.trim ? d.replace(/^0(?=\d:)/, '') : d; });
     C.$$('[data-dtimer]').forEach(e => { const q = C.inDev(e.dataset.dtimer); if (q) e.textContent = C.dur(C.remaining(q)); });
+    const readyNow = C.car().queue.filter(q => C.buildReady(q.key)).length + (C.car().pbq || []).filter(q => q.end <= C.now()).length;   // 1.03.01 (QA-20)
+    if (readyNow !== C._ready) { const first = C._ready === undefined; C._ready = readyNow; if (!first) { if (C.ui.isOpen()) C.ui.refresh(); if (C.tab === 'campus' || C.tab === 'home') { mapSig = ''; C.render(); } } }
     const done = C.tick();
     if (done.length || (C.lvlQueue && C.lvlQueue.length)) { C.render(); if (C.ui.isOpen()) C.ui.refresh(); C.nextLevelUp(); if (done.length) return; }
     C.updateLive();

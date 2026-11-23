@@ -49,6 +49,10 @@
     { title: 'Day 6 · Busy campus', reward: { gold: 80, cp: 60 }, tasks: [['tr2', 'Training Ground Lv 2', c => c.b.training >= 2], ['up6', 'Start 6 upgrades in total', c => n(c, 'upgrade') >= 6]] },
     { title: 'Day 7 · Big week', reward: { gold: 200, cash: 15000, item: 'rareRecruit' }, tasks: [['hq4', "Coaches' Office Lv 4", c => c.b.hq >= 4], ['bst', 'Upgrade the Clubhouse to Lv 3', c => c.b.booster >= 3]] }
   ];
+  // 1.03.01 (QA-33): Go takes you to each open task
+  const FWGO = { hq2: ['dgo', 'hq'], col1: ['bgo', 'booster'], gym: ['dgo', 'gym'], spd: ['rqueue', ''], ask: ['help', ''], hb: ['help', 'schol'], hq3: ['dgo', 'hq'], std2: ['dgo', 'stadium'],
+    film2: ['dgo', 'lab'], cp3: ['bgo', 'lab'], tr2: ['dgo', 'training'], up6: ['drawer', ''], hq4: ['dgo', 'hq'], bst: ['dgo', 'booster'] };
+  C.ACTS.fwgo = id => { const g = FWGO[id]; if (!g) return; C.ui.closeAll(); if (id === 'ask') return C.openAsk(); C.act(g[0] === 'rqueue' ? 'rqueue' : g[0], g[1]); };
   C.fwInit = car => { if (!car.fw) car.fw = { start: Date.now(), n: {}, claimed: [] }; };
   C.fwEvent = k => { const car = C.car(); if (!car) return; C.fwInit(car); car.fw.n[k] = (car.fw.n[k] || 0) + 1; C.save(); };
   const dayIndex = car => { const s = new Date(car.fw.start); s.setHours(0, 0, 0, 0); const t = new Date(); t.setHours(0, 0, 0, 0); return Math.floor((t - s) / 864e5); };
@@ -63,7 +67,7 @@
       <div class="fwstrip">${DAYS.map((d, i) => `<i class="${car.fw.claimed.includes(i) ? 'done' : i <= open ? 'open' : ''}">${i + 1}</i>`).join('')}</div>
       ${DAYS.map((d, i) => { const locked = i > open, done = C.fwDone(car, i), got = car.fw.claimed.includes(i);
         return `<div class="fwday ${locked ? 'locked' : ''}"><div class="fwh"><b>${d.title}</b><small>${locked ? '🔒 Opens when you claim Day ' + i : rw(d.reward)}</small></div>
-          ${locked ? '' : d.tasks.map(t => `<div class="fwt ${t[2](car) ? 'ok' : ''}"><span>${t[2](car) ? '✔' : '○'}</span>${t[1]}</div>`).join('') + (got ? '<div class="fwclaimed">✔ Claimed</div>' : `<button class="btn full ${done ? 'pri' : 'sec2'}" data-act="fwclaim" data-v="${i}" ${done ? '' : 'disabled'}>${done ? 'Claim ' + rw(d.reward) : 'Finish both tasks to claim'}</button>`)}</div>`; }).join('')}`;
+          ${locked ? '' : d.tasks.map(t => `<div class="fwt ${t[2](car) ? 'ok' : ''}"><span>${t[2](car) ? '✔' : '○'}</span>${t[1]}${!t[2](car) && FWGO[t[0]] ? `<button class="btn sm2 pri" style="margin-left:auto" data-act="fwgo" data-v="${t[0]}">Go</button>` : ''}</div>`).join('') + (got ? '<div class="fwclaimed">✔ Claimed</div>' : `<button class="btn full ${done ? 'pri' : 'sec2'}" data-act="fwclaim" data-v="${i}" ${done ? '' : 'disabled'}>${done ? 'Claim ' + rw(d.reward) : 'Finish both tasks to claim'}</button>`)}</div>`; }).join('')}`;
   });
   C.fwClaim = d => { const car = C.car(), r = DAYS[d].reward; if (car.fw.claimed.includes(d) || d > C.fwUnlocked(car) || !C.fwDone(car, d)) return false;
     car.fw.claimed.push(d); if (r.gold) C.acct().gold += r.gold; if (r.cash) car.cash += r.cash; if (r.cp) car.cp += r.cp; if (r.item) { car.items = car.items || {}; car.items[r.item] = (car.items[r.item] || 0) + 1; } if (r.sp1) { const inv = C.meta().inv; inv.sp1 = (inv.sp1 || 0) + r.sp1; }

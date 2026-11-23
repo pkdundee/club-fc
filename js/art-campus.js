@@ -134,6 +134,15 @@ function lockedPlot(I,x,y,S,req){// locked land and plots: a barrier pin in the 
 function construction(I,x,y,S,h){let s='';const x0=x+S*.2,x1=x+S*.8,Y=y+S*.72;for(let i=0;i<=6;i++)s+=I.line([x0+i*(x1-x0)/6,Y,0],[x0+i*(x1-x0)/6,Y,h+4],'#f59e0b',.7);for(let j=0;j<=3;j++)s+=I.line([x0,Y,j*(h+4)/3],[x1,Y,j*(h+4)/3],'#d97706',.7);
  s+=I.box(x+S-6,y+6,0,2,2,h+30,{base:'#f59e0b'});const [ax,ay]=I.P(x+S-5,y+7,h+31);const k=I.K;s+=`<g class="jib" style="transform-origin:${ax}px ${ay}px"><line x1="${ax-36*k}" y1="${ay+9*k}" x2="${ax+12*k}" y2="${ay-3*k}" stroke="#f59e0b" stroke-width="${1.6*k}"/><rect x="${ax+7*k}" y="${ay-5*k}" width="${6*k}" height="${4*k}" fill="#475569"/><line x1="${ax-26*k}" y1="${ay+6.5*k}" x2="${ax-26*k}" y2="${ay+24*k}" stroke="#334155" stroke-width=".5"/></g>`;
  return s}
+// 1.03.01 (QA-40): no crane or scaffold. A striped barrier round the footprint (back half behind the building, front half in front),
+// a gentle glow on the building and construction puffs rising from the front corners.
+function barrier(I,x,y,S,front){let s='';const a=x+S*.04,b=x+S*.96,c=y+S*.04,d=y+S*.96,n=8,H=3.2;
+ const edges=front?[[[a,d],[b,d]],[[b,c],[b,d]]]:[[[a,c],[b,c]],[[a,c],[a,d]]];
+ for(const [[x1,y1],[x2,y2]] of edges)for(let i=0;i<n;i++){const f0=i/n,f1=(i+1)/n,p0=[x1+(x2-x1)*f0,y1+(y2-y1)*f0],p1=[x1+(x2-x1)*f1,y1+(y2-y1)*f1],col=i%2?'#f8fafc':'#f97316';
+  s+=I.line([p0[0],p0[1],0],[p0[0],p0[1],H+.8],'#475569',.9)+I.line([p0[0],p0[1],H],[p1[0],p1[1],H],col,1.8)+I.line([p0[0],p0[1],H*.5],[p1[0],p1[1],H*.5],col,1.4);}
+ if(front){const e=edges[0][1];s+=I.line([e[0],e[1],0],[e[0],e[1],H+.8],'#475569',.9);const k=I.K;
+  [[a+S*.2,d],[b,c+S*.3],[b,d-S*.15]].forEach(([px,py],i)=>{const [u,v]=I.P(px,py,H+2);s+=`<circle class="cpuff" style="animation-delay:${i*.9}s" cx="${u.toFixed(1)}" cy="${v.toFixed(1)}" r="${(3.2*k).toFixed(1)}" fill="#e5e7eb"/>`;});}
+ return s}
 function decor(I,x,y,S,kind){let out='';
  if(kind==='water'){const k=I.K;for(const [a,b] of [[18,18],[28,18],[18,28],[28,28]])out+=I.box(x+a,y+b,0,1.4,1.4,40,{base:'#94a3b8'});const [tx,ty]=I.P(x+24,y+24,40);const r=11*k;
   out+=`<rect x="${tx-r}" y="${ty-r*1.1}" width="${2*r}" height="${r*1.1}" fill="${C1}"/><ellipse cx="${tx}" cy="${ty}" rx="${r}" ry="${r*.42}" fill="${sh(C1,-.2)}"/><ellipse cx="${tx}" cy="${ty-r*1.1}" rx="${r}" ry="${r*.42}" fill="${sh(C1,.2)}"/><path d="M${tx-r} ${ty-r*1.1} Q${tx} ${ty-r*2.3} ${tx+r} ${ty-r*1.1}" fill="${sh(C1,.05)}"/><text x="${tx}" y="${ty-r*.3}" text-anchor="middle" font-family="Graduate,serif" font-size="${6*k}" fill="#fff">CFC</text>`;
@@ -242,7 +251,7 @@ function renderBase(I,car,opts){const C=window.CFC;const col=C.college(car);C1=c
   let g;
   if(o.lvl>0)g=drawBuilding(I,o.k,x,y,sz,o.lvl);
   else g=envTile(I,x,y,sz,'plot_build',()=>plotTile(I,x,y,sz,'plot_empty',()=>emptyPlot(I,x,y,sz,'')));   // blank prepared ground until it's built (FEEDBACK 84, 88)
-  if(o.q&&!(o.q.ready||o.q.end<=window.CFC.now()))g+=construction(I,x,y,S,o.lvl?16:4);   // 1.02 (FEEDBACK 145): a finished job shows the gift, not the scaffold
+  if(o.q&&!(o.q.ready||o.q.end<=window.CFC.now()))g=barrier(I,x,y,sz,false)+`<g class="bglow">${g}</g>`+barrier(I,x,y,sz,true);   // 1.03.01 (QA-40): barrier and puffs, not a crane; a finished job shows the gift (FEEDBACK 145)
   items.push([o.depth,g])}
   // the campus edge (FEEDBACK 84): a wall round the outside of the road grid, with the gate at the front
  if(probe(`img/campus/env/wall_${wn}_l.webp`)!=='bad'){const occS=new Set(occ.map(([s,d])=>((s+d)/2)+','+((s-d)/2)));const has=(i,j)=>occS.has(i+','+j);

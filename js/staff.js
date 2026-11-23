@@ -52,7 +52,7 @@
   // what a coach would actually change, in real numbers (before → after)
   C.coachBenefit = c => {
     const q = C.coachQ(c) / 100 * (c.spec === 'gen' ? .4 : 1) * (1 + (c.trait - 1) * .08), mm = s => C.dur(s);
-    const base = Math.round((1200 + 40 * 50) / (1 + C.level('training') * .03));
+    const base = Math.round((1200 + 40 * 50) / (1 + C.level('training') * C.ECON.training.speedPerLv));
     return { tac: `Team match quality +${Math.round(4 * q * 10) / 10}%`, dev: `Training plans: ${mm(base)} → ${mm(Math.round(base / (1 + .25 * q)))}`, snc: `Resting a match: +30 → +${Math.round(30 * (1 + .3 * q))} Freshness`,
       gk: `Keeper saves +${Math.round(6 * q * 10) / 10}%`, rec: `Applications: ${3 + C.level('recruit')} → ${Math.round((3 + C.level('recruit')) * (1 + .3 * q) * 10) / 10} a day`, mot: `Portal risk −${Math.round(30 * q)}% · morale after wins +${Math.round(50 * q)}%`, gen: 'A little of everything (40% strength)' }[c.spec];
   };

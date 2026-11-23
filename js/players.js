@@ -155,7 +155,7 @@
   C.inDev = pid => C.car().devq.find(q => q.pid === pid);
   C.attrCap = (p, k) => C.clamp(p.pot + ((PROFILE[p.pos] || {})[k] || 0) + 4, 20, 99);
   C.planTime = (p, focus) => { const base = focus.startsWith('pos:') ? 7200 : 1200 + 40 * (p.a[focus] || 40);
-    const speed = (1 + C.level('training') * .03 + C.pbv('trn') + C.staffF('dev') * .25) * (p.year === 1 ? 1.2 : p.year === 2 ? 1.1 : 1); return Math.round(base / speed); };
+    const speed = (1 + C.level('training') * C.ECON.training.speedPerLv + C.pbv('trn') + C.staffF('dev') * .25) * (p.year === 1 ? 1.2 : p.year === 2 ? 1.1 : 1); return Math.round(base / speed); };
   C.planCost = (p, focus) => focus.startsWith('pos:') ? 1500 : Math.round((200 + 12 * (p.a[focus] || 40)) / 50) * 50;
   C.startPlan = (pid, focus) => { const car = C.car(), p = C.P(pid); if (!C.devFree() || C.inDev(pid)) return false;
     const cost = C.planCost(p, focus); if (car.cash < cost) return 'cash'; if (!focus.startsWith('pos:') && p.a[focus] >= C.attrCap(p, focus)) return 'cap';

@@ -31,6 +31,7 @@
     if (cost.cp) rows.push(['<i class="cpi"></i>', `${C.short(car.cp)} / ${cost.cp} Coaching Points`, car.cp >= cost.cp]);
     return rows;
   };
+  C.canUpgradeIgnoringSlot = k => !C.inQueue(k) && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]);   // 1.03.01 (QA-30)
   C.canUpgrade = k => !C.inQueue(k) && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]) && (C.level(k) === 0 || C.freeSlot());   // a first build doesn't need a builder
   // "Ready" arrow on the map: affordable and allowed, ignoring whether a slot is free
   C.readyArrow = k => !C.inQueue(k) && !C.locked(k) && C.level(k) > 0 && C.canAfford(k) && C.level(k) < C.topLevel(k) && C.requirements(k).every(r => r[2]);

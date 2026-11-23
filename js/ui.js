@@ -15,11 +15,15 @@
   };
   // Replace the top one (used when one step leads to the next without a back step)
   C.ui.replace = (title, render, opts = {}) => { stack.pop(); stack.push({ title, render, mode: modeOf(title, opts) }); draw(); };
-  C.ui.back = () => { if (!stack.length) return; stack.pop(); draw(true); if (!stack.length && C.onUiClosed) C.onUiClosed(); };
+  C.ui.back = () => { if (!stack.length) return; const e = stack.pop();
+    // 1.03.01 (QA-23): leaving the Playbook (or a research tree) also closes the research popups it was opened from
+    if (e && /^(Playbook|Research)/.test(e.title)) while (stack.length && stack[stack.length - 1].mode !== 'page' && /Research|Lab|Playbook|Queue/.test(stack[stack.length - 1].title)) stack.pop();
+    draw(true); if (!stack.length && C.onUiClosed) C.onUiClosed(); };
   C.ui.closeAll = () => { const had = stack.length; stack.length = 0; draw(); if (had && C.onUiClosed) C.onUiClosed(); };   // 1.01: the screen behind refreshes (badges, map)
   // close everything above the named page
   C.ui.popTo = title => { while (stack.length > 1 && stack[stack.length - 1].title !== title) stack.pop(); draw(true); };
   C.ui.isOpen = () => stack.length > 0;
+  C.ui.topTitle = () => stack.length ? stack[stack.length - 1].title : '';   // 1.03.01
   C.ui.refresh = () => { if (stack.length) draw(true); };
 
   // the economy bar only where something can be spent (9q, FEEDBACK 75, 89)

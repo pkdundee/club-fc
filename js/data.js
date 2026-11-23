@@ -77,8 +77,8 @@
       desc: 'Seats, gate income and home advantage. Bigger crowds, louder atmosphere.',
       stats: l => [['seat', 'Seats', seats(l).toLocaleString()], ['💵', 'Gate income / home game', C.money(seats(l) * 3)], ['📣', 'Home advantage', pct(1 + .2 * l)]] },
     training: { name: 'Training Ground', icon: '⚽', owner: 'program', start: 0, mult: 1.2,
-      desc: 'How fast training plans run, and a second training slot at Lv 10.',   // 1.03: the card matches the code (+3% a level; team training comes later)
-      stats: l => [['🏋️', 'Training plan speed', '+' + pct(3 * l)], ['➕', 'Training slots', l >= 10 ? '+1 earned' : 'Lv 10: +1']] },
+      desc: 'How fast training plans run, and a second training slot at Lv 10.',   // 1.03.01 (QA-27): +1.5% a level, code and card
+      stats: l => [['🏋️', 'Training plan speed', '+' + pct(1.5 * l)], ['➕', 'Training slots', l >= 10 ? '+1 earned' : 'Lv 10: +1']] },
     gym: { name: 'Gym', icon: '🏋️', owner: 'program', start: 0, mult: 1.1,
       desc: 'Strength and conditioning: faster energy recovery and fewer injuries.',
       stats: l => [['🔋', 'Freshness recovery', '+' + pct(1.5 * l)], ['🩹', 'Injury chance', '−' + pct(l)]] },

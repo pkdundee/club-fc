@@ -418,7 +418,7 @@
         <div class="tscroll">${reqs.map(r => costRow(r)).join('')}</div></div>
       <div class="orig">${slotMsg}<span>Original Time: ${C.dur(t)}</span></div>
       <div class="bt">${lv ? `<button class="fin" data-act="instant" data-v="${k}" ${ok ? '' : 'disabled'}>Finish Now<br><em class="${gems < gi ? 'short' : ''}">${C.GEM} ${gi}</em></button>` : ''}
-      <button class="upg" data-act="upgrade" data-v="${k}" ${C.canUpgrade(k) ? '' : 'disabled'}>${lv ? `Upgrade<br>⏱ ${C.dur(t)}` : 'Build<br>Free'}</button></div></div>`;
+      <button class="upg" data-act="upgrade" data-v="${k}" ${C.canUpgrade(k) || (lv && C.canUpgradeIgnoringSlot(k)) ? '' : 'disabled'}>${lv ? `Upgrade<br>⏱ ${C.dur(t)}` : 'Build<br>Free'}</button></div></div>`;
   }
 
   // Pay Coins to skip the build time entirely (resources still required)

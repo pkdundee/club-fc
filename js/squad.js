@@ -90,6 +90,7 @@
       ${p.want && p.want !== p.num ? `<button class="btn full sec2" data-act="numpick" data-v="${id}|${p.want}" style="margin-top:8px">Give No. ${p.want} (🎟 1)${car.squad.some(x => x.num === p.want) ? ' · worn by ' + C.esc(C.sn(car.squad.find(x => x.num === p.want))) : ''}</button>` : ''}
       <h3 class="jh">Package <button class="hlink" data-act="academic" data-v="">📚</button></h3>
       <div class="card srows"><div class="srow"><span>Scholarship</span><b>${p.acad ? '📚 Academic aid (college pays)' : p.schol ? `🎓 ${C.money(p.schol)}/yr · ${Math.round(p.schol / car.job.coa * 100)}% of costs` : 'Walk-on (no athletic aid)'}</b></div>
+        ${!p.acad && C.poolLeft() >= 500 && (p.schol || 0) < car.job.coa ? `<div class="srow"><span>Pool left ${C.money(C.poolLeft())}</span><button class="btn sm2 pri" data-act="schup" data-v="${p.id}">+$500 scholarship</button></div>` : ''}
         ${extras.length ? `<div class="srow"><span>Extras</span><b>${extras.join(' · ')}</b></div>` : ''}
         ${p.promise ? `<div class="srow"><span>Promise</span><b>${C.ROLES[p.promise][0]} ${C.ROLES[p.promise][1]} · ${kept ? '<span style="color:var(--fit5)">kept ✔</span>' : '<span style="color:var(--fit1)">not kept ✖</span>'}</b></div>` : ''}
         ${p.from ? `<div class="srow"><span>Joined from</span><b>${C.esc(p.from)}</b></div>` : ''}
@@ -108,7 +109,7 @@
     return `For ${p.fn} I'd work on ${A[best][1]}: ${keys.length ? 'a key skill for a ' + p.pos + ' with' : 'it has'} the most room to grow (${p.a[best]}, can reach ${C.attrCap(p, best)}).`; };
   const trainBoosts = p => { const b = [], lv = C.level('training'), pb = Math.round(C.pbv('trn') * 100), co = Math.round(C.staffF('dev') * 25);
     if (C.event && C.event().id === 'camp') b.push(['🏋️', 'Training Camp event', '−25% time', 1]);
-    if (lv) b.push(['⚽', `Training Ground Lv ${lv}`, `+${lv * 3}% speed`]); if (pb) b.push(['📋', 'Playbook', `+${pb}% speed`]); if (co) b.push(['🧢', 'Development coach', `+${co}% speed`]); if (p.year <= 2) b.push(['🎓', p.year === 1 ? 'Freshman' : 'Sophomore', `+${p.year === 1 ? 20 : 10}% speed`]);
+    if (lv) b.push(['⚽', `Training Ground Lv ${lv}`, `+${Math.round(lv * C.ECON.training.speedPerLv * 1000) / 10}% speed`]); if (pb) b.push(['📋', 'Playbook', `+${pb}% speed`]); if (co) b.push(['🧢', 'Development coach', `+${co}% speed`]); if (p.year <= 2) b.push(['🎓', p.year === 1 ? 'Freshman' : 'Sophomore', `+${p.year === 1 ? 20 : 10}% speed`]);
     return `<div class="trboost">${b.map(x => `<span class="${x[3] ? 'evb' : ''}">${x[0]} ${x[1]} <b>${x[2]}</b></span>`).join('')}</div>`; };
   const planInfo = (p, f) => { const A = C.attrsOf(p); return f.startsWith('pos:') ? `Retrain as ${f.slice(4)}` : `${A[f][1]} ${p.a[f]} → ${Math.min(C.attrCap(p, f), p.a[f] + (p.year <= 2 ? 2 : 1))}`; };
   C.openTrain = id => C.ui.open('Training plan', () => {
@@ -145,6 +146,10 @@
   A2.devfinish = id => { const q = C.inDev(id); if (!q) return C.ui.back(); if (!C.isFreeFinish(q)) { const g = C.goldToFinish(q); if (C.acct().gold < g) return C.toast('Not enough Coins'); C.acct().gold -= g; } q.end = C.now(); C.tickDev().forEach(m => C.toast(m)); C.save(); C.ui.back(); C.ui.refresh(); C.render(); };
   A2.devslot = v => { if (v === 'prog') return C.ui.open('Training Ground Lv 10', () => `<p class="note" style="margin-top:0">This training slot opens when your Training Ground reaches <b>Lv 10</b>. It's Lv ${C.level('training')} now.</p><button class="btn full pri" data-act="bldopen" data-v="training">Go to the Training Ground</button>`, { popup: true });
     C.openStoreAt && C.openStoreAt(v === 'vip' ? 'passes' : 'items'); };
+  // 1.03.01 (QA-42 a): small amounts left in the scholarship pool can top up any player in $500 steps (up to the full cost to attend);
+  // the player is pleased (+3 morale, provisional)
+  A2.schup = id => { const p = C.P(id), car = C.car(); if (!p || p.acad || C.poolLeft() < 500) return; const add = Math.min(500, car.job.coa - (p.schol || 0)); if (add <= 0) return;
+    p.schol = (p.schol || 0) + add; p.morale = Math.min(100, (p.morale || 60) + 3); C.save(); C.toast(`🎓 ${C.sn(p)}: scholarship ${C.money(p.schol)} a year`); C.ui.refresh(); };
   A2.storeat = v => C.openStoreAt && C.openStoreAt(v);
 
   // ================= numbers: taken numbers swap, and you see who you'd be taking one from =================
