@@ -116,8 +116,8 @@
     const pos = isB ? null : C.FORMATIONS[t.form][i][0], label = isB ? 'SUB' : C.slotLabels(t.form)[i], cur = C.P(isB ? t.bench[i] : t.xi[i]);
     const rate = p => pos ? C.posRating(p, pos) : p.rating, colOf = p => pos ? PILL[C.fit(p, pos)] : '#64748b';
     const line = (p, act) => { const un = !C.available(p);
-      return `<button class="arow ${un ? 'lock' : ''}" ${act ? `data-act="${un ? 'toast' : 'setpick'}" data-v="${un ? (p.inj ? 'Injured: out ' + (p.inj > 50 ? 'for the season' : p.inj + ' more match' + (p.inj > 1 ? 'es' : '')) : 'Suspended for the next match') : slot + '|' + p.id}"` : ''}>
-        <span class="lchip" style="background:${colOf(p)}">${label}</span><span class="anm">${C.esc(p.fn[0] + '. ' + p.ln)}${C.badges(p)}</span>${t.xi.includes(p.id) ? '<em class="wtag xi">XI</em>' : t.bench.includes(p.id) ? '<em class="wtag">SUB</em>' : ''}<b class="art">${rate(p)}</b><span class="afr" style="color:${fcol(p.energy)}">${ring(p.energy)} ${Math.round(p.energy)}%</span></button>`; };
+      return `<button class="arow ${un ? 'lock' : ''}" ${act === false ? 'data-act="back"' : ''} ${act ? `data-act=""${un ? 'toast' : 'setpick'}" data-v="${un ? (p.inj ? 'Injured: out ' + (p.inj > 50 ? 'for the season' : p.inj + ' more match' + (p.inj > 1 ? 'es' : '')) : 'Suspended for the next match') : slot + '|' + p.id}"` : ''}>
+        <span class="lchip" style="background:${colOf(p)}">${label}</span><span class="anm">${C.esc(p.fn[0] + '. ' + p.ln)}${C.badges(p)}</span><span class="wcol">${t.xi.includes(p.id) ? '<em class="wtag xi">XI</em>' : t.bench.includes(p.id) ? '<em class="wtag">SUB</em>' : ''}</span><b class="art">${rate(p)}</b><span class="afr" style="color:${fcol(p.energy)}">${ring(p.energy)} ${Math.round(p.energy)}%</span></button>`; };
     const inXI = id => t.xi.includes(id), onB = id => t.bench.includes(id);
     const cands = car.squad.filter(p => p !== cur && (pkXI || !inXI(p.id)) && (pkSubs || !onB(p.id)))
       .sort((a, b) => (C.available(b) - C.available(a)) || (rate(b) * (.6 + .4 * b.energy / 100)) - (rate(a) * (.6 + .4 * a.energy / 100)));

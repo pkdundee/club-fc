@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.04 · 23 Nov 2026';
+  C.BUILD = 'CLUB FC 1.05 · 23 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -222,9 +222,11 @@
         if (v === 'portal') { const m = C.portalOpen() ? C.closePortalNow() : (C.openPortalWindow(), '🚪 Transfer window open for 3 days'); C.save(); C.ui.closeAll(); C.tab = 'recruit'; C.setRoute('portal'); C.toast(m); break; }
         if (v === 'finish') { car.queue.forEach(q => q.end = C.now()); (car.devq || []).forEach(q => q.end = C.now()); (car.pbq || []).forEach(q => q.end = C.now()); C.tickDev(); C.tickPB(); }
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
+      case 'resetcar': C.ui.open('Reset this career', () => `<p class="note" style="font-size:14px">This deletes <b>${C.esc(C.college().full)}</b> only: its campus, squad, research and items. Your Coins, purchases (builders and slots) and other careers stay.</p><button class="btn full danger" data-act="resetcaryes">Yes, reset this career</button><button class="btn full sec2" data-act="back" style="margin-top:6px">Cancel</button>`, { popup: true }); break;   // 1.04.01 (QA-43)
+      case 'resetcaryes': { C.deleteCareer(C.db.active); C.ui.closeAll(); C.tab = 'home'; C.render(); C.act('newcar'); break; }
       case 'wipe': C.ui.open('Delete all data', () => `<p class="note" style="font-size:14px">This deletes every career and resets Coins and purchases on this device.</p><button class="btn full danger" data-act="wipeyes">Yes, delete everything</button>`); break;
       case 'wipeyes': C.wipe(); location.reload(); break;
-      case 'imp9t': C.ui.open('Import 9t save', () => `<p class="note" style="font-size:14px">Copies your phase-9t save into CLUB FC 1.04 for testing. <b>Your 9t save is not changed.</b> It replaces everything currently saved in 1.02, and can be done once (again only after Delete all data).</p><button class="btn full pri" data-act="imp9tyes">Import the 9t save</button>`, { popup: true }); break;
+      case 'imp9t': C.ui.open('Import 9t save', () => `<p class="note" style="font-size:14px">Copies your phase-9t save into CLUB FC 1.05 for testing. <b>Your 9t save is not changed.</b> It replaces everything currently saved in 1.02, and can be done once (again only after Delete all data).</p><button class="btn full pri" data-act="imp9tyes">Import the 9t save</button>`, { popup: true }); break;
       case 'imp9tyes': { const r = C.import9t(); if (r === true) location.reload(); else C.toast(r === 'none' ? 'No phase-9t save on this device' : r === 'done' ? 'Already imported' : 'Import failed'); break; }
       case 'store': C.openStore(); break;
       case 'buy': { const a2 = C.acct();
@@ -270,7 +272,9 @@
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) C.jobPage(dx < 0 ? 1 : -1); }, { passive: true });
 
   // 1.01 (FEEDBACK 131, 138): when the last popup closes, redraw the screen behind it (Inbox badge, arrows, map markers)
-  C.onUiClosed = () => { if (C.car() && !C.booting && (C.tab === 'campus' || C.tab === 'home')) { mapSig = campusSig(); C.render(); } };
+  C.onUiClosed = () => { if (C.freshTutorial && C.car()) setTimeout(() => { if (!C.ui.isOpen()) C.freshTutorial(); }, 250);   // 1.04.01 (QA-44): once, back from the first friendly
+    if (C.guideShow && C.car()) setTimeout(() => { if (!C.ui.isOpen()) C.guideShow(); }, 400);   // 1.05 (QA-53, QA-54)
+    if (C.car() && !C.booting && (C.tab === 'campus' || C.tab === 'home')) { mapSig = campusSig(); C.render(); } };
   // and redraw the campus as soon as what it shows changes (money, levels, queues, mail), not only every 20 seconds
   const campusSig = () => { const car = C.car(); if (!car) return ''; return [car.cash, car.cp, C.acct().gold, JSON.stringify(car.b), car.queue.map(q => q.key + (C.buildReady(q.key) ? '!' : '')).join(), (car.pbq || []).map(q => q.key + (q.end <= C.now() ? '!' : '')).join(), C.inboxUnread ? C.inboxUnread() : 0].join('|'); };
   let mapSig = '';

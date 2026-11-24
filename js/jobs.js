@@ -117,6 +117,7 @@
     return `<div class="jhead">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<div><b>${C.esc(col.full)}</b><small>${C.esc(col.mascot)} · ${car.gender === 'w' ? "Women's" : "Men's"} soccer · ${col.state} · Head coach since season 1</small></div></div>
       ${car.renameFree ? `<button class="btn full pri" data-act="pgrename" style="margin:8px 0">✏️ Rename your program (free once)</button>` : ''}
       ${car.myCol ? '' : `<div class="card jcard"><b>${C.esc(st.title || '')}</b><p>${C.esc(st.text || '')}</p></div>`}
+      ${(car.trophies || []).length ? `<h3 class="jh">🏆 Trophy cabinet</h3><div class="card srows">${car.trophies.map(t => `<div class="srow"><span>🏆 ${C.esc(t.title)}</span><b>Season ${t.season} · ${C.esc((C.TIERS[t.tier] || {}).name || 'Tier ' + t.tier)}</b></div>`).join('')}</div>` : ''}
       <h3 class="jh">📜 Your appointment</h3>
       <div class="kgrid">
         <div class="k"><small>Athletic director's goal</small><b>${GOAL[j.stars] || ''}</b></div>

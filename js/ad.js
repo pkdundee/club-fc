@@ -69,6 +69,10 @@
         return `<div class="fwday ${locked ? 'locked' : ''}"><div class="fwh"><b>${d.title}</b><small>${locked ? '🔒 Opens when you claim Day ' + i : rw(d.reward)}</small></div>
           ${locked ? '' : d.tasks.map(t => `<div class="fwt ${t[2](car) ? 'ok' : ''}"><span>${t[2](car) ? '✔' : '○'}</span>${t[1]}${!t[2](car) && FWGO[t[0]] ? `<button class="btn sm2 pri" style="margin-left:auto" data-act="fwgo" data-v="${t[0]}">Go</button>` : ''}</div>`).join('') + (got ? '<div class="fwclaimed">✔ Claimed</div>' : `<button class="btn full ${done ? 'pri' : 'sec2'}" data-act="fwclaim" data-v="${i}" ${done ? '' : 'disabled'}>${done ? 'Claim ' + rw(d.reward) : 'Finish both tasks to claim'}</button>`)}</div>`; }).join('')}`;
   });
+  // 1.05: the Career Progression Pass replaces the First Week; days completed but not claimed are mailed
+  C.fwMailUnclaimed = car => { if (!car.fw) return; const got = {}; for (let d = 0; d < 7; d++) if (!car.fw.claimed.includes(d) && DAYS[d].tasks.every(t => t[2](car))) { car.fw.claimed.push(d); const r = DAYS[d].reward;
+      for (const k in r) { const kk = k === 'item' ? 'rare' : k, v = k === 'item' ? 1 : r[k]; got[kk] = (got[kk] || 0) + v; } }
+    if (Object.keys(got).length) C.mail('director', '📅', "Coach's First Week: your rewards", "The Career Progression Pass replaces the First Week. Here are the rewards for the days you had finished.", got); };
   C.fwClaim = d => { const car = C.car(), r = DAYS[d].reward; if (car.fw.claimed.includes(d) || d > C.fwUnlocked(car) || !C.fwDone(car, d)) return false;
     car.fw.claimed.push(d); if (r.gold) C.acct().gold += r.gold; if (r.cash) car.cash += r.cash; if (r.cp) car.cp += r.cp; if (r.item) { car.items = car.items || {}; car.items[r.item] = (car.items[r.item] || 0) + 1; } if (r.sp1) { const inv = C.meta().inv; inv.sp1 = (inv.sp1 || 0) + r.sp1; }
     C.save(); return rw(r); };

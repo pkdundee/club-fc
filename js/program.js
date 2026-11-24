@@ -26,6 +26,7 @@
     for (let i = 0; out.length < 3 && i < 60; i++) { const pl = PLACES[Math.floor(r() * PLACES.length)], sf = suf[Math.floor(r() * 3)], short = sf === 'State' ? pl + ' State' : pl;
       if (used.has(short.toLowerCase()) || out.some(o => o.short === short)) continue; out.push({ full: `${pl} ${sf}`, short }); }
     return out; };
+  C.genCollegeNames = (r, k) => { const out = []; for (let i = 0; out.length < k && i < 20; i++) gen(r).forEach(n => { if (out.length < k && !out.some(o => o.short === n.short)) out.push(n); }); return out; };   // 1.05: National Championship champions
   const abbrOf = full => full.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 4);
   const sync = () => { const v = id => { const e = document.getElementById(id); return e ? e.value : null; };
     const st = v('pgstate'); if (st != null) P.state = st; const cu = v('pgcustom'); if (cu != null) P.custom = cu.trim(); const ma = v('pgmascot'); if (ma != null) P.mascot = ma.trim(); const ab = v('pgabbr'); if (ab != null) P.abbr = ab.trim().toUpperCase(); };

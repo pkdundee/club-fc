@@ -18,14 +18,16 @@
     spt15: ['🏋️', '15m training speed-up', 15, 't'], spt60: ['🏋️', '1h training speed-up', 60, 't'],
     spr15: ['📋', '15m research speed-up', 15, 'r'], spr60: ['📋', '1h research speed-up', 60, 'r'], spr180: ['📋', '3h research speed-up', 180, 'r'], spr480: ['📋', '8h research speed-up', 480, 'r'],
     crate: ['📦', 'Booster crate ($5K)'], badge: ['🏅', 'Coaching Badge'],
-    crb1: ['📦', 'Common Booster Crate'], crb2: ['📦', 'Rare Booster Crate'], crb3: ['📦', 'Epic Booster Crate'], crb4: ['📦', 'Legendary Booster Crate'], crc2: ['🎁', 'Rare Choice Crate'] };
+    crb1: ['📦', 'Common Booster Crate'], crb2: ['📦', 'Rare Booster Crate'], crb3: ['📦', 'Epic Booster Crate'], crb4: ['📦', 'Legendary Booster Crate'], crc2: ['🎁', 'Rare Choice Crate'],
+    crp1: ['🧪', 'Common CP Crate'], crp2: ['🧪', 'Rare CP Crate'], crp3: ['🧪', 'Epic CP Crate'], crp4: ['🧪', 'Legendary CP Crate'], crc4: ['🎁', 'Legendary Choice Crate'] };   // 1.05: CP Crates, Legendary Choice
   // a Crate holds hours of production, sized when it's opened: Booster Crates = Clubhouse output; the Choice Crate = Clubhouse or Performance Lab
-  const CRH = { crb1: 1, crb2: 4, crb3: 8, crb4: 24, crc2: 4 }; C.CRH = CRH;
+  const CRH = { crb1: 1, crb2: 4, crb3: 8, crb4: 24, crc2: 4, crp1: 1, crp2: 4, crp3: 8, crp4: 24, crc4: 24 }; C.CRH = CRH;
+  const isChoice = k => /^crc/.test(k), isCP = k => /^crp/.test(k); C.isChoiceCrate = isChoice;
   C.XN = XN;
   C.speedKeys = type => Object.keys(XN).filter(k => XN[k][3] && (XN[k][3] === 'g' || XN[k][3] === type));
   const ICON = { gold: '<i class="coin"></i>', cash: '💵', cp: '<i class="cpi"></i>', manual: '📗', credits: '🎫', kit: '🧴', books: '📕', tokens: '🎟', rare: '🎁', coach: '🧑‍🏫' };
   const NAME = { gold: 'Coins', cash: 'Booster $', cp: 'Coaching Points', manual: 'Coaching manual', credits: 'Clinic Credits', kit: 'Recovery kit', books: 'Trait Book', tokens: 'Number Change', rare: 'Rare recruit', coach: 'Rare coach' };
-  const TIER = { sp1: 1, sp480: 4, sp1440: 4, spb180: 3, spb480: 4, spr180: 3, spr480: 4, crb1: 1, crb2: 2, crb3: 3, crb4: 4, crc2: 3, spb15: 2, spb60: 3, spt15: 2, spt60: 3, spr15: 2, spr60: 3, badge: 3, gold: 3, coach: 4, rare: 4, books: 3, sp60: 3, sp180: 4, crate: 2, sp15: 2, cash: 1, cp: 1, manual: 1, credits: 1, kit: 1, tokens: 2, sp5: 1 };
+  const TIER = { sp1: 1, sp480: 4, sp1440: 4, spb180: 3, spb480: 4, spr180: 3, spr480: 4, crb1: 1, crb2: 2, crb3: 3, crb4: 4, crc2: 3, crp1: 1, crp2: 2, crp3: 3, crp4: 4, crc4: 4, spb15: 2, spb60: 3, spt15: 2, spt60: 3, spr15: 2, spr60: 3, badge: 3, gold: 3, coach: 4, rare: 4, books: 3, sp60: 3, sp180: 4, crate: 2, sp15: 2, cash: 1, cp: 1, manual: 1, credits: 1, kit: 1, tokens: 2, sp5: 1 };
   const oText = C.rwText, oGive = C.giveReward;
   C.rwText = r => { const a = {}, b = []; for (const k in r) { if (XN[k]) b.push(`${XN[k][0]} ${r[k] > 1 ? r[k] + '× ' : ''}${XN[k][1]}`); else a[k] = r[k]; } return [Object.keys(a).length ? oText(a) : '', ...b].filter(Boolean).join(' · '); };
   C.giveReward = r => { const a = {}, inv = C.car() ? meta().inv : null; for (const k in r) { if (XN[k]) { if (inv) inv[k] = (inv[k] || 0) + r[k]; } else a[k] = r[k]; } oGive(a); C.save(); };
@@ -37,7 +39,7 @@
     manual: 'Coaching manual: gives a coach 100 XP.', credits: 'Clinic Credits: pay for coach licences.', kit: "Recovery kit: restores a tired player's Freshness.", books: "Trait Book: upgrades a coach's trait.",
     tokens: 'Number Change: gives a player the shirt number they want.', rare: 'Rare recruit: signs a Rare freshman on academic aid.', coach: 'Rare coach: joins your staff.', badge: "Coaching Badge: raises a coach's stars.",
     crate: 'Booster crate: $5,000 Booster $.', gear: 'Gear: goes to your Kit Room; equip it from a player\'s card.' };
-  C.itemInfo = k => { if (CRH[k]) return [XN[k][0], XN[k][1], `${CRH[k]} hours of ${k === 'crc2' ? 'Clubhouse or Performance Lab' : 'Clubhouse'} output at your level when opened. Now: ${C.money(C.crateAmount(k, 'cash'))}${k === 'crc2' ? ' or ' + C.full(C.crateAmount(k, 'cp')) + ' Coaching Points' : ''}.`];
+  C.itemInfo = k => { if (CRH[k]) return [XN[k][0], XN[k][1], `${CRH[k]} hours of ${isChoice(k) ? 'Clubhouse or Performance Lab' : isCP(k) ? 'Performance Lab' : 'Clubhouse'} output at your level when opened. Now: ${isCP(k) ? C.full(C.crateAmount(k, 'cp')) + ' Coaching Points' : C.money(C.crateAmount(k, 'cash'))}${isChoice(k) ? ' or ' + C.full(C.crateAmount(k, 'cp')) + ' Coaching Points' : ''}.`];
     if (XN[k] && XN[k][3]) return [XN[k][0], XN[k][1], `Takes ${XN[k][2] >= 60 ? XN[k][2] / 60 + ' h' : XN[k][2] + ' min'} off ${({ g: 'any building, research or training plan', b: 'buildings', r: 'research', t: 'training plans' })[XN[k][3]]}.`];
     return [XN[k] ? XN[k][0] : ICON[k] || '🎁', XN[k] ? XN[k][1] : NAME[k] || k, DESC[k] || '']; };
   A.itemdet = v => { const [k, n] = String(v).split('|'), [ic, nm, ds] = C.itemInfo(k);
@@ -49,13 +51,13 @@
   C.speedRow = (kind, id) => { const inv = meta().inv, ks = C.speedKeys(kind).filter(k => inv[k] > 0); return ks.length ? `<div class="spitems">${ks.map(k => `<button data-act="usespeed" data-v="${kind}|${id}|${k}">${XN[k][0]} ${XN[k][2] >= 60 ? XN[k][2] / 60 + 'h' : XN[k][2] + 'm'}<em>×${inv[k]}</em></button>`).join('')}</div>` : ''; };
   C.openCrate = () => { const inv = meta().inv; if (!(inv.crate > 0)) return false; inv.crate--; C.car().cash += 5000; C.save(); return true; };
   // 1.03: Crates open for hours of production at the building's level now (shown before opening); storage limits don't apply
-  C.crateAmount = (k, res) => { const lvB = Math.max(1, C.level('booster') || 0), lvL = Math.max(1, C.level('lab') || 0);
+  C.crateAmount = (k, res) => { if (isCP(k)) res = 'cp'; const lvB = Math.max(1, C.level('booster') || 0), lvL = Math.max(1, C.level('lab') || 0);
     return Math.floor((res === 'cp' ? C.prod.lab(lvL) : C.prod.booster(lvB)) * CRH[k]); };
-  C.openCrateX = (k, res) => { const inv = meta().inv; if (!CRH[k] || !(inv[k] > 0)) return 0; const amt = C.crateAmount(k, res); inv[k]--;
+  C.openCrateX = (k, res) => { if (isCP(k)) res = 'cp'; const inv = meta().inv; if (!CRH[k] || !(inv[k] > 0)) return 0; const amt = C.crateAmount(k, res); inv[k]--;
     C.car()[res === 'cp' ? 'cp' : 'cash'] += amt; C.save(); return amt; };
   A.invcratex = k => { const inv = meta().inv; if (!(inv[k] > 0)) return;
     const b = C.crateAmount(k, 'cash'), cp = C.crateAmount(k, 'cp');
-    if (k === 'crc2') return C.ui.open(XN[k][1], () => `<p class="note" style="margin-top:0">Choose what it holds: ${CRH[k]} hours of production at your current level.</p>
+    if (isChoice(k)) return C.ui.open(XN[k][1], () => `<p class="note" style="margin-top:0">Choose what it holds: ${CRH[k]} hours of production at your current level.</p>
       <button class="btn full pri" data-act="cratepick" data-v="${k}|cash">💵 ${C.money(b)} Booster $</button>
       <button class="btn full pri" style="margin-top:8px" data-act="cratepick" data-v="${k}|cp"><i class="cpi"></i> ${C.full(cp)} Coaching Points</button>`, { popup: true });
     C.ui.open(XN[k][1], () => `<p class="note" style="margin-top:0">${CRH[k]} hours of Clubhouse output at Lv ${Math.max(1, C.level('booster'))}.</p>
@@ -73,9 +75,11 @@
     const L = [];
     const add = (tab, k, icon, name, n, tier, desc, use) => L.push({ tab, k, icon, name, n: n || 0, tier: tier || 1, desc, use });
     add('special', 'rare', '🎁', 'Rare recruit', it.rareRecruit, 4, 'Signs a Rare freshman on academic aid straight away (no scholarship money). Needs a free roster place.', 'rare');
+    add('special', 'crc4', XN.crc4[0], XN.crc4[1], inv.crc4, TIER.crc4, `Choose when opening: ${CRH.crc4} hours of Clubhouse output or of Performance Lab output, at your levels now.`, 'crate');
     add('special', 'crc2', XN.crc2[0], XN.crc2[1], inv.crc2, TIER.crc2, `Choose when opening: ${CRH.crc2} hours of Clubhouse output or of Performance Lab output, at your levels now.`, 'crate');
     add('special', 'tokens', '🎟', 'Number Change', car.tokens, 2, "Gives a player the shirt number they want. Used from the player's card.");
     add('special', 'kit', '🧴', 'Recovery kit', it.kit, 1, "Restores a tired player's Freshness. Used from the player's card or the Medical Room.");
+    ['crp1', 'crp2', 'crp3', 'crp4'].forEach(k => add('res', k, XN[k][0], XN[k][1], inv[k], TIER[k], `${CRH[k]} hours of Performance Lab output at your level, worked out when you open it. Now: ${C.full(C.crateAmount(k, 'cp'))} Coaching Points each.`, 'crate'));
     ['crb1', 'crb2', 'crb3', 'crb4'].forEach(k => add('res', k, XN[k][0], XN[k][1], inv[k], TIER[k], `${CRH[k]} hours of Clubhouse output at your level, worked out when you open it. Now: ${C.money(C.crateAmount(k, 'cash'))} each. Storage limits don't apply.`, 'crate'));
     if (inv.crate) add('res', 'crate', '📦', 'Booster crate ($5K)', inv.crate, 2, 'Opens for $5,000 Booster $.', 'crate');
     add('res', 'badge', '🏅', 'Coaching Badge', inv.badge, 3, "Raises a coach's stars. Used on the coach's page (Staff).");
@@ -104,11 +108,11 @@
     if (sel.use === 'rare') return C.act('rare');
     if (sel.use === 'crate') {
       if (sel.k === 'crate') { let t = 0; for (let i = 0; i < n; i++) if (C.openCrate()) t += 5000; C.toast(`📦 +${C.money(t)}`); C.ui.refresh(); return C.render(); }
-      if (sel.k === 'crc2') return C.ui.open(XN.crc2[1], () => `<p class="note" style="margin-top:0">Open ${n} for:</p>
-        <button class="btn full pri" data-act="cratepickn" data-v="crc2|cash|${n}">💵 ${C.money(C.crateAmount('crc2', 'cash') * n)} Booster $</button>
-        <button class="btn full pri" style="margin-top:8px" data-act="cratepickn" data-v="crc2|cp|${n}"><i class="cpi"></i> ${C.full(C.crateAmount('crc2', 'cp') * n)} Coaching Points</button>`, { popup: true });
-      return C.ui.open('Open Crates', () => `<div class="useit">${C.itemTiles({ [sel.k]: n })}</div><p class="note" style="text-align:center">Open ${n} for <b style="color:var(--fit5)">${C.money(C.crateAmount(sel.k, 'cash') * n)}</b> Booster $</p>
-        <div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Cancel</button><button class="btn pri" data-act="cratepickn" data-v="${sel.k}|cash|${n}">Open</button></div>`, { popup: true }); }
+      if (isChoice(sel.k)) return C.ui.open(XN[sel.k][1], () => `<p class="note" style="margin-top:0">Open ${n} for:</p>
+        <button class="btn full pri" data-act="cratepickn" data-v="${sel.k}|cash|${n}">💵 ${C.money(C.crateAmount(sel.k, 'cash') * n)} Booster $</button>
+        <button class="btn full pri" style="margin-top:8px" data-act="cratepickn" data-v="${sel.k}|cp|${n}"><i class="cpi"></i> ${C.full(C.crateAmount(sel.k, 'cp') * n)} Coaching Points</button>`, { popup: true });
+      return C.ui.open('Open Crates', () => `<div class="useit">${C.itemTiles({ [sel.k]: n })}</div><p class="note" style="text-align:center">Open ${n} for <b style="color:var(--fit5)">${isCP(sel.k) ? C.full(C.crateAmount(sel.k, 'cp') * n) + '</b> Coaching Points' : C.money(C.crateAmount(sel.k, 'cash') * n) + '</b> Booster $'}</p>
+        <div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Cancel</button><button class="btn pri" data-act="cratepickn" data-v="${sel.k}|${isCP(sel.k) ? 'cp' : 'cash'}|${n}">Open</button></div>`, { popup: true }); }
     if (sel.use === 'speed') return useSpeedOn(sel.k, n);
   };
   A.cratepickn = v => { const [k, res, nn] = v.split('|'); let t = 0; for (let i = 0; i < +nn; i++) t += C.openCrateX(k, res); C.ui.back();
@@ -245,7 +249,10 @@
   function eventsHTML() { if (evTab === 'cal') return bigTabs() + calHTML(); return bigTabs() + eventHTML(); }
   function missionsHTML() {
     const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length;
-    const sub = `<div class="subtabs">${[['daily', 'Daily tasks', dd], ['main', 'Main tasks', C.mainReady()]].map(([k, n, d]) => `<button class="${msTab === k ? 'on' : ''}" data-act="mstab" data-v="${k}">${n}${d ? ` <em>${d}</em>` : ''}</button>`).join('')}</div>`;
+    const car0 = C.car(), pass = !!(C.cpp && C.cpp()), showMain = !pass;   // 1.05: the Career Progression Pass replaces the Main tasks after Pre-season
+    if (msTab === 'main' && !showMain) msTab = 'cpp'; if (msTab === 'cpp' && !pass) msTab = 'daily';
+    const sub = `<div class="subtabs">${[['daily', 'Daily tasks', dd]].concat(pass ? [['cpp', 'Progression', C.cppClaimable()]] : []).concat(showMain ? [['main', 'Main tasks', C.mainReady()]] : []).map(([k, n, d]) => `<button class="${msTab === k ? 'on' : ''}" data-act="mstab" data-v="${k}">${n}${d ? ` <em>${d}</em>` : ''}</button>`).join('')}</div>`;
+    if (msTab === 'cpp') return sub + C.cppHTML();
     if (msTab === 'main') {
       const car = C.car(), M = meta(), open = allMain().filter(t => !M.main.includes(t[0])).sort((a, b) => b[3](car) - a[3](car)).slice(0, 6);   // ready to claim first (9t)
       const rows = open.map(t => { const ok = t[3](car); return `<div class="mrow2"><div class="mh"><span>${t[1]}</span><b>${C.esc(t[2])}</b></div><div class="mb">${C.itemTiles(t[4])}${ok ? `<button class="btn sm2 claim" data-act="mainclaim" data-v="${t[0]}">Claim</button>` : `<button class="btn sm2 go" data-act="${t[5]}" data-v="${t[6]}">Go</button>`}</div></div>`; }).join('');
@@ -289,7 +296,7 @@
     if (C.evBuy(n) === true) { C.toast('✅ Test purchase complete'); C.ui.refresh(); C.render(); } };
   A.inventory = () => C.openInventory();
   // the comms button: "this is what to do next", straight to Main Tasks
-  A.nexttask = () => { const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length; msTab = C.mainReady() && !dd ? 'main' : C.mainNext() && !dd ? 'main' : 'daily'; C.ui.closeAll(); C.openMissions(); };
+  A.nexttask = () => { const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length; msTab = C.cppClaimable && C.cppClaimable() && !dd ? 'cpp' : C.mainReady() && !dd ? 'main' : C.mainNext() && !dd && C.car().pre ? 'main' : C.cpp && C.cpp() && !dd ? 'cpp' : 'daily'; C.ui.closeAll(); C.openMissions(); };
   // building action buttons open popups over the map
   A.bpop = v => { C.ui.asPopup = true; if (v === 'proginfo') C.openProgramInfo(); else if (v === 'playbook') C.openPlaybook(); else if (v === 'medical') C.openMedical(); else if (v === 'hqstaff') C.openStaffPop(); else if (v === 'kitroom') C.openKitRoom(); else if (v === 'academic') C.openAcademic(); };
   C.openStaffPop = () => C.ui.open('Staff on duty', () => { const S = C.staffState();
@@ -449,11 +456,18 @@
     const cov = Object.keys(C.COVER).map(k => `<span class="${cv[k] >= C.COVER[k] ? '' : 'short'}">${({ gk: 'GK', def: 'DEF', mid: 'MID', fwd: 'FWD' })[k]} ${cv[k]}/${C.COVER[k]}</span>`).join(' · ');
     return `<div class="card prehd3"><b>🗓 Pre-season · Season ${car.season}</b><p>${first ? 'Build your campus, hire your staff, fill your roster, then play 5 friendlies. Every task is needed before the season starts. Player training starts with the season.' : 'Five friendlies to get ready, then the season starts. Friendlies don\'t count in the table and don\'t tire or injure anyone.'}</p></div>
       <div class="card">${preList(car).map(t => { const done = t[3](car); return `<div class="pstep ${done ? 'done' : ''}"><span>${done ? '✔' : t[1]}</span><b>${C.esc(t[2])}${t[0] === 'friendlies' && !done ? ` (${5 - C.friendliesLeft(car)}/5)` : ''}</b>${done ? '' : `<button class="btn sm2 go" data-act="${t[4]}" data-v="${t[5]}">Go</button>`}</div>`; }).join('')}</div>
-      ${C.friendliesLeft(car) ? `<button class="btn full sec2" data-act="simfr">⏩ Simulate the remaining friendlies</button>` : ''}
+      ${C.friendliesLeft(car) ? `<button class="btn full pri" data-act="prematch">⚽ Play friendly ${6 - C.friendliesLeft(car)} of 5</button>` : ''}
+      ${first && C.friendliesLeft(car) < 5 ? `<div class="card fresht"><b>🔋 Freshness</b><p>Matches tire your players. Friendlies cost half as much and never injure anyone. Refresh the <b>whole team</b> with a team recovery session, and <b>individuals</b> by resting them or using a recovery kit.</p><button class="btn full sec2" data-act="rejuv">Refresh players</button></div>` : ''}
       ${first ? `<div class="card preroster"><div class="srow"><span>👕 Roster</span><b class="${n >= C.PRE_MIN ? '' : 'short'}">${n} players · ${C.PRE_MIN} needed</b></div><div class="srow"><span>Positions</span><b class="covl">${cov}</b></div><div class="srow"><span>Places left</span><b>${left} (up to ${cap})</b></div>${car.job.eq ? `<div class="srow"><span>🎓 Scholarships left</span><b>${C.money(C.poolLeft())}</b></div>` : ''}</div>` : ''}
       <button class="btn full ${ok ? 'pri' : 'sec2'}" data-act="startseason" ${ok ? '' : 'disabled'}>${ok ? '🏁 Start the season' : `Finish the pre-season tasks to start (${C.preTasksLeft()} left)`}</button>`;
   });
-  A.simfr = () => { C.simFriendlies(); C.toast('⚽ Friendlies simulated'); C.ui.refresh(); C.render(); };
+  // 1.04.01 (QA-44): after the first friendly of a new career, a short Freshness tutorial: the team and individual ways to refresh
+  C.freshTutorial = () => { const car = C.car(); if (!car || car.season > 1 || car.preLite || meta().ms.freshTut || C.friendliesLeft(car) >= 5) return; meta().ms.freshTut = 1; C.save();
+    C.ui.open('Freshness', () => `<div class="card"><b>🔋 Your players get tired</b><p>Every match uses Freshness. Tired players play worse and get injured more often. Friendlies cost half as much, and never injure anyone.</p></div>
+      <div class="pstep"><span>👥</span><b>Refresh the whole team: a team recovery session (free every few matches)</b></div>
+      <div class="pstep"><span>🪑</span><b>Refresh one player: rest them for a match (+30 on the bench, +40 out of the squad)</b></div>
+      <div class="pstep"><span>🧴</span><b>Or give one player a recovery kit (+25 straight away)</b></div>
+      <button class="btn full pri" data-act="rejuv">Refresh players now</button><button class="btn full sec2" data-act="back" style="margin-top:6px">Got it</button>`, { popup: true }); };
   // 1.02 (FEEDBACK 156.4): a readiness check before the season starts. Advice only.
   C.readiness = () => { const car = C.car(), out = [], cap = C.rosterCap(car), n = car.squad.length;
     if (cap > n) out.push(['👕', `${cap - n} roster place${cap - n > 1 ? 's' : ''} left`, 'tab', 'recruit']);
@@ -464,7 +478,11 @@
     const rw = C.loClaimable() + meta().inbox.filter(x => x.r && !x.claimed).length; if (rw) out.push(['🎁', `${rw} reward${rw > 1 ? 's' : ''} to claim`, C.msClaimable() ? 'nexttask' : C.evOnlyClaimable() ? 'events' : 'inbox', '']);
     return out; };
   A.startseason = () => { const car = C.car(); if (!preReady(car)) return C.openPreseason(); const list = C.readiness();
-    C.ui.open('Ready for the season?', () => `${list.length ? `<p class="note" style="margin-top:0">You can still do these before your first match:</p>${list.map(([ic, txt, act, v]) => `<div class="pstep"><span>${ic}</span><b>${txt}</b><button class="btn sm2 go" data-act="${act}" data-v="${v}">Go</button></div>`).join('')}` : '<p class="note" style="margin-top:0">Everything is ready.</p>'}
+    const up = car.tier > 1 ? car.tier - 1 : null, gl = C.SEASON_GOAL[car.job.stars], need = up ? C.TIER_GATE[up] : 0, okHQ = up && C.hqOkFor(up);
+    const obj = `<div class="card objs"><b>🎯 This season's objectives</b><div class="pstep"><span>🏛</span><b>Director's goal: ${C.esc(gl ? gl[0] : 'Do your best')}</b></div>
+      ${up ? `<div class="pstep ${okHQ ? 'done' : ''}"><span>${okHQ ? '✔' : '🏗'}</span><b>Reach ${C.BUILDINGS.hq.name} Lv ${need} (now Lv ${C.level('hq')}) to be allowed promotion to ${C.esc(C.TIERS[up].name)}</b></div>
+      <div class="pstep"><span>🥇</span><b>Finish 1st or 2nd: promoted automatically</b></div><div class="pstep"><span>⚔️</span><b>Finish 3rd or 4th: promotion play-off against the bottom teams of the league above</b></div>` : '<div class="pstep"><span>👑</span><b>Top tier: win the conference</b></div>'}</div>`;
+    C.ui.open('Ready for the season?', () => `${obj}${list.length ? `<p class="note" style="margin-top:0">You can still do these before your first match:</p>${list.map(([ic, txt, act, v]) => `<div class="pstep"><span>${ic}</span><b>${txt}</b><button class="btn sm2 go" data-act="${act}" data-v="${v}">Go</button></div>`).join('')}` : '<p class="note" style="margin-top:0">Everything is ready.</p>'}
       <p class="note">Once the season starts, league matches open and training plans begin.</p><div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Not yet</button><button class="btn pri" data-act="startseasonok">🏁 Start the season</button></div>`, { popup: true }); };
   A.startseasonok = () => { const car = C.car(); if (!preReady(car)) return; car.pre = false; if (C.releaseBatch) C.releaseBatch(); if (car.sea && car.sea.md < 1) car.sea.md = 1;
     C.mail('director', '🏁', 'The season is under way', 'Good luck out there, Coach.', null); C.save(); C.ui.closeAll(); C.toast('🏁 The season has started!'); C.render(); };

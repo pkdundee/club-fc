@@ -1,7 +1,7 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc_v104';   // CLUB FC 1.04: its own save; carries over the 1.03 save on first open (never writes 1.03's)
-  const KEY_PREV = 'clubfc_v103';
+  const KEY = 'clubfc_v105';   // CLUB FC 1.05: its own save; carries over the 1.04 save on first open (never writes 1.04's)
+  const KEY_PREV = 'clubfc_v104';
   const KEY_9T = 'clubfc2_p9t'; // phase-9t's save: read only, never written by 1.00
   const FREE_SLOTS = 2;
 
@@ -11,7 +11,7 @@
   C.db = { v: 2, account: freshAccount(), careers: [], active: -1 };
 
   C.load = () => {
-    // first open: copy the 1.03 save (and its intro flag) so playtest progress carries over. 1.03's save is only read.
+    // first open: copy the 1.04 save (and its intro flag) so playtest progress carries over. 1.04's save is only read.
     try { if (!localStorage.getItem(KEY)) { const old = localStorage.getItem(KEY_PREV); if (old) { localStorage.setItem(KEY, old); if (localStorage.getItem(KEY_PREV + '_intro')) localStorage.setItem(KEY + '_intro', '1'); } } } catch (e) { }
     try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.v === 2) C.db = d; } } catch (e) { /* storage blocked: play without saving */ }
     C.db.account = Object.assign(freshAccount(), C.db.account);

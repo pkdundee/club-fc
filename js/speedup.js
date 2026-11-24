@@ -72,7 +72,7 @@
   // ---------- 6. the Speed Up popup ----------
   let cur = null;   // { kind, key, done }
   const NAMES = { b: k => `${C.BUILDINGS[k].name}`, r: k => C.pbName ? C.pbName(k) : k, t: k => { const p = C.P(k); return p ? 'Training: ' + C.sn(p) : 'Training' } };
-  const tile = (k, n) => { const m = C.XN[k][2]; return `<span class="itile t2">${C.XN[k][0]}<b>${m >= 60 ? m / 60 + 'h' : m + 'm'}</b>${n ? `<em>×${n}</em>` : ''}</span>`; };
+  const tile = (k, n) => { const m = C.XN[k][2]; return `<span class="itile t2">${C.XN[k][0]}<b>${m >= 60 ? m / 60 + 'h' : m + 'm'}</b>${n ? `<em>${n}×</em>` : ''}</span>`; };   // 1.04.01 (QA-45): "N×" bottom left
   function finishNow() { const c = cur; if (!c) return; const q = runningQ(c.kind, c.key); if (q) q.end = C.now(); C.save(); C.ui.back(); cur = null; c.done(); }
   function after() { const c = cur; if (!c) return; const q = runningQ(c.kind, c.key); if (!q) return C.ui.back();
     if (C.isFreeFinish(q)) return finishNow(); C.save(); C.ui.refresh(); }

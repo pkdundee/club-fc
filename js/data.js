@@ -57,6 +57,17 @@
   // 1.04 (FEEDBACK 108, 207, 212): conference size (matches = 2 x (size - 1)), the Campus HQ level needed to be promoted INTO a tier,
   // and each tier's cost to attend and funded scholarships (working values, 205/207)
   C.CONF_SIZE = { 5: 8, 4: 8, 3: 8, 2: 10, 1: 12 };
+  // 1.05 (FEEDBACK 229): 8 regional conferences per tier; yours is your state's region. The National Championship is national.
+  C.REGIONS = { Northeast: ['ME', 'NH', 'VT', 'MA', 'RI', 'CT', 'NY'], 'Mid-Atlantic': ['NJ', 'PA', 'DE', 'MD', 'VA', 'WV'], Southeast: ['NC', 'SC', 'GA', 'FL', 'AL', 'MS', 'TN', 'KY'],
+    'Great Lakes': ['OH', 'MI', 'IN', 'IL', 'WI'], 'Midwest Plains': ['MN', 'IA', 'MO', 'ND', 'SD', 'NE', 'KS'], 'South Central': ['TX', 'OK', 'AR', 'LA'], Mountain: ['MT', 'ID', 'WY', 'CO', 'UT', 'NV', 'AZ', 'NM'], Pacific: ['WA', 'OR', 'CA', 'AK', 'HI'] };
+  C.regionOf = st => Object.keys(C.REGIONS).find(k => C.REGIONS[k].includes(st)) || 'Midwest Plains';
+  // 1.05 (QA-55): every AI college has a fixed strength within its tier, spread evenly from -5 to +7 around the tier's starting level
+  C.tierBase = t => C.ECON.tierRating[t] + 2;   // T5 42 (a new squad), T4 50, T3 57, T2 64, T1 71
+  const hash = n => { let h = (n + 1) * 2654435761 >>> 0; h ^= h >>> 15; h = Math.imul(h, 2246822519) >>> 0; h ^= h >>> 13; return h >>> 0; };
+  const OFF = {}; C.collegeOffset = id => { if (OFF[id] != null) return OFF[id]; const c = C.COLLEGES[id]; if (!c || c.custom) return 0;
+    const same = C.COLLEGES.filter(x => x.tier === c.tier && !x.custom).sort((a, b) => hash(a.id) - hash(b.id)), n = same.length;
+    same.forEach((x, i) => OFF[x.id] = Math.round(-5 + 12 * i / Math.max(1, n - 1))); return OFF[id]; };
+  C.collegeRating = (id, season) => { const c = C.COLLEGES[id]; return C.tierBase(c.tier) + C.collegeOffset(id) + ((hash(id * 31 + (season || 0)) % 3) - 1); };   // +/-1 each season
   C.TIER_GATE = { 4: 10, 3: 15, 2: 20, 1: 25 };
   C.TIER_COA = { 5: 30000, 4: 31500, 3: 33000, 2: 34500, 1: 36000 };
   C.TIER_FUNDED = { 5: 6, 4: 8, 3: 10, 2: 12, 1: 14 };

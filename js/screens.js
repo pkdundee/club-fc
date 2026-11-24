@@ -467,7 +467,8 @@
       <label class="fld">Screen check (send a screenshot of this if anything looks off)</label><div class="diag" id="diag">${C.diagText()}</div>
       <p class="note">Version: ${C.BUILD}</p><button class="btn full sec2" data-act="checkupdate">🔄 Check for update</button>
       ${C.has9tSave() && !C.imported9t() ? '<button class="btn full sec2" data-act="imp9t">Import phase-9t save (testing)…</button>' : ''}
-      <button class="btn full danger" data-act="wipe">Delete all saved data…</button>`;
+      ${C.car() ? '<button class="btn full danger" data-act="resetcar">Reset this career…</button>' : ''}
+      <button class="btn full danger" data-act="wipe" style="margin-top:6px">Delete all data (every career, Coins and purchases)…</button>`;
   });
 
   // ================= test store (Phase 8, Q21e) =================

@@ -12,11 +12,11 @@
   // 1.04 (SCOPE_1.04 s1, s4): your conference. Each tier keeps its conference size in AI colleges, and one of them sits out (the spare)
   // while you're in it, so no AI college ever moves between tiers. The spare changes only through the faux AI promotion (startNextSeason).
   C.ensureConf = car => {
-    if (car.conf && car.conf.tier === car.tier) return car.conf;
+    if (car.conf && car.conf.tier === car.tier) { if (!car.conf.region) { car.conf.name = C.regionOf(C.college(car).state) + ' Conference'; car.conf.region = 1; } return car.conf; }
     const N = C.CONF_SIZE[car.tier] || 8, r = C.rng(((car.created & 0xffffff) ^ (car.tier * 92821)) >>> 0);
     let ids = C.COLLEGES.filter(c => c.tier === car.tier && c.id !== car.college).map(c => c.id).map(v => [r(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]).slice(0, N);
     if (ids.length < N) ids = ids.concat(C.collegesAt(car.tier, [car.college, ...ids]).map(c => c.id).slice(0, N - ids.length));
-    car.conf = { tier: car.tier, ids, out: ids[Math.floor(r() * ids.length)], name: CONF[(car.tier * 3 + (car.created % 97)) % CONF.length] + ' Conference' };
+    car.conf = { tier: car.tier, ids, out: ids[Math.floor(r() * ids.length)], name: C.regionOf(C.college(car).state) + ' Conference', region: 1 };   // 1.05: your state's region
     return car.conf;
   };
   C.hqOkFor = tier => C.level('hq') >= (C.TIER_GATE[tier] || 0);
@@ -25,7 +25,7 @@
     const r = C.rng((car.created & 0xffffff) ^ 0x2545f491 ^ (car.season * 7919)), col = C.college(car), conf = C.ensureConf(car), N = C.CONF_SIZE[car.tier] || 8;
     const others = conf.ids.filter(id => id !== conf.out).slice(0, N - 1).map(id => C.COLLEGES[id]);
     const teams = [{ me: 1, col: car.college, name: col.short, abbr: col.abbr, c1: col.c1, c2: col.c2, rating: car.job.rating }]
-      .concat(others.map(c => ({ col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: car.job.rating,   /* parity (9p): every team in the league starts equal */ form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 1 + Math.floor(r() * 3), seed: Math.floor(r() * 1e9) })));
+      .concat(others.map(c => ({ col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: C.collegeRating(c.id, car.season),   /* 1.05 (QA-55): each college at its own strength */ form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 1 + Math.floor(r() * 3), seed: Math.floor(r() * 1e9) })));
     // double round robin, circle method: 8 teams = 14 matches, 10 = 18, 12 = 22
     const n = teams.length, R = 2 * (n - 1), ids = teams.map((_, i) => i), fx = [];
     for (let rd = 0; rd < n - 1; rd++) { for (let i = 0; i < n / 2; i++) { const a = ids[i], b = ids[n - 1 - i]; fx.push({ md: rd + 1, h: rd % 2 ? b : a, a: rd % 2 ? a : b }); } ids.splice(1, 0, ids.pop()); }
@@ -36,7 +36,7 @@
     if (car.pre) { const pick = (t, k) => C.COLLEGES.filter(c => c.tier === t && c.id !== car.college && !conf.ids.includes(c.id)).concat(C.COLLEGES.filter(c => c.tier === t && conf.ids.includes(c.id) && c.id !== car.college))
         .map(v => [r(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]).slice(0, k);
       const up = car.tier > 1 ? car.tier - 1 : car.tier, guests = pick(car.tier, 3).map(c => [c, 0]).concat(pick(up, 2).map(c => [c, up < car.tier ? 4 : 0]));
-      guests.forEach(([c, plus], k) => { teams.push({ guest: 1, col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: car.job.rating + plus, form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 2, seed: Math.floor(r() * 1e9) });
+      guests.forEach(([c, plus], k) => { teams.push({ guest: 1, col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: C.collegeRating(c.id, car.season), form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 2, seed: Math.floor(r() * 1e9) });
         car.sea.fx.push({ md: k - 4, h: k % 2 ? teams.length - 1 : 0, a: k % 2 ? 0 : teams.length - 1, friendly: 1, wx: Math.floor(r() * 5) }); });
       car.sea.fx.sort((a, b) => a.md - b.md); car.sea.md = -4; }
     if (car.homecoming != null && car.hcDone !== car.season) car.hcDone = car.season;   // 1.04: no job moves, so no homecoming friendly
@@ -49,7 +49,8 @@
   // labels for a fixture: 'long' for the match screen, 'short' for the calendar strip
   C.fxLabel = f => { const S = C.sea(), R = S.R || 14;
     if (f.friendly) return f.md <= 0 && f.md >= -4 ? { long: `Pre-season friendly ${f.md + 5} of 5`, short: 'F' + (f.md + 5), up: `FRIENDLY ${f.md + 5} OF 5` } : { long: 'Friendly', short: 'FR', up: 'FRIENDLY' };
-    if (f.po) return { long: 'Promotion play-off', short: 'PO', up: 'PROMOTION PLAY-OFF' };
+    if (f.nat) return f.natf ? { long: 'National Championship final', short: 'NF', up: 'NATIONAL FINAL' } : S.fx.filter(x => x.nat && x.md === f.md).length === 4 ? { long: 'National Championship quarter-final', short: 'NQF', up: 'NATIONAL QUARTER-FINAL' } : { long: 'National Championship semi-final', short: 'NSF', up: 'NATIONAL SEMI-FINAL' };
+    if (f.po) return f.pof ? { long: 'Promotion play-off final', short: 'POF', up: 'PLAY-OFF FINAL' } : { long: 'Promotion play-off semi-final', short: 'POS', up: 'PLAY-OFF SEMI-FINAL' };
     if (f.ko) return f.md === R + 1 ? { long: 'Conference semi-final', short: 'SF', up: 'SEMI-FINAL' } : { long: 'Conference final', short: 'F', up: 'FINAL' };
     return { long: `Conference · Match ${f.md}`, short: 'M' + f.md, up: `MATCH ${f.md} OF ${R}` }; };
   C.sea = () => { C.ensureSeason(); const S = C.car().sea; if (S && !S.R) { S.R = 14; S.legacy = 1; } return S; };   // 1.04: a season begun under 1.03 rules finishes under them
@@ -128,12 +129,12 @@
     const repUp = res > 0 && !f.friendly ? C.WIN_REP * (1 + C.mediaRep(C.eff('media')) / 100) : 0; if (repUp) car.rep = C.clamp((car.rep ?? 10) + repUp, 0, 100);
     const staffUps = f.friendly ? [] : C.staffAfterMatch(res); if (!f.friendly) car.cp += res > 0 ? 15 : res === 0 ? 8 : 5;
     const exp = car.job.stars, conf0 = car.adConf; if (!f.friendly) car.adConf = C.clamp(car.adConf + (res > 0 ? 3 + (exp === 1 ? 1 : 0) : res < 0 ? -3 - (exp === 3 ? 1 : 0) : 0), 0, 100);
-    if (keep) keep.forEach(([p, en, inj, injury, ban, reinj]) => { p.energy = en; p.inj = inj; p.injury = injury; p.ban = ban; p.reinj = reinj; });
+    if (keep) keep.forEach(([p, en, inj, injury, ban, reinj]) => { p.energy = Math.round(en - Math.max(0, en - p.energy) * .5); p.inj = inj; p.injury = injury; p.ban = ban; p.reinj = reinj; });   // 1.04.01 (QA-44): half the Freshness, no injuries
     // the rest of the matchday
     const rr = C.rng(S.md * 1013 + S.n);
     S.fx.filter(x => x.md === S.md && x !== f && x.hs == null).forEach(x => quickResult(x, rr, x.ko));
     const rep = { md: S.md, h: f.h, a: f.a, hs: f.hs, as: f.as, pens: f.pens, stats: m.st, ev: m.events.filter(e => ['goal', 'red', 'yellow', 'injury', 'penalty'].includes(e.type)).map(e => ({ min: e.min, side: e.side, type: e.type, who: e.who ? e.who.p.fn[0] + '. ' + e.who.p.ln : '' })),
-      rated: rated.slice(0, 22).map(x => ({ side: x.e.side, id: x.e.p.id, n: x.e.p.fn[0] + '. ' + x.e.p.ln, pos: x.e.slot.pos, r: x.r, g: x.e.st.g, a: x.e.st.a, mins: Math.round(x.e.st.mins) })), potm: potm ? { side: potm.e.side, n: potm.e.p.fn + ' ' + potm.e.p.ln } : null,
+      rated: rated.map(x => ({ side: x.e.side, id: x.e.p.id, n: x.e.p.fn[0] + '. ' + x.e.p.ln, pos: x.e.slot.pos, r: x.r, g: x.e.st.g, a: x.e.st.a, mins: Math.round(x.e.st.mins) })), potm: potm ? { side: potm.e.side, n: potm.e.p.fn + ' ' + potm.e.p.ln } : null,
       gains, gate, bc, repUp, conf: car.adConf - conf0, my, staffUps, flu, injuries: m.ents.filter(e => e.side === my && e.injured).map(e => { const p = C.P(e.p.id); return p && p.injury ? [p.fn[0] + '. ' + p.ln, p.injury.icon, p.injury.name, p.injury.season ? 'season' : p.inj] : null; }).filter(Boolean), cp: f.friendly ? 0 : res > 0 ? 15 : res === 0 ? 8 : 5, friendly: !!f.friendly, bonus: C.bonusLines() };
     S.reports[S.md] = rep; car.restAt = C.now();
     advance(); C.save(); return rep;
@@ -152,20 +153,63 @@
       S.fx.push({ md: R + 2, h: a, a: b, ko: 1, wx: 2 });
       if (a !== 0 && b !== 0) { simKO(); playoff(); }
     } else if (S.phase === 'tourn' && S.md === R + 3) playoff();
-    else if (S.phase === 'po' && S.md >= R + 4) finishSeason();
+    else if (S.phase === 'po' && S.md === R + 4) { const mine = S.fx.find(f => f.po && f.md === R + 3 && (f.h === 0 || f.a === 0));
+      if (mine && mine.hs != null && winnerOf(mine) === 0) { const other = S.fx.find(f => f.po && f.md === R + 3 && f !== mine); S.fx.push({ md: R + 4, h: winnerOf(other), a: 0, ko: 1, po: 1, pof: 1, n: 1, wx: 2 }); }
+      else { S.md = R + 7; finishSeason(); } }
+    else if (S.phase === 'po' && S.md >= R + 5) { S.md = R + 7; finishSeason(); }
+    else if (S.phase === 'nat' && (S.md === R + 4 || S.md === R + 5)) natNext();
+    else if (S.phase === 'nat' && S.md >= R + 6) { S.md = R + 7; finishSeason(); }
   }
   function simKO() { const S = C.sea(), R = S.R || 14, r = C.rng(S.n * 4441); for (let md = S.md; md <= R + 2; md++) {
     S.fx.filter(f => f.md === md && f.hs == null && f.ko && !f.po).forEach(f => quickResult(f, r, true));
     if (md === R + 1 && !S.fx.some(f => f.md === R + 2 && f.ko)) { const s = S.fx.filter(f => f.md === R + 1 && f.ko); S.fx.push({ md: R + 2, h: winnerOf(s[0]), a: winnerOf(s[1]), ko: 1, wx: 2 }); }
   } S.md = R + 3; }
-  // 1.04 (SCOPE_1.04 s2; FEEDBACK 108, 118, 119): 3rd v 4th, one match on neutral ground, straight to penalties. The winner goes up.
-  // Without the HQ level for the tier above, your play-off is a walkover to the AI side. No play-off at T1 (going pro comes later).
+  // 1.04.01 (QA-56; the FEEDBACK 108 format): 3rd and 4th each play a semi-final against one of the two bottom-ranked teams of the league
+  // above (upper 17th v lower 4th, upper 18th v lower 3rd), neutral, straight to penalties. An upper-league team always beats a lower-league
+  // AI side, so if you win your semi-final the final is against the other upper-league team. Only winning the final promotes you.
+  // Without the HQ level for the tier above, your semi-final is a walkover. No play-off at T1 (going pro comes later).
+  const upperWins = (f, up, r) => { quickResult(f, r, true); if (winnerOf(f) !== up) { if (f.h === up) { f.hs = Math.max(f.hs, f.as + 1); } else { f.as = Math.max(f.as, f.hs + 1); } delete f.pens; } };
   function playoff() { const car = C.car(), S = car.sea, R = S.R || 14; S.md = R + 3; S.phase = 'po';
-    if (car.tier <= 1 || S.legacy || !S.regTable) { S.md = R + 4; return finishSeason(); }
-    const f = { md: R + 3, h: S.regTable[2], a: S.regTable[3], ko: 1, po: 1, n: 1, wx: 3 }; S.fx.push(f);
-    if (f.h === 0 || f.a === 0) { if (C.hqOkFor(car.tier - 1)) return;   // you play it
-      const ai = f.h === 0 ? f.a : f.h; f.wo = ai; f.hs = f.h === ai ? 3 : 0; f.as = f.a === ai ? 3 : 0; S.md = R + 4; return finishSeason(); }
-    quickResult(f, C.rng(S.n * 733), true); S.md = R + 4; finishSeason(); }
+    if (S.legacy || !S.regTable) { S.md = R + 7; return finishSeason(); }
+    if (car.tier <= 1) return nationalsOrEnd();
+    const r = C.rng(S.n * 733 + car.tier), pool = C.COLLEGES.filter(c => c.tier === car.tier - 1 && c.id !== car.college && !c.custom).sort((a, b) => C.collegeOffset(b.id) - C.collegeOffset(a.id)).slice(-2);   // 1.05 (QA-55): the two weakest of the tier above (stronger first)
+    const ups = pool.map((c, k) => { S.teams.push({ guest: 1, upper: 1, col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: C.collegeRating(c.id, car.season), form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 2, seed: Math.floor(r() * 1e9) }); return S.teams.length - 1; });
+    const l3 = S.regTable[2], l4 = S.regTable[3];
+    const sA = { md: R + 3, h: ups[0], a: l4, ko: 1, po: 1, n: 1, wx: 3 }, sB = { md: R + 3, h: ups[1], a: l3, ko: 1, po: 1, n: 1, wx: 3 }; S.fx.push(sA, sB); S.poUps = ups;
+    const mine = [sA, sB].find(f => f.a === 0), other = [sA, sB].find(f => f !== mine);
+    upperWins(other || sA, (other || sA).h, r); if (!mine) { upperWins(sB, sB.h, r); return nationalsOrEnd(); }
+    if (!C.hqOkFor(car.tier - 1)) { mine.wo = mine.h; mine.hs = 3; mine.as = 0; S.md = R + 7; return finishSeason(); }
+    // you play your semi-final; the final follows in advance() if you win it
+  }
+  // ---------- 1.05: the National Championship. The 8 regular-season champions of the tier: yours (1st in your conference, you or an
+  // AI college) and one from each other region (generated original colleges). Seeded by points; 1v8, 2v7, 3v6, 4v5; the higher seed hosts the
+  // quarter-final and semi-final; the final is neutral; draws straight to penalties. It never affects promotion.
+  const NREG = () => Object.keys(C.REGIONS);
+  function natField() { const car = C.car(), S = car.sea, R = S.R || 14; if (S.nat) return S.nat;
+    const r = C.rng(S.n * 9157 + car.tier * 31 + (car.created & 0xffff)), mine = C.regionOf(C.college(car).state), base = C.tierBase(car.tier), tbl = C.table();
+    const champ = S.regTable[0], cp = (tbl.find(t => t.i === champ) || { pts: 0 }).pts, field = [{ ti: champ, pts: cp, rating: S.teams[champ].rating }];
+    const names = C.genCollegeNames ? C.genCollegeNames(r, 7) : [], pal = ['#991b1b', '#c2410c', '#15803d', '#0f766e', '#0369a1', '#1e3a8a', '#6d28d9', '#86198f', '#1e293b', '#b45309'];
+    NREG().filter(g => g !== mine).slice(0, 7).forEach((g, k) => { const nm = names[k] || { full: g + ' College', short: g }, st = C.REGIONS[g][Math.floor(r() * C.REGIONS[g].length)];
+      S.teams.push({ guest: 1, natc: 1, region: g, state: st, name: nm.short, full: nm.full, abbr: nm.full.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3), c1: pal[Math.floor(r() * pal.length)], c2: '#f8fafc',
+        rating: base + 4 + Math.floor(r() * 5), form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 2, seed: Math.floor(r() * 1e9) });
+      field.push({ ti: S.teams.length - 1, pts: Math.round(R * (1.9 + r() * .7)), rating: S.teams[S.teams.length - 1].rating }); });
+    field.sort((a, b) => b.pts - a.pts || b.rating - a.rating).forEach((x, i) => x.seed = i + 1);
+    S.nat = { field: field.map(x => ({ ti: x.ti, seed: x.seed, pts: x.pts })), mine: field.some(x => x.ti === 0) }; return S.nat; }
+  const seedOf = ti => (C.sea().nat.field.find(x => x.ti === ti) || { seed: 9 }).seed;
+  const natFix = (md, a, b, final) => { const hs = seedOf(a) <= seedOf(b); return { md, h: hs ? a : b, a: hs ? b : a, ko: 1, nat: 1, natf: final ? 1 : 0, n: final ? 1 : 0, wx: 4 }; };
+  function natRound(md, pairs, final) { const S = C.sea(), r = C.rng(S.n * 4111 + md); const fx = pairs.map(([a, b]) => natFix(md, a, b, final)); S.fx.push(...fx);
+    fx.filter(f => f.h !== 0 && f.a !== 0).forEach(f => quickResult(f, r, true)); return fx; }
+  function nationalsOrEnd() { const car = C.car(), S = car.sea, R = S.R || 14; const N = natField(), by = k => N.field.find(x => x.seed === k).ti;
+    natRound(R + 3, [[by(1), by(8)], [by(4), by(5)], [by(2), by(7)], [by(3), by(6)]]);
+    if (N.mine) { S.phase = 'nat'; S.md = R + 3; return; }
+    simNat(); S.md = R + 7; finishSeason(); }
+  function simNat() { const S = C.sea(), R = S.R || 14; let guard = 0; while (guard++ < 3) { const last = Math.max(...S.fx.filter(f => f.nat).map(f => f.md)), round = S.fx.filter(f => f.nat && f.md === last);
+      round.filter(f => f.hs == null).forEach(f => quickResult(f, C.rng(S.n + f.md * 7), true)); if (round.length === 1) break;
+      const w = round.map(winnerOf); natRound(last + 1, [[w[0], w[1]], [w[2], w[3]]].slice(0, w.length / 2), w.length === 2); } }
+  function natNext() { const S = C.sea(), R = S.R || 14, prev = S.fx.filter(f => f.nat && f.md === S.md - 1), mine = prev.find(f => f.h === 0 || f.a === 0);
+    if (!mine || mine.hs == null || winnerOf(mine) !== 0 || prev.length === 1) { simNat(); S.md = R + 7; return finishSeason(); }
+    const w = prev.map(winnerOf); natRound(S.md, w.length === 4 ? [[w[0], w[1]], [w[2], w[3]]] : [[w[0], w[1]]], w.length === 2); }
+  C.genNat = () => natField();
   function finishSeason() {
     const car = C.car(), S = car.sea, R = S.R || 14; if (S.end) return;
     const fin = S.fx.find(f => f.md === R + 2 && f.ko && !f.po), champ = fin && fin.hs != null ? winnerOf(fin) : null, po = S.fx.find(f => f.po);
@@ -178,11 +222,21 @@
     let promo = false, why = '';
     if (car.tier > 1 && !S.legacy) { const ok = C.hqOkFor(car.tier - 1);
       if (pos <= 2) { promo = ok; if (!ok) why = 'hq'; }
-      else if (po && (po.h === 0 || po.a === 0)) { if (po.wo != null) why = 'hq'; else { promo = winnerOf(po) === 0; why = promo ? '' : 'playoff'; } } }
+      else { const semi = S.fx.find(f => f.po && !f.pof && (f.h === 0 || f.a === 0)), fin2 = S.fx.find(f => f.pof);
+        if (semi) { if (semi.wo != null) why = 'hq'; else if (fin2 && fin2.hs != null) { promo = winnerOf(fin2) === 0; why = promo ? '' : 'playoff'; } else why = 'playoff'; } } }
     // the AI college shown as promoted (faux, SCOPE_1.04 s4): the best-placed AI in the top 2, otherwise an AI play-off winner
-    let aiUp = null; if (car.tier > 1 && !S.legacy && S.regTable) { const c = S.regTable.slice(0, 2).find(i => i !== 0); aiUp = c != null ? c : po && po.hs != null && winnerOf(po) !== 0 ? winnerOf(po) : null; }
-    S.end = { pos, met, champ: st.champ, final: st.final, champName: champ != null ? S.teams[champ].name : '', prize, promo, why, aiUp: aiUp != null ? S.teams[aiUp].col : null, aiUpName: aiUp != null ? S.teams[aiUp].name : '', toTier: promo ? car.tier - 1 : null };
-    S.phase = 'done'; S.md = R + 5;
+    let aiUp = null; if (car.tier > 1 && !S.legacy && S.regTable) { const c = S.regTable.slice(0, 2).find(i => i !== 0); aiUp = c != null ? c : null; }   // lower-league AI sides never win the play-off (QA-56)
+    // 1.05: the National Championship: simulated if you weren't in it; rewards by the round you reached (x the tier step)
+    let nat = null; if (!S.legacy && S.regTable) { if (!S.nat) { natField(); natRound(R + 3, (() => { const by = k => S.nat.field.find(x => x.seed === k).ti; return [[by(1), by(8)], [by(4), by(5)], [by(2), by(7)], [by(3), by(6)]]; })()); }
+      if (S.fx.some(f => f.nat && f.hs == null)) simNat();
+      const fin3 = S.fx.filter(f => f.nat).sort((a, b) => b.md - a.md)[0], nchamp = fin3 && fin3.hs != null ? winnerOf(fin3) : null, myN = S.fx.filter(f => f.nat && (f.h === 0 || f.a === 0));
+      const reached = !myN.length ? null : nchamp === 0 ? 'champ' : myN.length === 3 ? 'f' : myN.length === 2 ? 'sf' : 'qf', kk = 6 - car.tier;
+      const NP = { qf: [3000, 2], sf: [6000, 4], f: [10000, 6], champ: [20000, 10] }, np = reached ? NP[reached] : null;
+      if (np) { car.cash += np[0] * kk; car.rep = C.clamp((car.rep ?? 10) + np[1], 0, 100); }
+      if (reached === 'champ') (car.trophies = car.trophies || []).push({ season: S.n, tier: car.tier, title: 'National Champions' });
+      nat = { reached, prize: np ? np[0] * kk : 0, rep: np ? np[1] : 0, champName: nchamp != null ? S.teams[nchamp].name : '' }; }
+    S.end = { pos, met, champ: st.champ, final: st.final, champName: champ != null ? S.teams[champ].name : '', prize, promo, why, nat, aiUp: aiUp != null ? S.teams[aiUp].col : null, aiUpName: aiUp != null ? S.teams[aiUp].name : '', toTier: promo ? car.tier - 1 : null };
+    S.phase = 'done'; S.md = R + 8;
     if (!C.portalOpen()) C.openPortalWindow();
     C.careerSeasonEnd();
   }
@@ -192,7 +246,7 @@
     const S = C.sea(), r = C.rng(S.n * 8191);
     while (S.phase === 'reg') { S.fx.filter(f => f.md === S.md && f.hs == null).forEach(f => quickResult(f, r, f.ko)); if (S.md >= 1) C.car().squad.forEach(p => { if (p.ban) p.ban--; else if (p.inj) p.inj--; }); advance(); }
     if (S.phase === 'tourn') { simKO(); playoff(); }
-    if (S.phase === 'po' && !S.end) { const f = S.fx.find(x => x.po && x.hs == null); if (f) quickResult(f, r, true); S.md = (S.R || 14) + 4; finishSeason(); } C.save();
+    for (let g = 0; g < 6 && (S.phase === 'po' || S.phase === 'nat') && !S.end; g++) { const f = S.fx.find(x => (x.po || x.nat) && x.hs == null && (x.h === 0 || x.a === 0)); if (f) quickResult(f, r, true); advance(); } C.save();
   };
 
   // ---------- next season: graduation, class years, raises, walk-on tryouts ----------
@@ -282,7 +336,7 @@
     }
     if (view === 'table') body = `<div class="card tbl2"><div class="tr2 th"><span>#</span><span></span><span>P</span><span>W</span><span>D</span><span>L</span><span>GD</span><span>Pts</span></div>
       ${T.map((t, i) => `<div class="tr2 ${t.i === 0 ? 'me' : ''} ${i === 3 ? 'cut' : ''} ${i < 4 ? 'top4' : ''}"><span>${i + 1}</span><span class="tn">${crest(t.i, 18)}<em>${C.esc(nm(t.i))}</em></span><span>${t.p}</span><span>${t.w}</span><span>${t.d}</span><span>${t.l}</span><span>${t.gf - t.ga > 0 ? '+' : ''}${t.gf - t.ga}</span><b>${t.pts}</b></div>`).join('')}
-      <p class="note">Top 4 reach the conference tournament.${car.tier > 1 ? ` 1st and 2nd are promoted (${C.BUILDINGS.hq.name} Lv ${C.TIER_GATE[car.tier - 1]} needed); 3rd plays 4th for one more place.` : ''}</p></div>`;
+      <p class="note">Top 4 reach the conference tournament.${car.tier > 1 ? ` 1st and 2nd are promoted (${C.BUILDINGS.hq.name} Lv ${C.TIER_GATE[car.tier - 1]} needed); 3rd and 4th go to the play-off.` : ''} 1st plays in the National Championship.</p></div>`;
     if (view === 'stats') { const sq = car.squad.filter(p => p.ss && p.ss.apps);
       const top = (k, f, n = 5) => sq.slice().sort((a, b) => f(b) - f(a)).filter(p => f(p) > 0).slice(0, n);
       const list = (title, arr, f, fmt) => `<h3 class="jh">${title}</h3><div class="card">${arr.length ? arr.map(p => `<button class="srow" data-act="player" data-v="${p.id}" style="width:100%"><span>${C.esc(p.fn[0] + '. ' + p.ln)} <small class="mutey">${p.pos}</small></span><b>${fmt(f(p))}</b></button>`).join('') : '<p class="note" style="margin:0">No matches yet.</p>'}</div>`;
@@ -292,6 +346,9 @@
       ${S.end.promo ? `<div class="card" style="background:#dcfce7;color:#14532d;font-weight:900;margin:6px 0">🏆 Promoted! Next season: ${C.esc(C.TIERS[car.tier - 1].name)}</div>`
         : S.end.why === 'hq' ? `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;margin:6px 0">A promotion place, but ${C.BUILDINGS.hq.name} Lv ${C.TIER_GATE[car.tier - 1]} is needed. No promotion this season.</div>`
         : S.end.why === 'playoff' ? `<p class="note">Lost the promotion play-off.</p>` : ''}
+      ${S.end.nat ? (() => { const N = S.end.nat, lab = { qf: 'reached the quarter-finals', sf: 'reached the semi-finals', f: 'were runners-up', champ: 'are National Champions!' }[N.reached];
+        return N.reached ? `<div class="card" style="background:${N.reached === 'champ' ? '#fef3c7' : '#e0f2fe'};color:#0c4a6e;font-weight:800;margin:6px 0">🇺🇸 National Championship: you ${lab}<br><small>+${C.full(N.prize)} Booster $ · +${N.rep} Reputation${N.reached === 'champ' ? ' · a trophy for Your college' : ''}</small></div>`
+          : N.champName ? `<p class="note">🇺🇸 National champions: <b>${C.esc(N.champName)}</b>.</p>` : ''; })() : ''}
       ${S.end.aiUpName && !S.end.promo ? `<p class="note">📰 ${C.esc(S.end.aiUpName)} were promoted.</p>` : ''}${C.careerCardHTML()}<button class="btn full pri" data-act="nextseason">Start Season ${S.n + 1}${C.portalOpen() ? ' (closes the window)' : ''}</button></div>` : '';
     return `<div class="view scrolly">${C.topBar(false)}<div class="phdr9 tall"><div class="row1"><div><b>Matchday</b><small>Season ${S.n} · ${C.esc(S.conf)} · ${S.end ? 'Finished' : C.table()[0].p ? 'Pos ' + C.ord(C.myPos()) : 'Preseason'} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div></div>
       <div class="homebn">${C.gamedayHTML()}</div><button class="mapbn" data-act="collegemap" data-v=""><span>🗺</span><div><b>College Map</b><small>${C.COLLEGES.length} programs across 5 tiers</small></div><em>›</em></button>${C.streakHTML ? `<div style="margin:10px 16px 0">${C.streakHTML()}</div>` : ''}${calStrip()}${formCard()}

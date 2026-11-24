@@ -285,9 +285,11 @@
 
   // ---------- in-match plan: mentality and auto-manage ----------
   C.openMatchPlan = () => { if (M.playing && !M.m.ht) M.resumeAfter = true; M.playing = false; C.ui.open('Match plan', () => { const T = M.m.teams[M.my];
-    return `<label class="fld">Mentality</label><div class="instr">${C.MENTALITY.map((x, i) => `<button class="${T.ment === i ? 'on' : ''}" data-act="mmset" data-v="${i}">${x}</button>`).join('')}</div>
+    return `<label class="fld">Formation</label><div class="instr mforms">${Object.keys(C.FORMATIONS).map(f => `<button class="${T.form === f ? 'on' : ''}" data-act="mform" data-v="${f}">${f}</button>`).join('')}</div>
+      <label class="fld">Mentality</label><div class="instr">${C.MENTALITY.map((x, i) => `<button class="${T.ment === i ? 'on' : ''}" data-act="mmset" data-v="${i}">${x}</button>`).join('')}</div>
       <button class="btn full ${T.auto ? 'pri' : 'sec2'}" data-act="mauto" style="margin-top:12px">${T.auto ? '✔ Auto-manage is on' : 'Turn on auto-manage'}</button>
       <p class="note">Your staff sub injured and tired players, protects or chases a lead late on, and keeps your playing-time promises.</p><button class="btn full sec2" data-act="back">Back to the match</button>`; }); };
+  C.ACTS.mform = f => { C.reshape(M.m, M.my, f); C.ui.refresh(); };   // 1.04.01 (QA-47): change the formation during a match
   C.matchMent = v => { const T = M.m.teams[M.my]; T.ment = +v; T.ment0 = +v; C.ui.refresh(); };
   C.matchAuto = () => { const T = M.m.teams[M.my]; T.auto = !T.auto; C.ui.refresh(); };
 

@@ -112,8 +112,8 @@
   // ---------- Missing resources (Obtain) and Replenish All ----------
   // 1.03.01 (QA answer 2): when you're short, crates you hold can be opened here: Booster Crates (and the old $5K crate) for Booster $,
   // the Choice Crate for either. Replenish All opens the fewest crates, smallest first, to cover the gap.
-  const CR = () => { const inv = C.meta().inv; return ['crate', 'crb1', 'crb2', 'crb3', 'crb4', 'crc2'].filter(k => inv[k] > 0); };
-  const crateGives = (k, kind) => k === 'crate' ? (kind === 'cash' ? 5000 : 0) : k === 'crc2' ? C.crateAmount(k, kind) : kind === 'cash' ? C.crateAmount(k, 'cash') : 0;
+  const CR = () => { const inv = C.meta().inv; return ['crate', 'crb1', 'crb2', 'crb3', 'crb4', 'crc2', 'crc4', 'crp1', 'crp2', 'crp3', 'crp4'].filter(k => inv[k] > 0); };
+  const crateGives = (k, kind) => k === 'crate' ? (kind === 'cash' ? 5000 : 0) : /^crc/.test(k) ? C.crateAmount(k, kind) : /^crp/.test(k) ? (kind === 'cp' ? C.crateAmount(k, 'cp') : 0) : kind === 'cash' ? C.crateAmount(k, 'cash') : 0;
   const openOne = (k, kind) => k === 'crate' ? (C.openCrate() ? 5000 : 0) : C.openCrateX(k, kind);
   C.openMissing = (kind, need) => C.ui.open('Missing Resources', () => { const car = C.car(), inv = C.meta().inv, have = kind === 'cp' ? car.cp : car.cash, f = Math.min(1, have / need);
     const ks = CR().filter(k => crateGives(k, kind) > 0);

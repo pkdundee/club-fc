@@ -105,7 +105,7 @@
     return `<div class="card career"><div class="srow"><span>Tier</span><b>${C.tierLabel(car)}</b></div><div class="srow"><span>Reputation</span><b>${C.rep()} / 100</b></div>
       ${up ? `<h4 class="rch">Promotion to ${C.esc(C.TIERS[up].name)}</h4>
         <div class="cr2 ${ok ? 'ok' : ''}">${ok ? '✔' : '○'} ${C.BUILDINGS.hq.name} Lv ${need} (now Lv ${C.level('hq')})</div>
-        <div class="cr2">○ Finish 1st or 2nd, or win the 3rd v 4th play-off</div>
+        <div class="cr2">○ Finish 1st or 2nd, or finish 3rd or 4th and win the play-off</div>
         <p class="note">Without the ${C.BUILDINGS.hq.name} level there's no promotion that season, and the result isn't saved for later. You're never relegated.</p>`
       : '<p class="note">You are in the top college tier. Going pro comes in a later update.</p>'}</div>`;
   };
