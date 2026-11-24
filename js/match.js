@@ -86,26 +86,29 @@
   function teamPair() { const me = C.myTeam(M.my === 0), A = M.my === 0 ? me : M.opp, B = M.my === 0 ? M.opp : me; A.home = !(M.f && M.f.n); B.home = false; return [A, B]; }   // 1.04: the play-off is on neutral ground
   function drawPre() {
     const car = C.car(), f = M.f, t = C.tac(), S = C.sea(), oppT = S.teams[M.my === 0 ? f.a : f.h], col = C.college(), w = C.WEATHER[f.wx];
-    const avgE = Math.round(t.xi.map(C.P).reduce((s, p) => s + p.energy, 0) / 11);
-    const mineRows = t.xi.map(C.P).map((p, i) => `<div class="lu"><span class="lun">${p.num}</span><div class="luf">${C.faceOf(p)}</div><b>${C.esc(C.sn(p))}</b><small>${C.FORMATIONS[t.form][i][0]}</small></div>`).join('');
+    const xs = t.xi.map(C.P).filter(Boolean), avgE = Math.round(xs.reduce((s, p) => s + p.energy, 0) / (xs.length || 1));   // 1.05.01 (QA-75): an empty slot never crashes
+    const mineRows = t.xi.map(C.P).map((p, i) => p ? `<div class="lu"><span class="lun">${p.num}</span><div class="luf">${C.faceOf(p)}</div><b>${C.esc(C.sn(p))}</b><small>${C.FORMATIONS[t.form][i][0]}</small></div>` : `<div class="lu"><span class="lun">–</span><div class="luf"></div><b>Empty</b><small>${C.FORMATIONS[t.form][i][0]}</small></div>`).join('');
     const oppRows = M.opp.xi.map((p, i) => `<div class="lu r"><small>${C.FORMATIONS[M.opp.form][i][0]}</small><b>${C.esc(p.ln)}</b><span class="lun">${p.num}</span></div>`).join('');
     const home = M.my === 0;
     host().innerHTML = `<div class="pre"><div class="prehd"><small>${label(f)} · ${w[0]} ${w[1]} · 👥 ${M.att.toLocaleString()}</small>
         <div class="vsrow"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'}</small></div><span class="vsx">VS</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
         <div class="radio">📻 K${col.abbr} campus radio with Duane &amp; Bev</div></div>
-      ${t.xi.map(C.P).filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${t.xi.map(C.P).filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
+      ${xs.filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${xs.filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
       <div class="lus"><div><h4>${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div><div><h4>${M.opp.form}</h4>${oppRows}</div></div>
       <div class="prebtns"><button class="btn sec2" data-act="mtac"><i class="xoi"></i> Tactics</button><button class="btn sec2" data-act="mquick">⏩ Quick result</button><button class="btn sec2" data-act="mleave">✕</button></div>
       <button class="btn full pri kick" data-act="mkick">▶ Kick off <span id="cdn">${M.cd ? '· ' + M.cd : ''}</span></button>
       ${M.cd ? '<button class="cdpause" data-act="mcdstop">Tap to stop the countdown</button>' : ''}</div>`;
   }
   function countdown() { clearInterval(M.cdT); M.cdT = setInterval(() => { if (!M || M.m) return clearInterval(M && M.cdT); if (C.ui.isOpen()) return; M.cd--; const n = C.$('#cdn'); if (n) n.textContent = M.cd > 0 ? '· ' + M.cd : ''; if (M.cd <= 0) { clearInterval(M.cdT); C.kickOff(); } }, 1000); }
+  C.preRefresh = () => { if (M && !M.m && host() && host().innerHTML) drawPre(); };   // 1.05.01 (QA-75): back from Tactics, the line-up shown is the current one
   C.stopCountdown = () => { clearInterval(M.cdT); M.cd = 0; drawPre(); };
   C.leaveMatch = () => { if (M) { clearInterval(M.cdT); cancelAnimationFrame(M.raf); } crowdOff(); M = null; host().innerHTML = ''; C.render(); };
 
   // ================= live match =================
+  // 1.05.01 (QA-75): a match never starts without 11. Kick off, Quick result and the countdown all check again
+  function needXI() { if (C.tac().xi.filter(Boolean).length >= 11) return false; clearInterval(M.cdT); M.cd = 0; drawPre(); C.toast('You need 11 players: fill every position in Tactics first'); C.openTactics(true); return true; }
   C.kickOff = () => {
-    clearInterval(M.cdT); const [A, B] = teamPair(), S = C.sea();
+    if (needXI()) return; clearInterval(M.cdT); const [A, B] = teamPair(), S = C.sea();
     M.m = C.createMatch(A, B, (C.car().created & 0xffff) * 131 + S.n * 977 + M.f.md * 7, matchOpts());
     M.playing = true; M.last = performance.now(); M.acc = 0; M.lineT = 0; M.fillT = 0; M.kits = kitsFor(M.m.teams);
     drawLive(); say(line('ko')); setTimeout(() => M && M.m && say(line('ko').replace(/^.*$/, L.ko[1])), 2500);
@@ -113,7 +116,7 @@
     M.raf = requestAnimationFrame(loop);
   };
   C.quickMatch = () => { // auto-managed, straight to full time
-    clearInterval(M.cdT); const [A, B] = teamPair(); A.auto = B.auto = true; const S = C.sea();
+    if (needXI()) return; clearInterval(M.cdT); const [A, B] = teamPair(); A.auto = B.auto = true; const S = C.sea();
     M.m = C.createMatch(A, B, (C.car().created & 0xffff) * 131 + S.n * 977 + M.f.md * 7, matchOpts());
     C.simToEnd(M.m); finishUI();
   };

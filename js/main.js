@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.05 · 23 Nov 2026';
+  C.BUILD = 'CLUB FC 1.05.01 · 24 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -272,7 +272,7 @@
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) C.jobPage(dx < 0 ? 1 : -1); }, { passive: true });
 
   // 1.01 (FEEDBACK 131, 138): when the last popup closes, redraw the screen behind it (Inbox badge, arrows, map markers)
-  C.onUiClosed = () => { if (C.freshTutorial && C.car()) setTimeout(() => { if (!C.ui.isOpen()) C.freshTutorial(); }, 250);   // 1.04.01 (QA-44): once, back from the first friendly
+  C.onUiClosed = () => { if (C.preRefresh) C.preRefresh(); if (C.freshTutorial && C.car()) setTimeout(() => { if (!C.ui.isOpen()) C.freshTutorial(); }, 250);   // 1.04.01 (QA-44): once, back from the first friendly
     if (C.guideShow && C.car()) setTimeout(() => { if (!C.ui.isOpen()) C.guideShow(); }, 400);   // 1.05 (QA-53, QA-54)
     if (C.car() && !C.booting && (C.tab === 'campus' || C.tab === 'home')) { mapSig = campusSig(); C.render(); } };
   // and redraw the campus as soon as what it shows changes (money, levels, queues, mail), not only every 20 seconds
