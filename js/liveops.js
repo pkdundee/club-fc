@@ -87,7 +87,7 @@
   C.kitColours = (c1, c2) => C.kit() === 'alt' ? [c2, c1] : C.kit() === 'retro' ? ['#f8fafc', c1] : [c1, c2];
   C.buyPack = id => { const P = C.PACKS[id], L = lo(); if (!P) return false; if (P.once && L.cos.includes(id)) return 'owned';
     if (P.queue) { const a = C.acct(); if (a['bq' + P.queue]) return 'owned'; if (C.nextBuilderPack() !== id) return 'order'; a['bq' + P.queue] = true; }
-    if (P.pass) { passCheck().prem = true; } else C.giveReward(P.r); if (P.once) L.cos.push(id); C.save(); return true; };
+    if (P.pass) { passCheck().prem = true; } else if (C.packToInv && C.packToInv(id, P)) { } else C.giveReward(P.r); if (P.once) L.cos.push(id); C.save(); return true; };
   C.buyKit = id => { const L = lo(); if (id !== 'classic' && !L.cos.includes('kit_' + id)) L.cos.push('kit_' + id); L.kit = id; C.save(); };
 
   // ---------- hooks into the game (wrapping, so earlier code stays untouched) ----------

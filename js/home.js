@@ -21,7 +21,7 @@
   const daily = () => { const car = C.car(); if (!car.daily || car.daily.day !== C.todayKey()) car.daily = { day: C.todayKey(), gift: false, deal: false }; return car.daily; };
   C.GIFT = { cp: 5, cash: 500 };   // a small daily pick-up, redeemed in Events > Missions > Daily
   C.claimGift = () => { const d = daily(); if (d.gift) return null; d.gift = true; C.giveReward(C.GIFT); return C.GIFT; };
-  C.buyDeal = () => { const d = daily(); if (d.deal) return 'owned'; d.deal = true; C.giveReward(C.todayDeal().r); return true; };
+  C.buyDeal = () => { const d = daily(); if (d.deal) return 'owned'; d.deal = true; const dl = C.todayDeal(); if (!(C.packToInv && C.packToInv('deal_' + dl.name, dl))) C.giveReward(dl.r); return true; };
   C.dealBought = () => daily().deal;
   C.giftClaimed = () => daily().gift;
 
@@ -71,7 +71,7 @@
       <p class="note" style="text-align:center;padding:8px 16px">🧪 Test build: purchases are simulated.</p></div>`;
   };
   // the one resource bar used on every tab (round 4, item 13): Booster $, Coaching Points, Coins (+ opens the Store)
-  C.schChip = () => `<span class="schip" title="Scholarship money left this year"><i class="schi"></i>$${C.short(C.poolLeft())} scholarships left</span>`;
+  C.schChip = () => `<span class="schip" title="Scholarship money left this year"><i class="schi"></i>$${C.short(C.poolLeft())} of $${C.short(C.car().job.pool)} left</span>`;   // 1.06 (QA-64)
   C.resBar = () => { const car = C.car(), a = C.acct();
     return `<span><i>💵</i><b id="r-cash">$${C.full(car.cash)}</b></span><span><i class="cpi"></i><b id="r-cp">${C.full(car.cp)}</b></span><span data-act="store"><i class="coin"></i><b id="r-gold">${C.full(a.gold)}</b><em class="plus">+</em></span>`; };
 })(window.CFC);

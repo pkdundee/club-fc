@@ -33,10 +33,13 @@
     fx.forEach(f => f.wx = Math.floor(r() * 5));
     car.sea = { n: car.season, conf: conf.name, R, teams, fx: fx.sort((a, b) => a.md - b.md), md: 1, phase: 'reg', reports: {}, end: null };
     // 1.04 (SCOPE_1.04 s6): Pre-season = 5 friendlies (matchdays -4 to 0) against colleges from your tier and the tier above
-    if (car.pre) { const pick = (t, k) => C.COLLEGES.filter(c => c.tier === t && c.id !== car.college && !conf.ids.includes(c.id)).concat(C.COLLEGES.filter(c => c.tier === t && conf.ids.includes(c.id) && c.id !== car.college))
-        .map(v => [r(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]).slice(0, k);
-      const up = car.tier > 1 ? car.tier - 1 : car.tier, guests = pick(car.tier, 3).map(c => [c, 0]).concat(pick(up, 2).map(c => [c, up < car.tier ? 4 : 0]));
-      guests.forEach(([c, plus], k) => { teams.push({ guest: 1, col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: C.collegeRating(c.id, car.season), form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 2, seed: Math.floor(r() * 1e9) });
+    // 1.06 (QA-80): 5 friendlies, never against your own conference: 3 easier (4-8 below you), 1 even (-2..+1), 1 a little harder (+2..+4),
+    // in the order easier, easier, even, easier, harder. The guest is the college outside your conference nearest that strength.
+    if (car.pre) { const me = C.xiRating ? C.xiRating(car) : car.job.rating, used = new Set();
+      const pool = C.COLLEGES.filter(c => !c.custom && c.id !== car.college && !conf.ids.includes(c.id) && Math.abs(c.tier - car.tier) <= 1);
+      const want = [-4 - Math.floor(r() * 5), -4 - Math.floor(r() * 5), -2 + Math.floor(r() * 4), -4 - Math.floor(r() * 5), 2 + Math.floor(r() * 3)];
+      const guests = want.map(d => { const tgt = me + d; const c = pool.filter(x => !used.has(x.id)).sort((x, y) => Math.abs(C.collegeRating(x.id, car.season) - tgt) - Math.abs(C.collegeRating(y.id, car.season) - tgt) || x.id - y.id)[0]; used.add(c.id); return [c, tgt]; });
+      guests.forEach(([c, tgt], k) => { teams.push({ guest: 1, col: c.id, name: c.short, abbr: c.abbr, c1: c.c1, c2: c.c2, rating: tgt, form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 2, seed: Math.floor(r() * 1e9) });
         car.sea.fx.push({ md: k - 4, h: k % 2 ? teams.length - 1 : 0, a: k % 2 ? 0 : teams.length - 1, friendly: 1, wx: Math.floor(r() * 5) }); });
       car.sea.fx.sort((a, b) => a.md - b.md); car.sea.md = -4; }
     if (car.homecoming != null && car.hcDone !== car.season) car.hcDone = car.season;   // 1.04: no job moves, so no homecoming friendly
@@ -74,7 +77,7 @@
     const xi = F.map(s => mk(s[0], 0, 1 + Math.floor(r() * 4)));
     const bench = ['GK', 'CB', 'CM', 'ST', 'LB', 'LW', 'DM'].map(p => mk(p, -3, 1 + Math.floor(r() * 3)));
     C.assignNumbers(xi.concat(bench));
-    return { name: t.name, short: t.name, abbr: t.abbr, c1: t.c1, c2: t.c2, form: t.form, ment: t.ment, xi, bench, auto: true, instr: {}, maxSubs: 6 };
+    return { name: t.name, short: t.name, abbr: t.abbr, c1: t.c1, c2: t.c2, form: t.form, ment: t.ment, xi, bench, auto: true, instr: {}, maxSubs: 6, capId: xi.slice().sort((a, b) => b.lead - a.lead)[0].id };   // 1.06 (QA-69): AI captain = best leader
   };
 
   // ---------- simulate the other fixtures on a matchday ----------
@@ -97,7 +100,7 @@
       const p = C.P(e.p.id); if (!p) continue; const s = e.st; if (s.mins < .5 && !e.on) continue;
       played.add(p.id); p.energy = Math.round(e.energy);
       const ss = p.ss = p.ss || { apps: 0, st: 0, mins: 0, g: 0, a: 0, rs: 0, potm: 0, yc: 0, cs: 0, sv: 0 };
-      ss.apps++; if (m.teams[my].xi.includes(e.p)) ss.st++; ss.mins += Math.round(s.mins); ss.g += s.g; ss.a += s.a; ss.sv += s.sv;
+      ss.apps++; if (m.teams[my].xi.includes(e.p)) ss.st++; if (!f.friendly && !f.ko) { ss.lapps = (ss.lapps || 0) + 1; if (m.teams[my].xi.includes(e.p)) ss.lst = (ss.lst || 0) + 1; }   // 1.06 (QA-73): league apps and starts ss.mins += Math.round(s.mins); ss.g += s.g; ss.a += s.a; ss.sv += s.sv;
       const rt = (rated.find(x => x.e === e) || { r: 6 }).r; ss.rs += rt; if (potm && potm.e === e) { ss.potm++; p.morale = Math.min(100, p.morale + 5); }
       if (e.slot.pos === 'GK' && m.score[1 - my] === 0 && s.mins > 60) ss.cs++;
       if (s.yc) { ss.yc++; if (ss.yc % 5 === 0) p.ban = 1; }
@@ -188,7 +191,7 @@
   function natField() { const car = C.car(), S = car.sea, R = S.R || 14; if (S.nat) return S.nat;
     const r = C.rng(S.n * 9157 + car.tier * 31 + (car.created & 0xffff)), mine = C.regionOf(C.college(car).state), base = C.tierBase(car.tier), tbl = C.table();
     const champ = S.regTable[0], cp = (tbl.find(t => t.i === champ) || { pts: 0 }).pts, field = [{ ti: champ, pts: cp, rating: S.teams[champ].rating }];
-    const names = C.genCollegeNames ? C.genCollegeNames(r, 7) : [], pal = ['#991b1b', '#c2410c', '#15803d', '#0f766e', '#0369a1', '#1e3a8a', '#6d28d9', '#86198f', '#1e293b', '#b45309'];
+    const taken = new Set(S.teams.map(t => String(t.name).toLowerCase()).concat(C.COLLEGES.map(c => String(c.short).toLowerCase()))), names = (C.genCollegeNames ? C.genCollegeNames(r, 30) : []).filter(nm => !taken.has(String(nm.short).toLowerCase())).slice(0, 7),   /* 1.06 (QA-99): never a name already in the game */ pal = ['#991b1b', '#c2410c', '#15803d', '#0f766e', '#0369a1', '#1e3a8a', '#6d28d9', '#86198f', '#1e293b', '#b45309'];
     NREG().filter(g => g !== mine).slice(0, 7).forEach((g, k) => { const nm = names[k] || { full: g + ' College', short: g }, st = C.REGIONS[g][Math.floor(r() * C.REGIONS[g].length)];
       S.teams.push({ guest: 1, natc: 1, region: g, state: st, name: nm.short, full: nm.full, abbr: nm.full.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3), c1: pal[Math.floor(r() * pal.length)], c2: '#f8fafc',
         rating: base + 4 + Math.floor(r() * 5), form: Object.keys(C.FORMATIONS)[Math.floor(r() * 5)], ment: 2, seed: Math.floor(r() * 1e9) });
@@ -259,6 +262,7 @@
     car.squad = car.squad.filter(p => !(p.year >= 4 && !p.rs));
     for (const p of car.squad) {
       if (p.rs) p.rs = false; else p.year++;
+      delete p.bonus;   // 1.06 (QA-68): season bonuses end when the new season starts
       if (p.raise) { p.schol = Math.round((p.schol + p.raise * car.job.coa) / 500) * 500; p.raise = 0; }
       if (p.ss) { p.cs = p.cs || { apps: 0, g: 0, a: 0, mins: 0, seasons: 0 }; p.cs.apps += p.ss.apps; p.cs.g += p.ss.g; p.cs.a += p.ss.a; p.cs.mins += p.ss.mins; p.cs.seasons++; p.ss = null; }
       p.ban = 0; p.inj = 0; p.energy = 100;
@@ -325,6 +329,13 @@
   // ================= Season tab =================
   let view = 'fix';
   C.setSeasonView = v => { view = v; C.render(); };
+  // 1.06 (QA-81): your strength against theirs. Your XI's average rating (the same scale as a college's team rating)
+  C.xiRating = (car = C.car()) => { if (!car || !car.squad || !car.squad.length) return car ? car.job.rating : 42;
+    let ids = []; try { if (car === C.car() && car.tac) ids = (car.tac.xi || []).filter(Boolean); } catch (e) { }
+    let ps = ids.map(id => car.squad.find(p => p.id === id)).filter(Boolean); if (ps.length < 11) ps = car.squad.slice().sort((a, b) => b.rating - a.rating).slice(0, 11);
+    return Math.round(ps.reduce((s, p) => s + p.rating, 0) / ps.length); };
+  C.rateCmp = them => { const me = C.xiRating(), d = me - them; return d >= 3 ? { w: 'Favorites', c: 'fav', me } : d <= -3 ? { w: 'Underdogs', c: 'dog', me } : { w: 'Even', c: 'even', me }; };
+  C.oppRatingChip = them => { const k = C.rateCmp(them); return `<span class="rtc ${k.c}">${them}</span>`; };
   C.seasonHTML = () => {
     const car = C.car(), S = C.sea(), col = C.college(), T = C.table();
     const nm = i => S.teams[i].name, crest = (i, s = 26) => { const t = S.teams[i]; return C.crestSVG(t.c1, t.c2, t.abbr.slice(0, 2), s); };
@@ -334,7 +345,7 @@
       body = mds.map(md => { const f = S.fx.find(x => x.md === md && (x.h === 0 || x.a === 0)); const others = S.fx.filter(x => x.md === md && x !== f);
         const label = (f || S.fx.find(x => x.md === md)) ? (C.fxLabel(f || S.fx.find(x => x.md === md)).long) : 'Match ' + md;
         const row = x => { const me = x.h === 0 || x.a === 0, done = x.hs != null; const res = done && me ? (x.h === 0 ? Math.sign(x.hs - x.as) : Math.sign(x.as - x.hs)) || (x.pens ? (x.h === 0 ? Math.sign(x.pens[0] - x.pens[1]) : Math.sign(x.pens[1] - x.pens[0])) * .5 : 0) : null;
-          return `<button class="fxrow ${me ? 'me' : ''}" ${done && me && S.reports[x.md] ? `data-act="report" data-v="${x.md}"` : ''}><span class="ft">${crest(x.h, 22)}<b>${C.esc(nm(x.h))}</b></span><span class="fs ${res == null ? '' : res > 0 ? 'w' : res < 0 ? 'l' : 'd'}">${done ? `${x.hs}–${x.as}${x.pens ? `<small>p ${x.pens[0]}–${x.pens[1]}</small>` : ''}` : md === S.md && me ? 'Next' : 'v'}</span><span class="ft r"><b>${C.esc(nm(x.a))}</b>${crest(x.a, 22)}</span></button>`; };
+          return `<button class="fxrow ${me ? 'me' : ''}" ${done && me && S.reports[x.md] ? `data-act="report" data-v="${x.md}"` : ''}><span class="ft">${crest(x.h, 22)}<b>${C.esc(nm(x.h))}</b></span><span class="fs ${res == null ? '' : res > 0 ? 'w' : res < 0 ? 'l' : 'd'}">${done ? `${x.hs}–${x.as}${x.pens ? `<small>p ${x.pens[0]}–${x.pens[1]}</small>` : ''}` : md === S.md && me ? 'Next' : 'v'}</span><span class="ft r"><b>${C.esc(nm(x.a))}</b>${crest(x.a, 22)}</span>${me && !done ? C.oppRatingChip(S.teams[x.h === 0 ? x.a : x.h].rating) : ''}</button>`; };
         return `<div class="fxmd ${md === S.md ? 'fxnow' : ''}"><h4>${label}</h4>${f ? row(f) : ''}${others.length ? `<details><summary>Other results</summary>${others.map(row).join('')}</details>` : ''}</div>`; }).join('');
     }
     if (view === 'table') body = `<div class="card tbl2"><div class="tr2 th"><span>#</span><span></span><span>P</span><span>W</span><span>D</span><span>L</span><span>GD</span><span>Pts</span></div>
@@ -342,7 +353,7 @@
       <p class="note">Top 4 reach the conference tournament.${car.tier > 1 ? ` 1st and 2nd are promoted (${C.BUILDINGS.hq.name} Lv ${C.TIER_GATE[car.tier - 1]} needed); 3rd and 4th go to the play-off.` : ''} 1st plays in the National Championship.</p></div>`;
     if (view === 'stats') { const sq = car.squad.filter(p => p.ss && p.ss.apps);
       const top = (k, f, n = 5) => sq.slice().sort((a, b) => f(b) - f(a)).filter(p => f(p) > 0).slice(0, n);
-      const list = (title, arr, f, fmt) => `<h3 class="jh">${title}</h3><div class="card">${arr.length ? arr.map(p => `<button class="srow" data-act="player" data-v="${p.id}" style="width:100%"><span>${C.esc(p.fn[0] + '. ' + p.ln)} <small class="mutey">${p.pos}</small></span><b>${fmt(f(p))}</b></button>`).join('') : '<p class="note" style="margin:0">No matches yet.</p>'}</div>`;
+      const list = (title, arr, f, fmt) => `<h3 class="jh">${title}</h3><div class="card">${arr.length ? arr.map((p, i) => `<button class="srow strow ${i ? '' : 'top'}" data-act="player" data-v="${p.id}"><span>${C.esc(p.fn[0] + '. ' + p.ln)} <small class="mutey">${p.pos}</small></span><b>${fmt(f(p))} <i class="chev">›</i></b></button>`).join('') : '<p class="note" style="margin:0">No matches yet.</p>'}</div>`;
       body = list('⚽ Goals', top('g', p => p.ss.g), p => p.ss.g, v => v) + list('🅰️ Assists', top('a', p => p.ss.a), p => p.ss.a, v => v) + list('⭐ Average rating', top('r', p => p.ss.apps >= 2 ? p.ss.rs / p.ss.apps : 0), p => p.ss.rs / p.ss.apps, v => v.toFixed(2)) + list('🏆 Player of the Match', top('p', p => p.ss.potm), p => p.ss.potm, v => v); }
     const endCard = S.end ? `<div class="card seasonend">${S.end.champ ? `<div class="scenebn" style="margin:-14px -14px 10px">${C.artSlot('trophy', C.sceneTrophy(col.c1, col.c2))}</div>` : ''}<b>${S.end.champ ? '🏆 Conference champions!' : `Season ${S.n} over · finished ${C.ord(S.end.pos)}`}</b><p>${S.end.met ? '✔ Director\'s goal met' : '✖ Director\'s goal missed'}: ${GOALS[car.job.stars][0]}.${S.end.prize ? ` 💵 Prize money: <b>${C.full(S.end.prize)}</b>.` : ''}${S.end.champName && !S.end.champ ? ' Champions: ' + C.esc(S.end.champName) + '.' : ''}</p>
       <p class="note" style="margin:6px 0">${C.portalOpen() ? '🚪 The transfer window is open. Seniors graduate when the new season starts.' : 'Seniors graduate when the new season starts.'}</p>

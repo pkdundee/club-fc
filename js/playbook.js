@@ -33,7 +33,7 @@
     const car = C.car(), { n } = node(key), to = C.pbLv(key) + 1; pb();
     if (to > n[3]) return 'max'; if (!C.pbUnlocked(key)) return 'locked'; if (C.pbInQueue(key)) return 'busy'; if (car.pbq.length >= C.pbSlots()) return 'slots';
     const k = C.pbCost(key, to); if (car.cp < k.cp) return 'cp'; if (car.cash < k.cash) return 'cash';
-    car.cp -= k.cp; car.cash -= k.cash; const t = C.now(); car.pbq.push({ key, to, start: t, end: t + C.pbTime(key, to) * 1000 }); C.save(); return true;
+    car.cp -= k.cp; car.cash -= k.cash; const t = C.now(); car.pbq.push({ key, to, start: t, end: t + C.pbTime(key, to) * 1000, lane: C.laneFree(car.pbq) }); C.save(); return true;
   };
   C.tickPB = () => { const car = C.car(); if (!car || !car.pbq) return []; const done = car.pbq.filter(q => q.end <= C.now()), msg = [];
     for (const q of done) { pb()[q.key] = q.to; msg.push(`📋 ${node(q.key).n[0]} Lv ${q.to} researched`); }
@@ -55,7 +55,7 @@
   // ================= Playbook screen =================
   C.openPlaybook = () => C.ui.open('Playbook', () => {
     const car = C.car(); pb();
-    const slots = C.PBSLOTS.map((s, i) => { const q = car.pbq[i];
+    const slots = C.PBSLOTS.map((s, i) => { const q = C.laneItem(car.pbq, i);
       if (q) { const f = 1 - C.remaining(q) / ((q.end - q.start) / 1000); return `<button class="dq" data-act="pbnode" data-v="${q.key}"><span class="c">${C.ringSVG(f, '#38bdf8', 46)}<i style="font-style:normal;font-size:20px">${node(q.key).B[1]}</i></span><b data-until="${q.end}">${C.dur(C.remaining(q))}</b></button>`; }
       return C.pbSlotOpen(s.id) ? `<button class="dq free" data-act="toast" data-v="Tap a node to research it"><span class="c">📋</span><b>Free</b></button>` : `<button class="dq lock" data-act="pbslot" data-v="${s.id}"><span class="c">🔒</span><b>${s.id === 'vip' ? 'VIP' : s.id === 'iap' ? '$' : 'Earn'}</b></button>`; }).join('');
     return `<div class="raytake" style="margin-top:0"><span>📋</span><p><b>Your Playbook · <i class="cpi"></i> ${C.full(car.cp)} · 💵 ${C.full(car.cash)}</b>Know-how that travels with you to every job. Each tier opens when the one before reaches Lv 5.</p></div>

@@ -11,7 +11,19 @@
   const COLORS = ['#991b1b', '#c2410c', '#b45309', '#15803d', '#0f766e', '#0369a1', '#1e3a8a', '#6d28d9', '#86198f', '#1e293b', '#f8fafc', '#facc15', '#fca5a5', '#93c5fd'];
   // real colleges, conferences and pro clubs are blocked (a short list; names must be original)
   const BLOCK = ['harvard', 'stanford', 'yale', 'princeton', 'duke', 'ucla', 'usc', 'notre dame', 'alabama', 'clemson', 'gonzaga', 'georgetown', 'syracuse', 'villanova', 'michigan', 'ohio state', 'penn state', 'texas a&m', 'florida state',
-    'north carolina', 'virginia tech', 'big ten', 'big 12', 'big east', 'pac-12', 'pac 12', 'sec ', 'acc ', 'ncaa', 'mls', 'nwsl', 'barcelona', 'real madrid', 'manchester', 'chelsea', 'arsenal', 'liverpool', 'juventus', 'bayern', 'galaxy', 'sounders', 'timbers', 'inter miami'];
+    'north carolina', 'virginia tech', 'big ten', 'big 12', 'big east', 'pac-12', 'pac 12', 'sec ', 'acc ', 'ncaa', 'naia', 'njcaa', 'mls', 'nwsl', 'barcelona', 'real madrid', 'manchester', 'chelsea', 'arsenal', 'liverpool', 'juventus', 'bayern', 'galaxy', 'sounders', 'timbers', 'inter miami'];
+  // 1.06 (QA-90): offensive words and slurs, checked on the college name, mascot and abbreviation (offline, a list that can grow).
+  // Whole words after undoing common disguises (numbers or symbols for letters, letters spaced out), so ordinary words that happen
+  // to contain one aren't caught. A few roots also match as the start of a word (for example "fuckers").
+  const RUDE = ['fuck', 'shit', 'bitch', 'cunt', 'dick', 'cock', 'pussy', 'asshole', 'arsehole', 'bastard', 'slut', 'whore', 'fag', 'faggot', 'nigger', 'nigga', 'retard', 'retarded', 'spic', 'chink', 'kike', 'wetback',
+    'tranny', 'dyke', 'twat', 'wank', 'wanker', 'piss', 'porn', 'porno', 'nazi', 'nazis', 'hitler', 'rape', 'rapist', 'cum', 'jizz', 'tits', 'titties', 'boobs', 'penis', 'vagina', 'anal', 'sex', 'sexy', 'kkk', 'motherfucker',
+    'bollocks', 'prick', 'coon', 'gook', 'beaner', 'raghead', 'paki', 'dildo', 'bullshit', 'dumbass', 'jackass', 'butthole', 'blowjob', 'handjob', 'hooker', 'pedo', 'pedophile', 'heil', 'isis', 'jihad'];
+  const ROOTS = ['fuck', 'shit', 'cunt', 'nigg', 'fagg', 'bitch', 'whore', 'slut', 'wank', 'motherf'];
+  const RUDE_ABBR = ['FU', 'FCK', 'FUK', 'FUC', 'SEX', 'KKK', 'NAZI', 'ASS', 'WTF', 'STFU', 'GTFO', 'DIK', 'CUM', 'FAG', 'NIG', 'KYS', 'SHIT', 'PISS', 'TIT', 'TITS', 'POO', 'PEE', 'XXX', 'SS', 'SH1T', 'PUTA', 'COCK', 'CUNT', 'DICK', 'HELL', 'DAMN', 'BOOB', 'PORN', 'RAPE', 'HOE', 'HOES', 'THOT', 'MILF', 'DTF'];
+  const unmask = s => String(s || '').toLowerCase().replace(/[0@4]/g, m => ({ 0: 'o', '@': 'a', 4: 'a' })[m]).replace(/[1!|]/g, 'i').replace(/3/g, 'e').replace(/[5$]/g, 's').replace(/7/g, 't')
+    .replace(/\b(?:[a-z][\s._*-]+){2,}[a-z]\b/g, m => m.replace(/[\s._*-]+/g, ''));   // "f u c k", "s.h.i.t"
+  C.nameRude = s => { const w = unmask(s).split(/[^a-z]+/).filter(Boolean); return w.some(x => RUDE.includes(x) || ROOTS.some(r => x.startsWith(r))); };
+  C.abbrRude = s => RUDE_ABBR.includes(String(s || '').toUpperCase()) || C.nameRude(s);
   C.nameBlocked = s => { const t = ' ' + String(s || '').toLowerCase() + ' '; return BLOCK.some(b => t.includes(b.endsWith(' ') ? ' ' + b : b)); };
 
   // ---------- custom colleges live in the save and join the college list at load ----------
@@ -46,7 +58,7 @@
       <label class="fld" for="pgmascot">Mascot</label><input class="inp" id="pgmascot" maxlength="18" value="${C.esc(P.mascot)}">
       <label class="fld" for="pgabbr">Abbreviation (2–4 letters)</label><input class="inp" id="pgabbr" maxlength="4" value="${C.esc(P.abbr)}" style="text-transform:uppercase">
       <label class="fld">First color</label><div class="pgcols">${sw('pgc1', P.c1)}</div><label class="fld">Second color</label><div class="pgcols">${sw('pgc2', P.c2)}</div>
-      ${mode === 'new' ? `<p class="note">Every program starts equal: an entry college (Tier 5), the same squad strength, ${C.money(45000)} Booster $, a ${C.money(C.TIER_COA[5])} cost to attend and ${C.TIER_FUNDED[5]} funded scholarships (${C.money(C.TIER_COA[5] * C.TIER_FUNDED[5])} a year). Your state is your home: it doesn't change the economy.</p>` : '<p class="note">Your record, campus and players stay the same.</p>'}
+      ${mode === 'new' ? `<p class="note">Every program starts equal: an FCSA Division V college, the same squad strength, ${C.money(45000)} Booster $, a ${C.money(C.TIER_COA[5])} cost to attend and ${C.TIER_FUNDED[5]} funded scholarships (${C.money(C.TIER_COA[5] * C.TIER_FUNDED[5])} a year). Your state is your home: it doesn't change the economy.</p>` : '<p class="note">Your record, campus and players stay the same.</p>'}
       <button class="btn full pri" data-act="pgstart">${mode === 'new' ? 'Start as head coach' : 'Save the new name'}</button>`; }
   A.pgrename = () => { if (!C.car() || !C.car().renameFree) return; C.openProgram('rename'); };
   A.pgsex = v => { sync(); P.gender = v; C.ui.refresh(); };
@@ -58,7 +70,8 @@
     if (!nm || nm.full.length < 3) return C.toast('Choose or type a college name');
     if (!P.mascot) return C.toast('Choose a mascot');
     if (!/^[A-Z]{2,4}$/.test(P.abbr)) return C.toast('The abbreviation needs 2 to 4 letters');
-    if (C.nameBlocked(nm.full) || C.nameBlocked(P.mascot)) return C.toast('Please choose an original name (no real colleges, conferences or clubs)');
+    if (C.nameRude(nm.full) || C.nameRude(P.mascot) || C.abbrRude(P.abbr)) return C.toast('Please choose a different name');
+    if (C.nameBlocked(nm.full) || C.nameBlocked(P.mascot) || C.nameBlocked(P.abbr)) return C.toast('Please choose an original name (no real colleges, conferences or clubs)');
     if (P.c1 === P.c2) return C.toast('Choose two different colors');
     const col = { full: nm.full, short: nm.short, mascot: P.mascot, abbr: P.abbr, state: P.state, c1: P.c1, c2: P.c2 };
     if (mode === 'rename') { const car = C.car(); car.myCol = col; car.renamed = true; car.renameFree = false; C.registerCustomCollege(car); if (car.sea) { const me = car.sea.teams[0]; Object.assign(me, { name: col.short, abbr: col.abbr, c1: col.c1, c2: col.c2 }); }

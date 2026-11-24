@@ -9,7 +9,7 @@
   C.pbName = key => node(key).n[0];
   const PBPOW = 60;   // Program Power per research level
   C.pbPower = () => C.pbTotal() * PBPOW;
-  const oPP = C.programPower; C.programPower = () => oPP() + C.pbPower();
+  // 1.06 (QA-92): research is one of the Program Power parts (screens.js C.powerParts), so it isn't added again here
   const val = (n, lv) => n[1] === 'slot' ? (lv ? n[4] : '—') : '+' + Math.round(lv * n[2] * 1000) / 10 + '% ' + n[4];
   C.pbAffordable = key => { const to = C.pbLv(key) + 1, k = C.pbCost(key, to), car = C.car(); return car.cp >= k.cp && car.cash >= k.cash; };
   const open = key => { const { n } = node(key); return C.pbUnlocked(key) && C.pbLv(key) < n[3] && !C.pbInQueue(key); };
@@ -38,9 +38,9 @@
   const openSlots = () => C.PBSLOTS.filter(s => C.pbSlotOpen(s.id));
   const slotOf = key => pbq().findIndex(q => q.key === key);
   const nextLv = key => { const { n } = node(key); return `${Math.min(n[3], C.pbLv(key) + 1)}/${n[3]}`; };
-  C.pbSlotsHTML = () => { const q = pbq(), n = Math.max(2, openSlots().length, q.length);   // 1.03: research from a withdrawn slot still shows until it ends
+  C.pbSlotsHTML = () => { const q = C.laneSet(pbq()), n = Math.max(2, openSlots().length, q.length, ...q.map(r => r.lane + 1));   // 1.03: research from a withdrawn slot still shows until it ends
     const tile = key => `<span class="pbtile">${tileSVG}${key ? `<span class="art">${node(key).B[1]}</span><span class="cnt">${nextLv(key)}</span>` : ''}</span>`;
-    const out = []; for (let i = 0; i < n; i++) { const r = q[i], tw = k => `<span class="pbtw">${tile(k)}${hn(i)}</span>`;
+    const out = []; for (let i = 0; i < n; i++) { const r = C.laneItem(q, i), tw = k => `<span class="pbtw">${tile(k)}${hn(i)}</span>`;
       if (i >= openSlots().length && !r) { out.push(`<button class="pbslot2" data-act="pbslot" data-v="prog">${tw(null)}<span class="msg lock">Locked until Performance Lab Lv 10</span></button>`); continue; }
       if (!r) { out.push(`<button class="pbslot2" data-act="pbrec">${tw(null)}<span class="msg">Idle</span></button>`); continue; }
       if (r.end <= C.now()) { out.push(`<div class="pbslot2">${tw(r.key)}<button class="cbtn" data-act="pbdone" data-v="${r.key}">Completed</button></div>`); continue; }

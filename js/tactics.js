@@ -38,7 +38,7 @@
   C.myTeam = home => {
     const car = C.car(), t = C.tac(), col = C.college();
     const kc = C.kitColours(col.c1, col.c2);
-    return { name: col.short, short: col.short, abbr: col.abbr, c1: kc[0], c2: kc[1], form: t.form, ment: t.ment, xi: t.xi.map(C.P), bench: t.bench.map(C.P), instr: Object.assign({}, t.instr), auto: t.auto, home, me: true, bonus: C.teamBonus() };
+    return { name: col.short, short: col.short, abbr: col.abbr, c1: kc[0], c2: kc[1], form: t.form, ment: t.ment, xi: t.xi.map(C.P), bench: t.bench.map(C.P), instr: Object.assign({}, t.instr), auto: t.auto, home, me: true, bonus: C.teamBonus(), capId: (car.captains || [])[0] || null };
   };
 
   // ---------- one token: kit circle, a dark gap, then the energy ring coloured by fit (Q18c) ----------
@@ -60,8 +60,9 @@
   // how good a player is in a given position (their attributes for that role, a little less if unfamiliar)
   C.posRating = (p, pos) => { if ((pos === 'GK') !== (p.pos === 'GK')) return Math.round(p.rating * .35);
     const key = C.KEY[pos], all = Object.keys(C.attrsOf(p)), km = key.reduce((s, k) => s + (p.a[k] || 0), 0) / key.length, am = all.reduce((s, k) => s + p.a[k], 0) / all.length;
-    return Math.round((.6 * km + .4 * am) * [0, .85, .9, .95, .98, 1][C.fit(p, pos)]); };
-  C.topPositions = p => p.pos === 'GK' ? [['GK', C.posRating(p, 'GK')]] : ALLPOS.filter(x => x !== 'GK').map(x => [x, C.posRating(p, x)]).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    return Math.round((.6 * km + .4 * am) * [0, .72, .84, .93, .98, 1][C.fit(p, pos)]); };   // 1.06 (QA-71): the match engine's fit factors, so the number is what plays
+  // 1.06 (QA-71): the 3 best ratings, shown in fit order (Natural first), ties by rating, so colors step down left to right
+  C.topPositions = p => p.pos === 'GK' ? [['GK', C.posRating(p, 'GK')]] : ALLPOS.filter(x => x !== 'GK').map(x => [x, C.posRating(p, x)]).sort((a, b) => b[1] - a[1]).slice(0, 3).sort((a, b) => C.fit(p, b[0]) - C.fit(p, a[0]) || b[1] - a[1]);
   const ring = (f, sz = 14) => { const r = sz / 2 - 2, c = 2 * Math.PI * r, col = f >= 70 ? '#4ade80' : f >= 50 ? '#facc15' : f >= 30 ? '#fb923c' : '#f87171';
     return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="none" stroke="rgba(148,163,184,.35)" stroke-width="2.4"/><circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="none" stroke="${col}" stroke-width="2.4" stroke-dasharray="${c * Math.max(0, Math.min(1, f / 100))} ${c}" transform="rotate(-90 ${sz / 2} ${sz / 2})"/></svg>`; };
   const fcol = f => f >= 70 ? '#4ade80' : f >= 50 ? '#facc15' : f >= 30 ? '#fb923c' : '#f87171';
@@ -77,7 +78,10 @@
   // ================= tactics: board or list =================
   let tview = 'board';
   C.setTacView = v => { tview = v; C.ui.refresh(); };
-  C.openTactics = (fromMatch) => C.ui.open('Tactics', () => `<div class="tacdef"><i class="xoi"></i> <b>Your default setup</b> · used for every match until you change it</div>` + boardHTML(fromMatch));
+  // 1.06 (QA-83): Tactics fits one screen: no default-setup line (it's in the Handbook), formations on one scrolling row,
+  // mentality buttons carry their word, a small Board/List switch, a shorter pitch and a one-line key
+  C.openTactics = (fromMatch) => C.ui.open('Tactics', () => `<div class="tac2">${boardHTML(fromMatch)}</div>`);
+  const MENT_SHORT = ['Ultra def', 'Defend', 'Balanced', 'Attack', 'Ultra att'];
   function boardHTML(fromMatch) {
     const car = C.car(), t = C.tac(), F = C.FORMATIONS[t.form], L = C.slotLabels(t.form);
     const tokens = F.map((s, i) => { const p = C.P(t.xi[i]), left = s[1] * 100, top = 91 - s[2] * 83;
@@ -94,18 +98,25 @@
       + t.bench.map((id, i) => row(C.P(id), 'SUB', '#64748b', C.P(id).rating, 'b' + i)).join('')
       + car.squad.filter(p => !t.xi.includes(p.id) && !t.bench.includes(p.id)).sort((a, b) => b.rating - a.rating).map(p => row(p, 'RES', '#334155', p.rating, null)).join('');
     const bench = t.bench.map((id, i) => { const p = C.P(id); return `<button class="btok" data-act="pick" data-v="b${i}"><span class="bf">${C.faceOf(p)}</span><b>${C.esc(C.sn(p))}</b><small>${ring(p.energy, 12)} ${p.pos} · ${p.rating}</small>${C.badges(p) ? `<em>${C.badges(p)}</em>` : ''}</button>`; }).join('') + (t.bench.length < 9 ? `<button class="btok add" data-act="pick" data-v="b${t.bench.length}"><span>+</span><small>Add</small></button>` : '');
-    return `${C.advice('tac')}<div class="forms">${Object.keys(C.FORMATIONS).map(f => `<button class="${t.form === f ? 'on' : ''}" data-act="form" data-v="${f}">${f}</button>`).join('')}</div>
-      <div class="ments">${C.MENTALITY.map((m, i) => `<button class="${t.ment === i ? 'on' : ''}" data-act="ment" data-v="${i}"><span>${MENT_ICON[i]}</span></button>`).join('')}</div><p class="mentl">${MENT_ICON[t.ment]} ${C.MENTALITY[t.ment]}</p>
-      <div class="tview"><button class="${tview === 'board' ? 'on' : ''}" data-act="tacview" data-v="board">Board</button><button class="${tview === 'list' ? 'on' : ''}" data-act="tacview" data-v="list">List</button></div>
+    return `<div class="slimadv">${C.advice('tac')}</div><div class="forms">${Object.keys(C.FORMATIONS).map(f => `<button class="${t.form === f ? 'on' : ''}" data-act="form" data-v="${f}">${f}</button>`).join('')}</div>
+      <div class="ments">${C.MENTALITY.map((m, i) => `<button class="${t.ment === i ? 'on' : ''}" data-act="ment" data-v="${i}" title="${C.MENTALITY[i]}"><span>${MENT_ICON[i]}</span><small>${MENT_SHORT[i]}</small></button>`).join('')}</div>
+      <div class="tview2"><span>${t.form} · ${C.MENTALITY[t.ment]}</span><span class="tsw"><button class="${tview === 'board' ? 'on' : ''}" data-act="tacview" data-v="board">Board</button><button class="${tview === 'list' ? 'on' : ''}" data-act="tacview" data-v="list">List</button></span></div>
       ${tview === 'board' ? `<div class="board tall"><div class="bpitch"><i class="half"></i><i class="circ"></i><i class="box1"></i><i class="box2"></i></div>${tokens}</div>
-        <div class="ringkey"><span><i style="background:${PILL[5]}"></i>Natural</span><span><i style="background:${PILL[4]}"></i>Good</span><span><i style="background:${PILL[3]}"></i>OK</span><span><i style="background:${PILL[2]}"></i>Poor</span><span><i style="background:${PILL[1]}"></i>Wrong</span><span>${ring(70)} Freshness</span></div>
+        <div class="ringkey rk1"><span><i style="background:${PILL[5]}"></i>Natural</span><span><i style="background:${PILL[4]}"></i>Accomplished</span><span><i style="background:${PILL[3]}"></i>Competent</span><span><i style="background:${PILL[2]}"></i>Awkward</span><span><i style="background:${PILL[1]}"></i>Out</span><span>${ring(70)} Fresh</span></div>
+        ${(cap => `<button class="caprow" data-act="capopen"><span class="cap">C</span><span>Captain: <b>${cap ? C.esc(C.sn(cap)) : 'none'}</b>${cap ? ` · Leadership ${cap.lead}` : ''}</span><i>▾</i></button>`)(C.P((car.captains || [])[0]))}
         <h3 class="jh">Subs <small class="devp">${t.bench.length}/9</small></h3><div class="bench">${bench}</div>`
       : `<div class="tlist">${list}</div>`}
       <div class="jbtns"><button class="btn sec2" data-act="autopick">✨ Auto pick</button><button class="btn ${t.auto ? 'pri' : 'sec2'}" data-act="automan">${t.auto ? '✔ Auto-manage' : 'Auto-manage: off'}</button></div>
-      <p class="note">With auto-manage on, your staff make subs for injuries and tired legs, change mentality late on and keep your playing-time promises.</p>
       ${fromMatch ? '<button class="btn full pri" data-act="back">Done</button>' : ''}`;
   }
 
+  // 1.06 (QA-69): choose the captain from the XI, ranked by Leadership
+  C.openCaptainPick = () => C.ui.open('Captain', () => { const car = C.car(), t = C.tac(), F = C.FORMATIONS[t.form], cur = (car.captains || [])[0];
+    const xi = t.xi.map((id, i) => [C.P(id), F[i][0]]).filter(([p]) => p).sort((a, b) => b[0].lead - a[0].lead);
+    return `<p class="note" style="margin-top:0">The captain lifts the players around them (the 3 nearest positions in the formation) by up to 3.5%, more with higher Leadership.</p>
+      ${xi.map(([p, pos]) => `<button class="arow ${p.id === cur ? 'on' : ''}" data-act="capset" data-v="${p.id}"><span class="lchip" style="background:#334155">${pos}</span><span class="anm">${C.esc(p.fn[0] + '. ' + p.ln)}${p.id === cur ? ' <span class="cap">C</span>' : ''}</span><span class="wcol"></span><b class="art">${p.lead}</b><span class="afr">Leadership</span></button>`).join('')}`; }, { popup: true });
+  C.ACTS.capopen = () => C.openCaptainPick();
+  C.ACTS.capset = id => { C.setCaptain(id); C.ui.back(); C.ui.refresh(); C.toast('🅲 Captain chosen'); };
   // ================= alternatives panel (ranked for the slot being filled) =================
   let pkXI = false, pkSubs = true;
   C.openPicker = slot => C.ui.open('Choose player', () => pickerHTML(slot));

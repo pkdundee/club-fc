@@ -24,10 +24,10 @@
   C.KEEPER_STYLE = p => [p.a.crs >= p.a.stp ? '🧱 Commands the box' : '🥅 Stays on the line', p.a.dis >= 50 ? '🦶 Long passer' : '🦶 Short passer'];
 
   // ---------- position fit (5 = natural … 1 = out of position) ----------
-  C.fit = (p, pos) => { if (p.pos === pos) return 5; if (pos === 'GK' || p.pos === 'GK') return 1; if (p.sec.includes(pos)) return 4;
+  C.fit = (p, pos) => { if (p.pos === pos) return 5; if (pos === 'GK' || p.pos === 'GK') return 1; if (p.sec.includes(pos)) return Math.min(5, 4 + ((p.fitB || {})[pos] || 0));   // 1.06 (QA-70): retraining a secondary position now counts
     const a = POS[p.pos], b = POS[pos], d = Math.hypot((a[0] - b[0]) * .6, a[1] - b[1]); return Math.min(5, (d < .17 ? 4 : d < .3 ? 3 : d < .45 ? 2 : 1) + (p.fitB[pos] || 0)); };
   C.FITLABEL = ['', 'Out of position', 'Awkward', 'Competent', 'Accomplished', 'Natural'];
-  C.nearPositions = p => p.pos === 'GK' ? [] : Object.keys(POS).filter(q => q !== 'GK' && q !== p.pos && C.fit(p, q) >= 2 && C.fit(p, q) < 5);
+  C.nearPositions = p => p.pos === 'GK' ? [] : Object.keys(POS).filter(q => q !== 'GK' && q !== p.pos && C.fit(p, q) >= 2 && C.fit(p, q) < 5 && ((p.fitB || {})[q] || 0) < 3);   // 1.06 (QA-70): only positions that can still improve
 
   // ---------- looks that match the name pool (Q16) ----------
   const SKIN = { light: ['#f6dcc6', '#f4d0b5', '#f1c9a5', '#efc4a4', '#e8b796'], olive: ['#e0b48c', '#d9a27a', '#c68a5e', '#c08a63'], brown: ['#b07a52', '#8d5a3b', '#7a4a2c'], dark: ['#6b3e26', '#5c3a24', '#4a2c1c'], ea: ['#f1d2b6', '#efd2b4', '#e8c4a0'] };
@@ -127,7 +127,7 @@
   C.coverage = (car = C.car()) => { const n = { gk: 0, def: 0, mid: 0, fwd: 0 }; car.squad.forEach(p => n[C.POSGROUP(p.pos)]++); return n; };
   C.COVER = { gk: 2, def: 6, mid: 6, fwd: 4 };   // 1.04: at least 2 GK, 6 defenders, 6 midfielders and 4 forwards in the 22
   C.coverageOK = (car = C.car()) => { const n = C.coverage(car); return Object.keys(C.COVER).every(k => n[k] >= C.COVER[k]); };
-  C.committed = () => C.squad().reduce((s, p) => s + (p.schol || 0), 0);
+  C.committed = () => C.squad().reduce((s, p) => s + (p.schol || 0) + (p.bonus || 0), 0);   // 1.06 (QA-68): plus this season's bonuses
   C.poolLeft = () => Math.max(0, C.car().job.pool - C.committed());
 
   // Auto line-up (4-3-3) just to colour XI / bench / reserves until Tactics arrives in Phase 5
@@ -146,6 +146,8 @@
   C.swapNumber = (pid, n) => { const car = C.car(), p = C.P(pid), o = car.squad.find(q => q.num === n && q.id !== pid); if (car.tokens < 1) return 'none'; car.tokens--; const mine = p.num; p.num = n; if (o) { o.num = mine; if (o.want === n) o.morale = Math.max(10, o.morale - 10); } if (p.want === n) p.morale = Math.min(100, p.morale + 12); C.save(); return 'ok'; };
   // surnames alone, with an initial when two players share one (round 6)
   C.sn = p => C.car() && C.car().squad.filter(q => q.ln === p.ln).length > 1 && C.car().squad.some(q => q.id === p.id) ? `${p.fn[0]}. ${p.ln}` : p.ln;
+  // 1.06 (QA-69): one captain, chosen on Tactics
+  C.setCaptain = pid => { const car = C.car(); car.captains = pid ? [pid] : []; C.save(); };
   C.toggleCaptain = pid => { const car = C.car(); const i = car.captains.indexOf(pid); if (i >= 0) car.captains.splice(i, 1); else { if (car.captains.length >= 3) return false; car.captains.push(pid); } C.save(); return true; };
 
   // ---------- release (Q15d): frees scholarship money, no cash ----------
@@ -163,7 +165,7 @@
   C.planCost = (p, focus) => focus.startsWith('pos:') ? 1500 : Math.round((200 + 12 * (p.a[focus] || 40)) / 50) * 50;
   C.startPlan = (pid, focus) => { const car = C.car(), p = C.P(pid); if (!C.devFree() || C.inDev(pid)) return false;
     const cost = C.planCost(p, focus); if (car.cash < cost) return 'cash'; if (!focus.startsWith('pos:') && p.a[focus] >= C.attrCap(p, focus)) return 'cap';
-    car.cash -= cost; const t = C.now(); car.devq.push({ pid, focus, start: t, end: t + C.planTime(p, focus) * 1000 }); C.save(); return true; };
+    car.cash -= cost; const t = C.now(); car.devq.push({ pid, focus, start: t, end: t + C.planTime(p, focus) * 1000, lane: C.laneFree(car.devq) }); C.save(); return true; };
   // Finish completed plans. Returns messages for toasts.
   C.tickDev = () => { const car = C.car(); if (!car || !car.devq) return [];
     const done = car.devq.filter(q => q.end <= C.now()), msgs = [];

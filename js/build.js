@@ -44,7 +44,7 @@
     if (!C.canUpgrade(k)) return false;
     const cost = C.costOf(k, to), t = C.now();
     car.cash -= cost.cash; car.cp -= cost.cp;
-    car.queue.push({ key: k, to, start: t, end: t + C.timeOf(k, to) * 1000 });
+    car.queue.push({ key: k, to, start: t, end: t + C.timeOf(k, to) * 1000, lane: C.laneFree(car.queue) });
     C.save(); return true;
   };
 

@@ -91,7 +91,7 @@
     const oppRows = M.opp.xi.map((p, i) => `<div class="lu r"><small>${C.FORMATIONS[M.opp.form][i][0]}</small><b>${C.esc(p.ln)}</b><span class="lun">${p.num}</span></div>`).join('');
     const home = M.my === 0;
     host().innerHTML = `<div class="pre"><div class="prehd"><small>${label(f)} · ${w[0]} ${w[1]} · 👥 ${M.att.toLocaleString()}</small>
-        <div class="vsrow"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'}</small></div><span class="vsx">VS</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
+        <div class="vsrow"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'}</small></div><span class="vsx">VS${(k => `<em class="rtcmp ${k.c}">${k.me} v ${oppT.rating}<br>${k.w}</em>`)(C.rateCmp(oppT.rating))}</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
         <div class="radio">📻 K${col.abbr} campus radio with Duane &amp; Bev</div></div>
       ${xs.filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${xs.filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
       <div class="lus"><div><h4>${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div><div><h4>${M.opp.form}</h4>${oppRows}</div></div>
@@ -121,7 +121,7 @@
     C.simToEnd(M.m); finishUI();
   };
   // the same options for watched and quick matches, so both give the same result; the game profile follows the career (men's or women's)
-  function matchOpts() { return { knockout: !!M.f.ko, gender: C.car().gender, trace: !!M.debug, med: [C.level('med') * (M.my === 0 ? 1 : 0), C.level('med') * (M.my === 1 ? 1 : 0)], edge: M.my === 1 ? .04 * (1 - C.travelCut(C.eff('transport')) / 100) : .04 }; }
+  function matchOpts() { return { knockout: !!M.f.ko, managedPens: true, gender: C.car().gender, trace: !!M.debug, med: [C.level('med') * (M.my === 0 ? 1 : 0), C.level('med') * (M.my === 1 ? 1 : 0)], edge: M.my === 1 ? .04 * (1 - C.travelCut(C.eff('transport')) / 100) : .04 }; }
   function rate() { const m = M.m, b = m.ball, my = M.my; const near = Math.min(b.y, PL - b.y) < 30 || (b.fl && b.fl.type !== 'pass');
     return M.speed === .25 ? 1 : M.speed === 1 ? (near ? 2.3 : 5.5) : M.speed === 5 ? 17 : 34; }
   function loop(now) {
@@ -167,15 +167,25 @@
     M.playing = false; const mine = e.side === M.my, T = M.m.teams[e.side], n = M.m.ents.filter(x => x.side === e.side && x.on).length;
     const forms = ['4-4-1', '4-3-2', '5-3-1', '4-4-2', '3-5-1'].filter(f => C.FORMATIONS[f]);
     host().insertAdjacentHTML('beforeend', `<div class="redcard" id="redc"><div class="rcard"></div><b>RED CARD</b><p>${C.esc(e.who.p.fn + ' ' + e.who.p.ln)} is sent off. ${C.esc(T.short)} are down to ${n}.</p>
-      ${mine ? `<small>${T.auto ? 'Auto-manage has reorganised the team.' : 'Change your shape for ten players?'}</small><div class="rcf">${['4-4-2', '4-3-3', '4-2-3-1', '5-3-2', '4-1-4-1'].map(f => `<button class="btn sm2 ${T.form === f ? 'pri' : ''}" data-act="mredform" data-v="${f}">${f}</button>`).join('')}</div>` : ''}
+      ${mine ? `<small>${T.auto ? 'Auto-manage has reorganised the team.' : 'Change your shape for ten players?'}</small><div class="rpitch" id="rpitch">${C.livePitchSVG(e.side, T.auto ? -1 : (M.redOff = e.who.i))}</div><div class="rcf">${['4-4-2', '4-3-3', '4-2-3-1', '5-3-2', '4-1-4-1'].map(f => `<button class="btn sm2 ${T.form === f ? 'pri' : ''}" data-act="mredform" data-v="${f}">${f}</button>`).join('')}</div>` : ''}
       <button class="btn full pri" data-act="mredgo">▶ Play on</button></div>`);
   }
-  C.redForm = f => { C.reshape(M.m, M.my, f); C.$$('.rcf button').forEach(b => b.classList.toggle('pri', b.dataset.v === f)); };
+  // 1.06 (QA-76): a small pitch of your players as they stand: filled slots show the shirt number, an empty slot is dashed,
+  // and the sent-off player's place is a red cross until the shape changes. Attack is at the top.
+  C.livePitchSVG = (side, offI) => { const m = M && M.m; if (!m) return ''; const T = m.teams[side], F = C.FORMATIONS[T.form] || [], on = m.ents.filter(e => e.side === side && e.on);
+    const W = 150, H = 170, X = x => 12 + x * (W - 24), Y = y => H - 16 - y * (H - 32);
+    const dots = F.map((sl, i) => { const e = on.find(z => z.i === i), x = X(sl[1]), y = Y(sl[2]);
+      if (e) return `<g><circle cx="${x}" cy="${y}" r="9" fill="#1e3a8a" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${y + 3.5}" font-size="9" font-weight="900" fill="#fff" text-anchor="middle">${e.p.num || ''}</text><text x="${x}" y="${y + 18}" font-size="7" font-weight="800" fill="#fff" text-anchor="middle">${sl[0]}</text></g>`;
+      if (i === offI) return `<g><circle cx="${x}" cy="${y}" r="9" fill="#dc2626" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${y + 4}" font-size="11" font-weight="900" fill="#fff" text-anchor="middle">✖</text><text x="${x}" y="${y + 18}" font-size="7" font-weight="800" fill="#fecaca" text-anchor="middle">${sl[0]}</text></g>`;
+      return `<g><circle cx="${x}" cy="${y}" r="9" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="3 2" opacity=".8"/><text x="${x}" y="${y + 18}" font-size="7" font-weight="800" fill="#e2e8f0" text-anchor="middle">${sl[0]} · empty</text></g>`; }).join('');
+    return `<svg class="lpitch" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect x="2" y="2" width="${W - 4}" height="${H - 4}" rx="8" fill="#15803d" stroke="#fff" stroke-opacity=".6"/><line x1="2" y1="${H / 2}" x2="${W - 2}" y2="${H / 2}" stroke="#fff" stroke-opacity=".35"/><circle cx="${W / 2}" cy="${H / 2}" r="16" fill="none" stroke="#fff" stroke-opacity=".35"/>${dots}</svg>`; };
+  C.redForm = f => { C.reshape(M.m, M.my, f); M.redOff = -1; C.$$('.rcf button').forEach(b => b.classList.toggle('pri', b.dataset.v === f)); const n = C.$('#rpitch'); if (n) n.innerHTML = C.livePitchSVG(M.my, -1); };
   C.redGo = () => { const n = C.$('#redc'); if (n) n.remove(); M.playing = true; };
   function say(t) { if (!t) return; const n = C.$('#tick'); if (n) { n.textContent = t; n.classList.remove('tpop'); void n.offsetWidth; n.classList.add('tpop'); } }
   function feed(e) { const n = C.$('#mfeed'); if (!n) return; const ic = { goal: '⚽', yellow: '🟨', red: '🟥', injury: '🩹', sub: '🔁', penalty: '🎯' }[e.type];
     const who = e.who ? C.sn(e.who.p) : '', mine = e.side === M.my;
-    n.insertAdjacentHTML('afterbegin', `<div class="${mine ? 'me' : ''}"><b>${e.min}'</b> ${ic} ${C.esc(who)}${e.type === 'sub' && e.extra && e.extra.off ? ' for ' + C.esc(e.extra.off.p.ln) : ''}</div>`); }
+    const txt = `${C.esc(who)}${e.type === 'sub' && e.extra && e.extra.off ? ' for ' + C.esc(e.extra.off.p.ln) : ''}`;   // 1.06 (QA-77): home on the left, away on the right (as the score bar)
+    n.insertAdjacentHTML('afterbegin', e.side === 1 ? `<div class="r ${mine ? 'me' : ''}">${txt} ${ic} <b>${e.min}'</b></div>` : `<div class="${mine ? 'me' : ''}"><b>${e.min}'</b> ${ic} ${txt}</div>`); }
 
   // kits: home team in home colours; away team switches to its away kit if the two look alike; keepers get a colour nobody else wears
   const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
@@ -288,11 +298,12 @@
 
   // ---------- in-match plan: mentality and auto-manage ----------
   C.openMatchPlan = () => { if (M.playing && !M.m.ht) M.resumeAfter = true; M.playing = false; C.ui.open('Match plan', () => { const T = M.m.teams[M.my];
-    return `<label class="fld">Formation</label><div class="instr mforms">${Object.keys(C.FORMATIONS).map(f => `<button class="${T.form === f ? 'on' : ''}" data-act="mform" data-v="${f}">${f}</button>`).join('')}</div>
+    const nOn = M.m.ents.filter(e => e.side === M.my && e.on).length;
+    return `${nOn < 11 ? `<div class="card" style="text-align:center;padding:8px"><b>Playing with ${nOn}</b><div class="rpitch">${C.livePitchSVG(M.my, M.redOff == null ? -1 : M.redOff)}</div><small class="mutey">✖ sent off · dashed = an empty position</small></div>` : `<div class="rpitch">${C.livePitchSVG(M.my, -1)}</div>`}<label class="fld">Formation</label><div class="instr mforms">${Object.keys(C.FORMATIONS).map(f => `<button class="${T.form === f ? 'on' : ''}" data-act="mform" data-v="${f}">${f}</button>`).join('')}</div>
       <label class="fld">Mentality</label><div class="instr">${C.MENTALITY.map((x, i) => `<button class="${T.ment === i ? 'on' : ''}" data-act="mmset" data-v="${i}">${x}</button>`).join('')}</div>
       <button class="btn full ${T.auto ? 'pri' : 'sec2'}" data-act="mauto" style="margin-top:12px">${T.auto ? '✔ Auto-manage is on' : 'Turn on auto-manage'}</button>
       <p class="note">Your staff sub injured and tired players, protects or chases a lead late on, and keeps your playing-time promises.</p><button class="btn full sec2" data-act="back">Back to the match</button>`; }); };
-  C.ACTS.mform = f => { C.reshape(M.m, M.my, f); C.ui.refresh(); };   // 1.04.01 (QA-47): change the formation during a match
+  C.ACTS.mform = f => { C.reshape(M.m, M.my, f); M.redOff = -1; C.ui.refresh(); };   // 1.04.01 (QA-47): change the formation during a match
   C.matchMent = v => { const T = M.m.teams[M.my]; T.ment = +v; T.ment0 = +v; C.ui.refresh(); };
   C.matchAuto = () => { const T = M.m.teams[M.my]; T.auto = !T.auto; C.ui.refresh(); };
 
@@ -319,13 +330,54 @@
 
   // ================= full time =================
   function finishUI() {
+    if (M.m.needPens && !M.m.pens) return shootout();   // 1.06 (QA-100): level after a knockout match: penalties on screen
     cancelAnimationFrame(M.raf); crowdOff(); const rep = C.applyResult(M.m, M.f); const S = C.sea();
     host().innerHTML = ''; M = null; C.render();
     C.openReport(rep.md, true);
   }
+  // ================= 1.06 (QA-100): the penalty shootout =================
+  let SO = null;
+  function shootout() {
+    const m = M.m; M.playing = false; cancelAnimationFrame(M.raf);
+    if (!SO || SO.m !== m) SO = { m, order: C.penTakers(m, M.my).map(e => e.p.id), p: [0, 0], kicks: [[], []], i: 0, side: 0, t: null, fast: false, started: false, line: '' };
+    drawShootout();
+  }
+  const soEnt = id => SO.m.ents.find(e => e.p.id === id && e.on && e.side === M.my);
+  function soTaker(side, i) { const m = SO.m; if (side === M.my) { const ids = SO.order.filter(id => soEnt(id)); return soEnt(ids[i % Math.max(1, ids.length)]); } const xs = C.penTakers(m, side); return xs[i % Math.max(1, xs.length)]; }
+  function soOver() { const p = SO.p, i = SO.i, d = (k, s) => SO.kicks[s].length; const a = d(0, 0), b = d(0, 1);
+    if (a <= 5 && b <= 5) { const left0 = 5 - a, left1 = 5 - b; if (p[0] > p[1] + left1 || p[1] > p[0] + left0) return true; return a === 5 && b === 5 && p[0] !== p[1]; }
+    return a === b && p[0] !== p[1]; }
+  function soKick() { const m = SO.m, side = SO.side, k = SO.kicks[side].length, tk = soTaker(side, k), ok = C.penKick(m, side, tk);
+    SO.kicks[side].push(ok ? 1 : 0); if (ok) SO.p[side]++; const T = m.teams[side];
+    SO.line = `${ok ? '⚽' : '🧤'} ${tk ? C.esc(tk.p.fn[0] + '. ' + tk.p.ln) : 'Taker'} (${C.esc(T.short || T.name)}): ${ok ? (k % 2 ? 'Smashed home!' : 'Scores, low into the corner.') : (k % 2 ? 'Saved! The keeper guessed right.' : 'Wide! Dragged past the post.')}`;
+    SO.side = 1 - side; if (SO.side === 0) SO.i++;
+    if (soOver()) { m.pens = SO.p.slice(); SO.done = true; }
+    drawShootout(); }
+  function soRun() { clearTimeout(SO.t); if (SO.done) return; SO.started = true; soKick(); if (!SO.done) SO.t = setTimeout(soRun, SO.fast ? 450 : 1500); }
+  C.soStart = () => { if (!SO) return; soRun(); };
+  C.soFast = () => { if (!SO) return; SO.fast = !SO.fast; drawShootout(); };
+  C.soQuick = () => { if (!SO) return; clearTimeout(SO.t); SO.started = true; let g = 0; while (!SO.done && g++ < 60) soKick(); };
+  C.soAuto = () => { if (!SO) return; SO.order = C.penTakers(SO.m, M.my).map(e => e.p.id); drawShootout(); };
+  C.soMove = v => { if (!SO || SO.started) return; const [id, d] = String(v).split('|'), i = SO.order.indexOf(id), j = i + (+d); if (i < 0 || j < 0 || j >= SO.order.length) return; [SO.order[i], SO.order[j]] = [SO.order[j], SO.order[i]]; drawShootout(); };
+  C.soFinish = () => { if (!SO || !SO.done) return; clearTimeout(SO.t); SO = null; finishUI(); };
+  function drawShootout() {
+    const m = SO.m, T = m.teams, dots = s => { const k = SO.kicks[s], n = Math.max(5, k.length + (SO.done ? 0 : (s === SO.side ? 1 : 0))); let h = ''; for (let i = 0; i < n; i++) h += `<i class="${k[i] === 1 ? 'y' : k[i] === 0 ? 'n' : ''}">${k[i] === 1 ? '✔' : k[i] === 0 ? '✖' : ''}</i>`; return h; };
+    const mine = SO.order.filter(id => soEnt(id)).map(id => soEnt(id)), fr = e => Math.round(e.energy);
+    const list = mine.map((e, i) => `<div class="sotk ${i < 5 ? 'top' : ''}"><b>${i + 1}</b><span>${C.esc(e.p.fn[0] + '. ' + e.p.ln)} <small>${e.slot.pos} · Fin ${Math.round(C.penShotSkill(m, e))} · 🔋 ${fr(e)}%</small></span>${SO.started ? '' : `<button class="btn sm2" data-act="somove" data-v="${e.p.id}|-1" ${i ? '' : 'disabled'}>▲</button><button class="btn sm2" data-act="somove" data-v="${e.p.id}|1" ${i < mine.length - 1 ? '' : 'disabled'}>▼</button>`}</div>`).join('');
+    host().innerHTML = `<div class="pre so"><div class="prehd"><small>PENALTIES · ${m.score[0]}–${m.score[1]} after full time</small>
+      <div class="sorow"><b>${C.esc(T[0].short || T[0].name)}</b><span class="sodots">${dots(0)}</span><em>${SO.p[0]}</em></div>
+      <div class="sorow"><b>${C.esc(T[1].short || T[1].name)}</b><span class="sodots">${dots(1)}</span><em>${SO.p[1]}</em></div>
+      <div class="soline">${SO.line || (SO.started ? '' : '🎙 Duane: It all comes down to penalties! Pick your takers, Coach.')}</div></div>
+      ${SO.done ? `<div class="card" style="text-align:center;font-weight:900">${SO.p[M.my] > SO.p[1 - M.my] ? '🏆 You win ' : '💔 You lose '}${SO.p[M.my]}–${SO.p[1 - M.my]} on penalties</div><button class="btn full pri kick" data-act="sofin">Continue</button>`
+      : SO.started ? `<div class="prebtns"><button class="btn sec2" data-act="sofast">${SO.fast ? '1×' : '⏩ Fast'}</button><button class="btn sec2" data-act="soquick">⏭ Quick result</button></div>`
+      : `<h4 class="jh">Your takers (in order; the first 5, then sudden death)</h4><div class="card sotks">${list}</div>
+        <div class="prebtns"><button class="btn sec2" data-act="soauto">🧢 Auto (staff pick)</button><button class="btn sec2" data-act="soquick">⏭ Quick result</button></div>
+        <button class="btn full pri kick" data-act="sostart">▶ Take the penalties</button>`}</div>`;
+  }
   C.openReport = (md, fresh) => C.ui.open(fresh ? 'Full time' : 'Match report', () => reportHTML(C.sea().reports[md], fresh));
   function reportHTML(r, fresh) {
     if (!r) return '<p class="note">No report.</p>';
+    const fr = (f => f && f.friendly ? f : null)(C.sea().fx.find(x => x.md === r.md && (x.h === 0 || x.a === 0)));   // 1.06 (QA-79)
     const S = C.sea(), th = S.teams[r.h], ta = S.teams[r.a], my = r.my, win = Math.sign((my === 0 ? r.hs - r.as : r.as - r.hs)) || (r.pens ? Math.sign(my === 0 ? r.pens[0] - r.pens[1] : r.pens[1] - r.pens[0]) : 0);
     const ev = r.ev.map(e => `<div class="rev ${e.side === 0 ? '' : 'r'}"><b>${e.min}'</b> ${{ goal: '⚽', red: '🟥', yellow: '🟨', injury: '🩹', penalty: '🎯' }[e.type]} ${C.esc(e.who)}</div>`).join('');
     const mine = r.rated.filter(x => x.side === my).sort((a, b) => b.r - a.r);
@@ -338,7 +390,7 @@
       ${(r.injuries && r.injuries.length) || r.flu ? `<h3 class="jh">Medical</h3><div class="card">${(r.injuries || []).map(i => `<div class="eff">${i[1]} ${C.esc(i[0])}: ${C.esc(i[2])} · ${i[3] === 'season' ? 'out for the season' : 'out ' + i[3] + ' match' + (i[3] > 1 ? 'es' : '')}</div>`).join('')}${r.flu ? `<div class="eff">🤒 Flu bug: ${r.flu.map(C.esc).join(', ')} miss the next match</div>` : ''}<button class="btn full sec2" data-act="medical" style="margin-top:8px">🩺 Medical Room</button></div>` : ''}
       ${gains ? `<h3 class="jh">Development</h3><div class="card">${gains}</div>` : ''}
       ${r.bonus && r.bonus.length ? `<h3 class="jh">Your edge</h3><div class="card edge">${r.bonus.slice(0, 8).map(b => `<div>${C.esc(b)}</div>`).join('')}</div>` : ''}
-      ${fresh ? `${C.advice('snc')}<div class="card fin"><div>${r.gate ? `💵 Gate income <b>+${C.full(r.gate)}</b>` : '🚌 Away game'}</div>${r.bc ? `<div>📺 Broadcast money <b>+${C.full(r.bc)}</b></div>` : ''}${r.repUp ? `<div>⭐ Reputation <b>+${r.repUp.toFixed(1)}</b></div>` : ''}<div><i class="cpi"></i> Coaching Points <b>+${r.cp || 0}</b></div>${(r.staffUps || []).map(u => `<div>🧑‍🏫 ${C.esc(u)}</div>`).join('')}<div>🏛 Director confidence <b>${r.conf > 0 ? '▲' : r.conf < 0 ? '▼' : '='}</b></div><div>📊 ${S.end ? 'Season over' : 'Now ' + C.ord(C.myPos()) + ' in the table'}</div></div>
+      ${fresh ? `${C.advice('snc')}<div class="card fin"><div>${r.gate ? `💵 Gate income <b>+${C.full(r.gate)}</b>` : '🚌 Away game'}</div>${r.bc ? `<div>📺 Broadcast money <b>+${C.full(r.bc)}</b></div>` : ''}${r.repUp ? `<div>⭐ Reputation <b>+${r.repUp.toFixed(1)}</b></div>` : ''}${fr ? '' : `<div><i class="cpi"></i> Coaching Points <b>+${r.cp || 0}</b></div>`}${(r.staffUps || []).map(u => `<div>🧑‍🏫 ${C.esc(u)}</div>`).join('')}${fr ? `<div>⚽ ${C.fxLabel(fr).long}</div>` : `<div>🏛 Director confidence <b>${r.conf > 0 ? '▲' : r.conf < 0 ? '▼' : '='}</b></div><div>📊 ${S.end ? 'Season over' : 'Now ' + C.ord(C.myPos()) + ' in the table'}</div>`}</div>
         <button class="btn full pri" data-act="close">Continue</button>` : ''}`;
   }
 })(window.CFC);

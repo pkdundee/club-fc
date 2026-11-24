@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.05.03 · 24 Nov 2026';
+  C.BUILD = 'CLUB FC 1.06 · 24 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -30,8 +30,9 @@
       return ['Hire coach', `<div class="card"><p style="font-weight:800">${C.esc(c.fn + ' ' + c.ln)} · ${C.SPECS[c.spec][1]} (${C.RARITY[c.rar][0]})</p><p class="note">▶ ${C.coachBenefit(c)}</p><div class="srow"><span>Costs</span><b>${k.gold ? C.GEM + ' ' + k.gold : '💵 ' + C.full(k.cash)}</b></div><div class="srow"><span>You have</span><b>${k.gold ? C.GEM + ' ' + C.short(C.acct().gold) : '💵 ' + C.full(C.car().cash)}</b></div></div>`, 'Hire']; }
     if (a === 'buydeal') { const dl = C.todayDeal(); return ["Today's deal", `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><div class="card" style="margin-top:8px"><p style="font-weight:900;font-size:16px">${dl.icon} ${C.esc(dl.name)}</p><p class="note">${C.rwText(dl.r)}</p><div class="srow"><span>Price</span><b><s style="opacity:.5">${dl.was}</s> ${dl.price}</b></div></div>`, 'Buy (test)']; }
     if (a === 'buykitc') return ['Buy a recovery kit', `<div class="card"><p style="font-weight:800">🧴 +25 Freshness to one player, any time.</p><div class="srow"><span>Costs</span><b>${C.GEM} ${C.TREAT.kit}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Buy'];
-    if (a === 'teamsess') return C.medState().team > 0 ? ['Team recovery session', `<div class="card"><p style="font-weight:800">👥 +12 Freshness for the whole squad. Free again in ${C.medState().team} match${C.medState().team > 1 ? 'es' : ''}.</p><div class="srow"><span>Costs now</span><b>${C.GEM} ${C.TREAT.team}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Run session'] : null;
+    if (a === 'teamsess') return !C.teamN() ? ['Team recovery session', `<div class="card"><p style="font-weight:800">👥 +12 Freshness for the whole squad. You have no team sessions left: the next one comes in a few matches.</p><div class="srow"><span>Costs now</span><b>${C.GEM} ${C.TREAT.team}</b></div><div class="srow"><span>You have</span><b>${C.GEM} ${gold}</b></div></div>`, 'Run session'] : null;
     if (a === 'buyweekly' && C.WEEKLY) { const w = C.WEEKLY.find(x => x.id === v); if (w) return ['Confirm purchase', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><p class="note">${C.esc(w.name)} · ${w.price}</p><div class="card">${C.itemTiles(w.r)}</div>`, 'Buy ' + w.price]; }
+    if (a === 'buypack' && C.PACKS[v]) { const P = C.PACKS[v]; return ['Confirm purchase', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><div class="card buypop"><b>${P.icon || '🎁'} ${C.esc(P.name)}</b>${P.r ? `<small>Contains:</small>${C.itemTiles(P.r)}` : ''}${P.queue ? '<small>+1 permanent builder</small>' : ''}<div class="srow"><span>Price</span><b>${P.price}</b></div>${P.r && C.packToInv && Object.keys(P.r).some(k => k !== 'gold' && !/^cr[bpc]\d$/.test(k)) ? '<small class="mutey">Arrives in your Inventory as one pack: open it there.</small>' : ''}</div>`, 'Buy ' + P.price]; }   // 1.06 (QA-87)
     if (a === 'buy' || a === 'buypack') return ['Confirm purchase', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><p class="note">${a === 'buypack' && C.PACKS[v] ? C.esc(C.PACKS[v].name) + ' · ' + C.PACKS[v].price : { vip: "Coach's Club · $4.99 / month", slot3: 'Extra build slot · $2.99', tslot3: 'Extra training slot · $2.99', pslot3: 'Extra research slot · $2.99', sslot3: 'Extra staff slot · $2.99', tokens: '3 Number Changes · $0.99', gold: '500 Coins · $4.99' }[v] || v}</p>`, 'Buy (test)'];
     return null;
   }
@@ -58,7 +59,7 @@
       case 'land': break;   // locked land: nothing to explain on the map (round 5)
       case 'upgrade': if (C.level(v) > 0 && !C.freeSlot() && C.canUpgradeIgnoringSlot(v)) { const nb = C.nextBuilderPack && C.nextBuilderPack(); if (nb) C.openBuilderOffer(nb); else C.openQueue(); break; }   // 1.03.01 (QA-30)
         if (C.startUpgrade(v)) { C.selB = null; C.fwEvent('upgrade'); C.toast(`🔨 ${LEVEL_NAMES(v)} upgrade started`); C.ui.closeAll(); C.render(); } break;
-      case 'instant': if (!C.ok2spend) { const lv0 = car.b[v]; return C.confirmCoins(C.coinsFor(C.timeOf(v, lv0 + 1)), () => C.act('instant', v)); } C.ok2spend = 0; if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } break;
+      case 'instant': if (!C.ok2spend) { const lv0 = car.b[v]; return C.confirmCoins(C.coinsFor(C.timeOf(v, lv0 + 1)), () => C.act('instant', v)); } C.ok2spend = 0; if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); if (v === 'hq') { C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); } else { C.ui.refresh(); setTimeout(() => C.ui.refresh(), 4100); } C.render(); } break;   // 1.06 (QA-97): the popup stays, now on the next level
       case 'speed': { const q = C.inQueue(v); if (!q) break; return C.finishRunning('b', v, () => { if (C.completeBuild(v)) { C.fwEvent('speed'); C.ui.closeAll(); C.render(); } }); }
       case 'speedold': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
         if (C.finishNow(q, !free)) { C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } else C.toast('Not enough Coins'); break; }
@@ -143,6 +144,7 @@
       case 'mment': C.openMatchPlan(); break;
       case 'mdebug': C.matchDebug(); break;
       case 'mredform': C.redForm(v); break;
+      case 'sostart': C.soStart(); break; case 'sofast': C.soFast(); break; case 'soquick': C.soQuick(); break; case 'soauto': C.soAuto(); break; case 'somove': C.soMove(v); break; case 'sofin': C.soFinish(); break;   // 1.06 (QA-100)
       case 'mredgo': C.redGo(); break;
       case 'mmset': C.matchMent(v); break;
       case 'mauto': C.matchAuto(); break;
@@ -214,6 +216,7 @@
       case 'tscenopen': C.openTestScen(); break;
       case 'testrender': C.acct().testRender = +v; C.save(); C.ui.refresh(); C.toast(+v ? `🧪 Map shows every building at render ${v}` : 'Map back to normal'); break;
       case 'cheat': if (v === 'gold') C.acct().gold += 500; if (v === 'cash') car.cash += 20000; if (v === 'cp') car.cp += 100;
+        if (C.testMail) C.testMail(({ gold: '+500 Coins', cash: '+$20,000 Booster $', cp: '+100 Coaching Points', apps: '+ Applications', camp: 'Camp ready', rep: '+30 Reputation', prog: 'Program buildings +3', rest: 'Full Freshness', season: 'Skip to season end', portal: 'Transfer window open/close', finish: 'Finish all builds now' })[v] || v, v === 'gold' ? { gold: 500 } : v === 'cash' ? { cash: 20000 } : v === 'cp' ? { cp: 100 } : {});   // 1.06 (QA-63)
         if (v === 'apps') C.appsNow();
         if (v === 'rest') car.squad.forEach(p => p.energy = 100);
         if (v === 'rep') car.rep = Math.min(100, (car.rep ?? 10) + 30);
@@ -245,7 +248,7 @@
   C.welcome = () => welcome();
   function welcome() {
     const col = C.college();
-    C.ui.open('Welcome', () => `<div class="scenebn">${C.artSlot('arrival', C.sceneArrival(col.c1, col.c2))}</div><div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(col.full)}</b><br><small style="color:var(--mute);font-weight:800">${C.esc(col.mascot)} · ${col.state} · Tier 5</small></div></div>
+    C.ui.open('Welcome', () => `<div class="scenebn">${C.artSlot('arrival', C.sceneArrival(col.c1, col.c2))}</div><div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 64)}<div><b style="font-family:Graduate,serif;font-size:20px">${C.esc(col.full)}</b><br><small style="color:var(--mute);font-weight:800">${C.esc(col.mascot)} · ${col.state} · FCSA Division V</small></div></div>
       <div class="card" style="margin-top:14px;font-size:14px;line-height:1.5;font-weight:700">Welcome to ${C.esc(col.full)}, Coach. I'm your Athletic Director. We start as an entry college with a squad of 16, so recruiting comes first.<br><br>🏛 Start with your Coaches' Office: tap the green badge on its plot to build it. Then the rest of your campus follows, one tap each.<br>💵 Tap the bubbles to collect Booster $ and <i class="cpi"></i> Coaching Points.<br>🏛 The Coaches' Office level caps everything else.</div>
       <button class="btn full pri" data-act="prefirst">See your pre-season plan</button>`);
   }

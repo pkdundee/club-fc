@@ -48,11 +48,11 @@
   // ---- tiers (Q27): each caps building levels ----
   C.TIERS = [
     null,
-    { n: 'Tier 1', name: 'NCAA Division I', cap: 30 },      // 1.04 (FEEDBACK 108): the five college tiers
-    { n: 'Tier 2', name: 'NCAA Division II', cap: 24 },
-    { n: 'Tier 3', name: 'NCAA Division III', cap: 18 },
-    { n: 'Tier 4', name: 'Developing college', cap: 12 },
-    { n: 'Tier 5', name: 'Entry college', cap: 6 }
+    { n: 'Tier 1', name: 'FCSA Division I', cap: 30 },      // 1.04 (FEEDBACK 108): the five college tiers; 1.06 (QA-91): the Federated College Soccer Association
+    { n: 'Tier 2', name: 'FCSA Division II', cap: 24 },
+    { n: 'Tier 3', name: 'FCSA Division III', cap: 18 },
+    { n: 'Tier 4', name: 'FCSA Division IV', cap: 12 },
+    { n: 'Tier 5', name: 'FCSA Division V', cap: 6 }
   ];
   // 1.04 (FEEDBACK 108, 207, 212): conference size (matches = 2 x (size - 1)), the Campus HQ level needed to be promoted INTO a tier,
   // and each tier's cost to attend and funded scholarships (working values, 205/207)

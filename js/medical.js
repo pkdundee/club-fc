@@ -13,6 +13,7 @@
   C.medState = (car = C.car()) => { if (!car.med) car.med = { physio: 1, prog: 0, team: 0, adDay: '', flu: 99 }; return car.med; };
   C.medLv = () => C.level('med');
   C.physioEvery = () => Math.max(1, Math.round(3 - C.medLv() / 10));       // 1 per 3 matches at Lv1 → 1 per match around Lv20
+  C.teamN = () => { const M = C.medState(); if (M.teamN == null) { M.teamN = M.team > 0 ? 0 : 1; M.teamP = 0; } return M.teamN; };   // 1.06 (QA-84)
   C.teamEvery = () => Math.max(1, 3 - Math.floor(C.medLv() / 10));
   C.recMult = () => Math.min(1.5, 1 + C.level('gym') * .015 + C.pbv('rec') + C.staffF('snc') * .3);
 
@@ -37,7 +38,8 @@
       if (p.injury && !p.inj) { p.reinj = 5; p.injury = null; }
     }
     M.prog++; if (M.prog >= C.physioEvery()) { M.prog = 0; M.physio = Math.min(3, M.physio + 1); }
-    if (M.team > 0) M.team--;
+    if (M.teamN == null) { M.teamN = M.team > 0 ? 0 : 1; M.teamP = 0; }   // 1.06 (QA-84): from the 1.05 countdown
+    M.teamP = (M.teamP || 0) + 1; if (M.teamP >= C.teamEvery()) { M.teamP = 0; M.teamN = Math.min(3, (M.teamN || 0) + 1); }
     M.flu = (M.flu || 0) + 1;
     // flu bug: only when nobody is injured; rarer with good Sports Medicine and Dorms; at most once every 8 matches
     if (M.flu >= 8 && !car.squad.some(p => p.inj) && r() < Math.max(.01, .04 * (1 - C.medLv() * .02 - C.level('dorms') * .01))) {
@@ -61,7 +63,8 @@
     C.save(); return true;
   };
   C.teamSession = () => { const car = C.car(), M = C.medState(), a = C.acct();
-    if (M.team > 0) { if (a.gold < C.TREAT.team) return 'coins'; a.gold -= C.TREAT.team; } else M.team = C.teamEvery();
+    if (M.teamN == null) { M.teamN = M.team > 0 ? 0 : 1; M.teamP = 0; }
+    if (M.teamN > 0) M.teamN--; else { if (a.gold < C.TREAT.team) return 'coins'; a.gold -= C.TREAT.team; }
     car.squad.forEach(p => p.energy = Math.min(100, p.energy + 12)); C.save(); return true; };
   C.buyRecoveryKit = () => { const a = C.acct(), car = C.car(); if (a.gold < C.TREAT.kit) return 'coins'; a.gold -= C.TREAT.kit; car.items = car.items || {}; car.items.kit = (car.items.kit || 0) + 1; C.save(); return true; };
 
@@ -81,10 +84,13 @@
       return `<div class="medrow"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn[0] + '. ' + p.ln)} <span class="sevt s${j.sev}">${sev}</span></b><small>${j.icon} ${C.esc(j.name)} · ${j.season ? 'out for the season (medical redshirt)' : 'out ' + p.inj + ' more match' + (p.inj > 1 ? 'es' : '')}</small></div>
         <div class="medbt">${C.injButtons(p)}</div></div>`; };
     return `<div class="medtop"><div><b>${M.physio}</b><small>🩺 Physio sessions</small><em>+1 every ${C.physioEvery()} match${C.physioEvery() > 1 ? 'es' : ''}</em></div>
-        <div><b>${kits}</b><small>🧴 Recovery kits</small><em>+25 Freshness</em></div><div><b>${M.team ? M.team : '✔'}</b><small>👥 Team session</small><em>${M.team ? 'free in ' + M.team + ' match' + (M.team > 1 ? 'es' : '') : 'ready, free'}</em></div></div>
-      <div class="jbtns" style="margin-top:8px"><button class="btn sec2" data-act="teamsess">${M.team ? `👥 Team session · ${C.GEM} ${C.TREAT.team}` : '👥 Team session · free'}</button><button class="btn sec2" data-act="buykitc">🧴 Buy kit · ${C.GEM} ${C.TREAT.kit}</button></div>
+        <div><b>${kits}</b><small>🧴 Recovery kits</small><em>+25 Freshness</em></div><div><b>${C.teamN()}</b><small>👥 Team sessions</small><em>+1 every ${C.teamEvery()} match${C.teamEvery() > 1 ? 'es' : ''}</em></div></div>
+      <div class="jbtns" style="margin-top:8px"><button class="btn sec2" data-act="teamsess">${C.teamN() ? '👥 Run team session · use 1' : `👥 Run team session · ${C.GEM} ${C.TREAT.team}`}<small class="bsub">+12 Freshness for everyone</small></button><button class="btn sec2" data-act="buykitc">🧴 Buy kit · ${C.GEM} ${C.TREAT.kit}</button></div>
       <h3 class="jh">Injured <small class="devp">${inj.length}</small></h3>${inj.length ? inj.map(row).join('') : '<p class="note">Nobody injured. 🙌</p>'}
-      <h3 class="jh">Tired <small class="devp">under 60% Freshness</small></h3>${tired.length ? tired.map(p => `<div class="medrow"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn[0] + '. ' + p.ln)}</b><small>🔋 ${Math.round(p.energy)}% · rest them a match or use a kit</small></div><div class="medbt">${btn(kits > 0, 'treat', p.id + '|kit', '🧴 Kit')}</div></div>`).join('') : '<p class="note">Everyone is fresh.</p>'}
-      <p class="note">Freshness only changes with matches: playing costs it, resting restores it. First-years get injured most; players get sturdier every year. Concussions and season-ending injuries can't be shortened.</p>`;
+      ${(() => { const xi = C.tac().xi.map(C.P).filter(Boolean), av = l => Math.round(l.reduce((s, p) => s + p.energy, 0) / (l.length || 1)), word = v => v >= 80 ? ['Fresh', 'var(--fit5)'] : v >= 60 ? ['Okay', '#d97706'] : ['Tired', 'var(--fit1)'], a1 = av(xi), a2 = av(car.squad.filter(p => !p.inj)), w1 = word(a1);
+        const all = car.squad.filter(p => !p.inj).sort((a, b) => a.energy - b.energy);   // 1.06 (QA-84): Freshness at a glance, and the whole squad, lowest first
+        return `<div class="card fresh2"><b>🔋 XI ${a1}% · Squad ${a2}%</b><span style="color:${w1[1]}">${w1[0]}</span></div>
+      <h3 class="jh">Freshness <small class="devp">lowest first · under 60% highlighted</small></h3>${all.map(p => `<div class="medrow ${p.energy < 60 ? 'low' : ''}"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn[0] + '. ' + p.ln)}${xi.includes(p) ? ' <em class="wtag xi">XI</em>' : ''}</b><small>🔋 ${Math.round(p.energy)}%</small></div><div class="medbt">${btn(kits > 0 && p.energy < 100, 'treat', p.id + '|kit', '🧴 Kit')}</div></div>`).join('')}`; })()}
+      <p class="note">Freshness drops when players play and recovers over time, faster with rest. First-years get injured most; players get sturdier every year. Concussions and season-ending injuries can't be shortened.</p>`;
   });
 })(window.CFC);

@@ -31,7 +31,7 @@
   // team: { name, short, abbr, c1, c2, form, ment, xi:[player x11 in slot order], bench:[players], home, auto, manage }
   C.createMatch = (A, B, seed, opts = {}) => {
     const m = { rng: C.rng(seed || 1), t: 0, half: 1, done: false, ht: false, score: [0, 0], events: [], pause: 0, restart: null, last: [null, null],
-      teams: [A, B], ents: [], subs: [[], []], pending: [], knockout: !!opts.knockout, pens: null, stop: false,
+      teams: [A, B], ents: [], subs: [[], []], pending: [], knockout: !!opts.knockout, managedPens: !!opts.managedPens, pens: null, stop: false,
       st: { offs: [0, 0], poss: [0, 0], shots: [0, 0], sot: [0, 0], corners: [0, 0], fouls: [0, 0], yc: [0, 0], rc: [0, 0], passes: [0, 0], cmp: [0, 0] },
       ball: { x: PW / 2, y: PL / 2, h: 0, owner: null, fl: null }, poss: 0, lastTouch: null, used: [0, 0], offAt: {}, med: opts.med || [0, 0], edge: opts.edge ?? .04,
       prof: C.PROFILES[opts.gender === 'w' ? 'w' : 'm'], deep: [PL, PL], trace: opts.trace ? [] : null };
@@ -57,7 +57,13 @@
   const BKEY = { sho: 'sho', def: 'def', pas: 'pas', stp: 'gk', ref: 'gk', psn: 'gk', crs: 'gk' };
   function eff(m, e, k) { const v = e.p.a[k] != null ? e.p.a[k] : 30, T = m.teams[e.side], bn = T.bonus || {};
     const fm = FIT_MULT[e.fit] + (1 - FIT_MULT[e.fit]) * (bn.oop || 0), late = bn.late && m.t > HALF * 1.66 && m.score[e.side] < m.score[1 - e.side] ? 1 + bn.late : 1;
-    return v * fm * C.freshPerf(e.energy) * (e.knock ? .88 : 1) * (e.p.rushed ? .85 : 1) * (T.home ? 1 + m.edge : 1) * (1 + (bn[BKEY[k]] || 0)) * late; }
+    return v * fm * C.freshPerf(e.energy) * (e.knock ? .88 : 1) * (e.p.rushed ? .85 : 1) * (T.home ? 1 + m.edge : 1) * (1 + (bn[BKEY[k]] || 0)) * late * capB(m, e); }
+  // 1.06 (QA-69): one captain per team. While on the pitch they lift the 4 nearest players in the formation (themselves included),
+  // by up to +3.5% at Leadership 90 (nothing at 35). Recomputed when the shape or the players on the pitch change.
+  function capB(m, e) { const T = m.teams[e.side]; if (!T.capId) return 1; const v = (m.shapeV || 0) + ':' + m.ents.length; if (e._cv === v) return e._cb; e._cv = v; let b = 1;
+    const on = m.ents.filter(z => z.side === e.side && z.on), cap = on.find(z => z.p.id === T.capId);
+    if (cap && on.slice().sort((a, c) => Math.hypot(a.slot.x - cap.slot.x, a.slot.y - cap.slot.y) - Math.hypot(c.slot.x - cap.slot.x, c.slot.y - cap.slot.y)).slice(0, 4).includes(e)) b = 1 + .035 * Math.max(0, Math.min(55, (cap.p.lead || 35) - 35)) / 55;
+    e._cb = b; return b; }
   const shotSkill = (m, e) => e.slot.pos === 'GK' ? 10 : eff(m, e, 'sho');
   const keepSkill = (m, e) => e ? (eff(m, e, 'stp') * .5 + eff(m, e, 'ref') * .3 + eff(m, e, 'psn') * .2) : 10;
 
@@ -323,11 +329,11 @@
     say(m, att.side, 'foul', att, { by: def });
     stoppage(m, 'freekick', att.side, att.x, att.y, 1.8);
   }
-  function send(m, e, why) { e.on = false; e.st.rc = 1; m.st.rc[e.side]++; e.red = true; say(m, e.side, 'red', e, { why }); if (m.ball.owner === e) m.ball.owner = null;
+  function send(m, e, why) { m.shapeV = (m.shapeV || 0) + 1; e.on = false; e.st.rc = 1; m.st.rc[e.side]++; e.red = true; say(m, e.side, 'red', e, { why }); if (m.ball.owner === e) m.ball.owner = null;
     m.pause = Math.max(m.pause, 4); m.redAlert = { side: e.side, e };
     if (m.teams[e.side].auto) C.reshape(m, e.side, null); }
   // change shape during a match (also after a red card): put the players still on the pitch into the new formation's slots
-  C.reshape = (m, side, form) => {
+  C.reshape = (m, side, form) => { m.shapeV = (m.shapeV || 0) + 1;
     const T = m.teams[side]; form = form || T.form; const F = C.FORMATIONS[form]; T.form = form;
     const on = m.ents.filter(e => e.side === side && e.on), out = on.filter(e => e.slot.pos !== 'GK'), gk = on.find(e => e.slot.pos === 'GK');
     // with fewer than 10 outfield players, leave the most advanced slots empty
@@ -348,7 +354,7 @@
     for (const s of m.pending.splice(0)) {
       const e = s.outE; if (!e.on && !e.injured) continue;
       if (!C.canBringOn(m, s.side, s.inP)) continue;
-      e.on = false; m.offAt[e.p.id] = { half: m.half, back: m.offAt[e.p.id] ? true : false };
+      m.shapeV = (m.shapeV || 0) + 1; e.on = false; m.offAt[e.p.id] = { half: m.half, back: m.offAt[e.p.id] ? true : false };
       const n = ent(m, s.inP, s.side, [e.slot.pos, e.slot.x, e.slot.y], e.i); n.x = e.side === 0 ? 1 : PW - 1; n.y = e.y; n.instr = e.instr; n.energy = s.inP.energy;
       const back = m.offAt[s.inP.id]; if (back) back.back = true;
       const old = m.ents.find(x => x.p === s.inP); if (old) { n.st = old.st; m.ents.splice(m.ents.indexOf(old), 1); }
@@ -436,6 +442,7 @@
   };
   function finish(m) {
     m.done = true;
+    if (m.knockout && m.score[0] === m.score[1] && m.managedPens) { m.needPens = true; say(m, -1, 'ft', ''); return; }   // 1.06 (QA-100): your shootout is played on screen
     if (m.knockout && m.score[0] === m.score[1]) {   // penalty shootout
       const p = [0, 0]; let i = 0; const sk = side => { const xs = active(m, side).filter(e => e.slot.pos !== 'GK').sort((a, b) => shotSkill(m, b) - shotSkill(m, a)); return xs; };
       const A = sk(0), B = sk(1);
@@ -446,6 +453,10 @@
     say(m, -1, 'ft', '');
   }
   C.resumeHT = m => { m.ht = false; };
+  // 1.06 (QA-100): the shootout, one kick at a time. Takers: the outfield players on the pitch, best shooters first (as before)
+  C.penTakers = (m, side) => active(m, side).filter(e => e.slot.pos !== 'GK').sort((a, b) => shotSkill(m, b) - shotSkill(m, a));
+  C.penShotSkill = (m, e) => shotSkill(m, e);
+  C.penKick = (m, side, tk) => { const g = gkOf(m, 1 - side); return m.rng() < clamp(.75 + ((tk ? shotSkill(m, tk) : 40) - keepSkill(m, g)) / 300, .55, .9); };
   C.simToEnd = m => { let n = 0; while (!m.done && n++ < 20000) { C.stepMatch(m); if (m.ht) m.ht = false; } return m; };
   C.simToHT = m => { let n = 0; while (m.half === 1 && !m.done && n++ < 10000) C.stepMatch(m); return m; };
 

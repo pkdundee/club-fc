@@ -3,10 +3,13 @@
   const AD = { name: 'Linda Haynes', title: 'Athletic Director' };
   const GOAL = { 3: 'Top 4 and reach the conference final', 2: 'Finish in the top half', 1: 'Stay out of the bottom 2' };
   C.AD = AD;
+  // 1.06 (QA-89): the Director's Office, easy to find: a gold card with today's confidence and the season goal
+  C.adOfficeCard = () => { const car = C.car(); if (!car) return ''; const face = ['😟', '🙁', '😐', '🙂', '😀'][Math.min(4, Math.floor((car.adConf ?? 50) / 20))];
+    return `<button class="adcard" data-act="ad"><span class="adc1">🏛</span><span class="adc2"><b>Director's Office</b><small>${face} Goal: ${C.esc(GOAL[car.job.stars] || '')}</small></span><em>›</em></button>`; };
   // the athletic director's portrait, shown beside the Mail button when she has something for you (FEEDBACK 75)
   C.adFace = () => { const col = C.college(); return window.faceV4 ? `<svg viewBox="24 12 72 72" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">${window.faceV4({ skin: '#e8b796', hair: '#5a3b24', eyes: '#3b6e9e', style: 'bob', female: 1, role: 'coach', age: 52, k1: col.c1, k2: col.c2 })}</svg>` : '🏛'; };
   // 1.01 (FEEDBACK 131): the campus avatar only for unread mail in Director or News & updates
-  C.adWaiting = () => { const car = C.car(); if (!car) return 0; return (C.meta().inbox || []).filter(x => (x.f === 'director' || x.f === 'system') && !x.read).length; };
+  C.adWaiting = () => { const car = C.car(); if (!car) return 0; return (C.meta().inbox || []).filter(x => x.f === 'director' && !x.read).length; };   // 1.06 (QA-61): only the Director's own messages
   // 1.01 (FEEDBACK 131, 133): the Director's notes also arrive as Director mail (a note already seen in the Office arrives as read)
   C.syncADMail = car => { if (!car || !car.squad) return; car.seen = car.seen || {}; const M = C.meta();
     C.adMessages(car).forEach(x => { if (car.seen['adm_' + x.id]) return; C.mail('director', x.icon, x.title, x.body); const m = M.inbox[0]; m.ad = x.id; if (car.seen['ad_' + x.id]) m.read = true; car.seen['adm_' + x.id] = 1; }); };

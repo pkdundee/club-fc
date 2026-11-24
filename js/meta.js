@@ -74,6 +74,7 @@
   const invItems = () => { const car = C.car(), inv = meta().inv, S = C.staffState(), it = car.items || {};
     const L = [];
     const add = (tab, k, icon, name, n, tier, desc, use) => L.push({ tab, k, icon, name, n: n || 0, tier: tier || 1, desc, use });
+    Object.keys(meta().pk || {}).forEach(id => { const e = meta().pk[id]; if (e.n > 0) add('special', 'pk:' + id, e.icon, e.name, e.n, 3, `A pack: open it to add ${C.rwText(e.r)}.`, 'pack'); });   // 1.06 (QA-87)
     add('special', 'rare', '🎁', 'Rare recruit', it.rareRecruit, 4, 'Signs a Rare freshman on academic aid straight away (no scholarship money). Needs a free roster place.', 'rare');
     add('special', 'crc4', XN.crc4[0], XN.crc4[1], inv.crc4, TIER.crc4, `Choose when opening: ${CRH.crc4} hours of Clubhouse output or of Performance Lab output, at your levels now.`, 'crate');
     add('special', 'crc2', XN.crc2[0], XN.crc2[1], inv.crc2, TIER.crc2, `Choose when opening: ${CRH.crc2} hours of Clubhouse output or of Performance Lab output, at your levels now.`, 'crate');
@@ -105,6 +106,8 @@
   A.invtab = v => { invTab = v; invSel = null; C.ui.refresh(); };
   A.invsel = v => { invSel = v; C.ui.refresh(); };
   A.invuse = () => { const sel = invItems().find(x => x.k === invSel); if (!sel || !sel.n) return; const n = Math.min(sel.n, sel.n > 1 ? invQty() : 1), inv = meta().inv;
+    if (sel.use === 'pack') { const e = meta().pk[sel.k.slice(3)], tot = {}; for (let i = 0; i < n; i++) { C.giveReward(e.r); for (const k in e.r) tot[k] = (tot[k] || 0) + e.r[k]; } e.n -= n; C.save();
+      C.ui.open('Opened: ' + e.name, () => `<p class="note" style="margin-top:0">${n > 1 ? n + ' packs' : 'The pack'} contained:</p><div class="card">${C.itemTiles(tot)}</div><button class="btn full pri" data-act="back">Done</button>`, { popup: true }); return C.render(); }
     if (sel.use === 'rare') return C.act('rare');
     if (sel.use === 'crate') {
       if (sel.k === 'crate') { let t = 0; for (let i = 0; i < n; i++) if (C.openCrate()) t += 5000; C.toast(`📦 +${C.money(t)}`); C.ui.refresh(); return C.render(); }
@@ -249,7 +252,7 @@
   function eventsHTML() { if (evTab === 'cal') return bigTabs() + calHTML(); return bigTabs() + eventHTML(); }
   function missionsHTML() {
     const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length;
-    const car0 = C.car(), pass = !!(C.cpp && C.cpp()), showMain = !pass;   // 1.05: the Career Progression Pass replaces the Main tasks after Pre-season
+    const car0 = C.car(), pass = false, showMain = true;   // 1.06 (QA-85): Missions is Main and Daily again; the Pass is in the Store   // 1.05: the Career Progression Pass replaces the Main tasks after Pre-season
     if (msTab === 'main' && !showMain) msTab = 'cpp'; if (msTab === 'cpp' && !pass) msTab = 'daily';
     const sub = `<div class="subtabs">${[['daily', 'Daily tasks', dd]].concat(pass ? [['cpp', 'Progression', C.cppClaimable()]] : []).concat(showMain ? [['main', 'Main tasks', C.mainReady()]] : []).map(([k, n, d]) => `<button class="${msTab === k ? 'on' : ''}" data-act="mstab" data-v="${k}">${n}${d ? ` <em>${d}</em>` : ''}</button>`).join('')}</div>`;
     if (msTab === 'cpp') return sub + C.cppHTML();
@@ -299,9 +302,8 @@
   A.nexttask = () => { const dd = C.daily().filter(t => t.n >= t.goal && !t.claimed).length; msTab = C.cppClaimable && C.cppClaimable() && !dd ? 'cpp' : C.mainReady() && !dd ? 'main' : C.mainNext() && !dd && C.car().pre ? 'main' : C.cpp && C.cpp() && !dd ? 'cpp' : 'daily'; C.ui.closeAll(); C.openMissions(); };
   // building action buttons open popups over the map
   A.bpop = v => { C.ui.asPopup = true; if (v === 'proginfo') C.openProgramInfo(); else if (v === 'playbook') C.openPlaybook(); else if (v === 'medical') C.openMedical(); else if (v === 'hqstaff') C.openStaffPop(); else if (v === 'kitroom') C.openKitRoom(); else if (v === 'academic') C.openAcademic(); };
-  C.openStaffPop = () => C.ui.open('Staff on duty', () => { const S = C.staffState();
-    return `<div class="hgrid" style="padding:0">${S.list.map(c => `<button class="hcard" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><span class="hlv">Lv.${c.level}</span>${S.on.includes(c.id) ? '<em class="hon">ON</em>' : ''}<div class="hpic">${C.coachFace(c)}</div><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]}</small></button>`).join('')}</div>
-      <div class="jbtns" style="grid-template-columns:1fr 1fr;margin-top:10px"><button class="btn sec2" data-act="market">🧑‍🏫 Market</button><button class="btn sec2" data-act="search">🎲 Search</button></div>`; });
+  // 1.06 (QA-94): the Coaches' Office Staff shortcut opens the one Staff screen; Back returns to the Coaches' Office
+  C.openStaffPop = () => { C.ui.asPopup = false; C.ui.open('Staff', () => `<div class="staffpage">${C.staffHTML()}</div>`); };
   A.preseason = () => C.openPreseason();
   // 1.03: Builder Packs I-III, in order; each card lists its contents (Last War style tiles) and its builder
   C.builderPacksHTML = () => { const nxt = C.nextBuilderPack(); return ['bp1', 'bp2', 'bp3'].map(k => { const P = C.PACKS[k], own = C.acct()['bq' + P.queue], can = nxt === k;
@@ -323,7 +325,17 @@
   C.loClaimable = () => { if (!C.car()) return 0; const M = meta(); return C.evClaimable() + C.mainReady() + C.daily().filter(t => t.n >= t.goal && !t.claimed).length + CHESTS.filter(([p], i) => M.pts >= p && !M.chests.includes(i)).length + (C.isVip() && C.lo().vipDay !== dayKey() ? 1 : 0); };
 
   // ================= Inbox: one place for messages, by topic =================
-  C.mail = (f, icon, title, body, r) => { const M = meta(); M.inbox.unshift({ id: 'm' + C.now() + Math.floor(Math.random() * 1e4), f, icon, title, body, r: r || null, claimed: false, read: false, t: C.now() }); C.mailPrune(M); C.save(); };
+  C.mail = (f, icon, title, body, r) => { const M = meta(); const x = { id: 'm' + C.now() + Math.floor(Math.random() * 1e4), f, icon, title, body, r: r || null, claimed: false, read: false, t: C.now() };
+    // 1.06 (QA-63): every purchase mail carries its cost, and the Purchases folder keeps a running total
+    if (f === 'purchases' && /^Purchase:/.test(title)) { const usd = C.priceOf(title + ' ' + (body || '')); if (usd != null) { x.cost = usd; x.body = `<b>Cost: $${usd.toFixed(2)}</b> (test store)<br>` + x.body; } x.kind = 'buy'; const L = C.ledger(); L.usd += usd || 0; L.n++; }
+    M.inbox.unshift(x); C.mailPrune(M); C.save(); };
+  // the test ledger: real-money test purchases and the resources added by test tools
+  C.ledger = () => { const M = meta(); return M.ledger || (M.ledger = { usd: 0, n: 0, gold: 0, cash: 0, cp: 0, acts: 0 }); };
+  C.priceOf = txt => { let m = String(txt).match(/\$(\d+\.\d\d)/); if (m) return +m[1];
+    const nm = String(txt).replace(/^Purchase:\s*/, '').split(/[<(]/)[0].trim(); const all = Object.values(C.PACKS || {}).concat(typeof WEEKLY !== 'undefined' ? WEEKLY : []);
+    const hit = all.find(p => p && p.name && nm.startsWith(p.name) && p.price); if (hit) { m = String(hit.price).match(/(\d+\.\d\d)/); if (m) return +m[1]; } return null; };
+  C.testMail = (what, add) => { const L = C.ledger(); L.acts++; Object.keys(add || {}).forEach(k => { if (L[k] != null) L[k] += add[k]; });
+    const M = meta(); M.inbox.unshift({ id: 'm' + C.now() + Math.floor(Math.random() * 1e4), f: 'purchases', icon: '🧪', title: 'TEST: ' + what, body: `Test tool used: <b>${C.esc(what)}</b>. Not free-to-play: recorded so economy tests can see what came from outside the game.`, r: null, claimed: false, read: true, t: C.now(), kind: 'test' }); C.mailPrune(M); C.save(); };
   // 1.02 (FEEDBACK 157, 171): mail with an unclaimed reward, and favourites, are never removed by the 30-day clean-up or the 120 cap.
   // Only other mail ages out, and the cap trims the oldest of it. (1.01 removed unclaimed rewards too.)
   const MAIL_DAYS = 30, MAIL_CAP = 120;
@@ -349,10 +361,12 @@
       return `<button class="mfold" data-act="mfold" data-v="${k}"><span class="mfi">${ic}</span><b>${n}</b>${gift ? `<span class="mgift">${C.giftIco(20)}</span>` : ''}${un ? `<i class="mdot">${un}</i>` : ''}<em>›</em></button>`; }).join('')
       + '<p class="note">Mail older than 30 days is deleted automatically. Favourites and unclaimed rewards are kept.</p>';
   }
+  const FRESH = new Set();   // 1.06 (QA-62): messages being read for the first time show a red dot inside
+  A.inboxdir = () => { C.openInbox(); A.mfold('director'); };   // 1.06 (QA-89): the AD portrait opens the Director folder
   let curFolder = null;   // 1.03.01 (QA-34): previous/next move through the folder the message was opened from
   function folderHTML(k) { curFolder = k;
     const list = inFolder(k), canClaim = list.some(x => x.r && !x.claimed), canDel = list.some(x => x.read && !C.mailKeep(x));
-    return `${k === 'director' ? '<button class="btn full sec2" data-act="ad" style="margin:0 0 8px">🏛 Director\'s Office: goals and confidence</button>' : ''}${list.length ? list.map(x => `<button class="mrowh ${isNew(x) ? 'new' : ''}" data-act="mopen" data-v="${x.id}"><span class="mi">${x.icon}</span><span class="mt"><b>${C.esc(x.title)}</b><small>${ago(x.t)}${x.fav ? ' · ⭐' : ''}</small></span>${x.r && !x.claimed ? `<span class="mgift">${C.giftIco(20)}</span>` : ''}${!x.read ? '<i class="mrd"></i>' : ''}<em>›</em></button>`).join('') : '<p class="note">Nothing here yet.</p>'}
+    return `${k === 'director' ? C.adOfficeCard() : ''}${k === 'purchases' ? (L => `<div class="card ledg"><b>🧾 Running total (testing)</b><div class="srow"><span>Test purchases</span><b>$${L.usd.toFixed(2)} · ${L.n}</b></div><div class="srow"><span>🧪 Test resources added</span><b>${[L.gold ? `<i class="coin"></i> ${L.gold.toLocaleString()}` : '', L.cash ? `💵 ${C.full(L.cash)}` : '', L.cp ? `🧪 ${L.cp} CP` : '', `${L.acts} action${L.acts === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</b></div></div>`)(C.ledger()) : ''}${list.length ? list.map(x => `<button class="mrowh ${isNew(x) ? 'new' : ''} ${x.kind === 'test' ? 'tst' : ''}" data-act="mopen" data-v="${x.id}"><span class="mi">${x.icon}</span><span class="mt"><b>${C.esc(x.title)}</b><small>${x.kind === 'test' ? '<em class="tsttag">TEST</em> ' : x.cost != null ? `<em class="buytag">$${x.cost.toFixed(2)}</em> ` : ''}${ago(x.t)}${x.fav ? ' · ⭐' : ''}</small></span>${x.r && !x.claimed ? `<span class="mgift">${C.giftIco(20)}</span>` : ''}${!x.read ? '<i class="mrd"></i>' : ''}<em>›</em></button>`).join('') : '<p class="note">Nothing here yet.</p>'}
 `;
   }
   // 1.02.05 (FEEDBACK 193-195): the Inbox actions sit in the standard Back bar (its depth and the Back arrow are unchanged)
@@ -367,14 +381,16 @@
     return `<div class="mbar">${nav}<button class="mico" data-act="mfav" data-v="${x.id}" aria-label="Favourite">${x.fav ? STAR_ON : STAR}</button><button class="mico" data-act="mdel" data-v="${x.id}" aria-label="Delete" ${wait ? 'disabled' : ''}>${BIN}</button><span class="mbsp"></span>${wait ? `<button class="mbtn green" data-act="mclaim" data-v="${x.id}">Claim</button>` : ''}</div>`; };
   function msgHTML(id) {
     const x = meta().inbox.find(m => m.id === id); if (!x) return '<p class="note">This message has been deleted.</p>';
-    return `<div class="mail"><div class="mh"><span>${x.icon}</span><div><b>${C.esc(x.title)}</b><small>${new Date(x.t).toLocaleString()}</small></div></div>
+    const fromAD = x.f === 'director' || x.f === 'system';
+    return `<div class="mail">${FRESH.has(x.id) ? '<i class="mfresh" title="New"></i>' : ''}<div class="mh"><span>${x.icon}</span><div><b>${C.esc(x.title)}</b><small>${new Date(x.t).toLocaleString()}</small></div></div>
+      ${fromAD ? `<div class="mfrom"><span class="mff">${C.adFace()}</span><small>From <b>${C.esc(C.AD.name)}</b> · ${C.esc(C.AD.title)}</small></div>` : ''}
       <div class="mbody">${x.body}</div>${x.md != null ? `<button class="btn sm2 sec2" data-act="report" data-v="${x.md}">Full report</button>` : ''}${x.r ? `<div class="mrw">${C.itemTiles(x.r)}${x.claimed ? '<span class="donechk">✔ Claimed</span>' : ''}</div>` : ''}</div>
       ${x.r && !x.claimed ? '<p class="note">Claim the reward first. Messages with a reward waiting are never deleted.</p>' : ''}`;
   }
   // 1.01 (FEEDBACK 133): Director is a message folder; the Office has its own button inside
   A.mfold = v => { if (!v) return C.ui.back(); C.ui.open(folderName(v), () => folderHTML(v), { foot: folderFoot(v) }); };
   A.mnav = v => { const [id, d] = v.split('|'), L = curFolder ? inFolder(curFolder) : [], i = L.findIndex(m => m.id === id), t = L[i + +d]; if (!t) return; C.ui.back(); A.mopen(t.id); };
-  A.mopen = v => { const x = meta().inbox.find(m => m.id === v); if (!x) return; x.read = true; C.save(); C.ui.open(folderName(x.f), () => msgHTML(v), { foot: msgFoot(v) }); C.render(); };
+  A.mopen = v => { const x = meta().inbox.find(m => m.id === v); if (!x) return; if (!x.read) FRESH.add(x.id); else FRESH.delete(x.id); x.read = true; C.save(); C.ui.open(folderName(x.f), () => msgHTML(v), { foot: msgFoot(v) }); C.render(); };
   A.mfav = v => { const x = meta().inbox.find(m => m.id === v); if (x) { x.fav = !x.fav; C.save(); C.ui.refresh(); } };
   const claimOne = x => { x.claimed = true; x.read = true; C.giveReward(x.r); };
   A.mclaim = v => { const x = meta().inbox.find(m => m.id === v); if (x && x.r && !x.claimed) { claimOne(x); C.toast('🎁 ' + C.rwText(x.r)); C.ui.refresh(); C.render(); } };
@@ -399,8 +415,12 @@
   ];
   C.WEEKLY = WEEKLY;
   const wkEnd = () => new Date(weekKey()).getTime() + 7 * D;
-  C.buyWeekly = id => { const M = meta(), w = WEEKLY.find(x => x.id === id); if (M.wk !== weekKey()) { M.wk = weekKey(); M.wbuy = {}; } const n = M.wbuy[id] || 0; if (!w || n >= w.lim) return 'limit'; M.wbuy[id] = n + 1; C.giveReward(w.r); receipt(w.name, w.r); return true; };
+  // 1.06 (QA-87): a bought pack arrives in the Inventory as one item; opening it adds its contents. Coins, crates, builders and slots stay instant.
+  C.packToInv = (id, P) => { if (!P || !P.r || !C.car()) return false; const ks = Object.keys(P.r); if (!ks.length || (ks.length === 1 && (ks[0] === 'gold' || /^cr[bpc]\d$/.test(ks[0])))) return false;
+    const M = meta(); M.pk = M.pk || {}; const e = M.pk[id] || (M.pk[id] = { name: P.name, icon: P.icon || '🎁', r: P.r, n: 0 }); e.n++; C.save(); return true; };
+  C.buyWeekly = id => { const M = meta(), w = WEEKLY.find(x => x.id === id); if (M.wk !== weekKey()) { M.wk = weekKey(); M.wbuy = {}; } const n = M.wbuy[id] || 0; if (!w || n >= w.lim) return 'limit'; M.wbuy[id] = n + 1; if (!C.packToInv(id, w)) C.giveReward(w.r); receipt(w.name, w.r); return true; };
   A.buyweekly = v => { const r = C.buyWeekly(v); C.toast(r === true ? '✅ Test purchase complete' : 'Purchase limit reached this week'); C.ui.refresh(); C.render(); };
+  Object.assign(C.PACKS, { cpR: { name: 'Rare CP Crate', icon: '🧪', price: '$0.99', r: { crp2: 1 } }, cpE: { name: 'Epic CP Crate', icon: '🧪', price: '$1.99', r: { crp3: 1 } }, cpL: { name: 'Legendary CP Crate', icon: '🧪', price: '$4.99', r: { crp4: 1 } } });   // 1.06 (QA-95): real money only, provisional prices
   Object.assign(C.PACKS, { packTrain: { name: 'Training Pack', icon: '🏋️', price: '$1.99', r: { spt15: 4, spt60: 2 } }, packCoach: { name: 'Coaching Pack', icon: '🧢', price: '$2.99', r: { manual: 5, badge: 6, spr60: 1 } }, packBuild: { name: 'Building Pack', icon: '🔨', price: '$2.99', r: { spb15: 4, spb60: 2, crate: 2 } }, packRec: { name: 'Recovery Pack', icon: '🧴', price: '$1.99', r: { kit: 6, credits: 10 } } });
   A.evopen = () => { evTab = 'event'; C.ui.closeAll(); C.openEvents(); };
   A.sttab = v => { stTab = v; C.ui.refresh(); };
@@ -409,7 +429,8 @@
   const oStore = C.openStore;
   C.openStore = () => C.ui.open('Store', () => {
     const a = C.acct(), vip = C.isVip(), L = C.lo(), M = meta(); if (M.wk !== weekKey()) { M.wk = weekKey(); M.wbuy = {}; }
-    const row = (act, v, icon, name, sub, price, owned) => `<button class="lrow ${owned ? 'lock' : ''}" data-act="${act}" data-v="${v}"><span class="li">${icon}</span><span class="lt"><b>${name}</b><small>${sub}</small></span><span class="lr">${owned ? '✔' : price}</span></button>`;
+    // 1.06 (QA-87): every product is the same card: icon, name, contents (tiles) or what it does, and a green price button
+    const row = (act, v, icon, name, sub, price, owned, r) => `<div class="pack prod ${owned ? 'own' : ''}"><div class="pkh"><b>${icon} ${name}</b></div>${r ? C.itemTiles(r) : `<p class="pdesc">${sub}</p>`}<div class="packft"><small>${r && sub ? sub : ''}</small><button class="btn sm2 buyg" data-act="${act}" data-v="${v}" ${owned ? 'disabled' : ''}>${owned ? '✔ Owned' : price}</button></div></div>`;
     const tabs = `<div class="bigtabs">${[['deals', 'Deals'], ['passes', 'Passes'], ['coins', 'Coins'], ['items', 'Items']].map(([k, n]) => `<button class="${stTab === k ? 'on' : ''}" data-act="sttab" data-v="${k}">${n}</button>`).join('')}</div>`;
     const test = `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px;margin-bottom:8px">🧪 Test store. Purchases are simulated and no money is charged.</div>`;
     let body = '';
@@ -417,15 +438,16 @@
       body = `<div class="pack"><div class="pkh"><b>${dl.icon} Today's deal: ${C.esc(dl.name)}</b><span class="ptag">Daily</span></div>${C.itemTiles(dl.r)}<div class="packft"><small>1 purchase a day</small><button class="btn sm2 ${dd ? 'sec2' : 'pri'}" data-act="buydeal" ${dd ? 'disabled' : ''}>${dd ? '✔ Bought' : `<s>${dl.was}</s> ${dl.price}`}</button></div></div>
         ${C.piggyHTML ? C.piggyHTML() : ''}<h3 class="jh">Weekly deals <small class="devp">${fmt(new Date(weekKey()))} – ${fmt(wkEnd() - 1)}</small></h3>
         ${WEEKLY.map(w => { const n = M.wbuy[w.id] || 0, left = w.lim - n; return `<div class="pack"><div class="pkh"><b>${w.icon} ${w.name}</b><span class="ptag t-${w.tag.toLowerCase()}">${w.tag}</span></div>${C.itemTiles(w.r)}<div class="packft"><small>${left} of ${w.lim} purchase${w.lim > 1 ? 's' : ''} left</small><button class="btn sm2 ${left ? 'pri' : 'sec2'}" data-act="buyweekly" data-v="${w.id}" ${left ? '' : 'disabled'}>${left ? w.price : 'Sold out'}</button></div></div>`; }).join('')}
-        ${row('buypack', 'starter', '🎒', 'Starter Pack', C.rwText(C.PACKS.starter.r) + ' · once only', '$1.99', L.cos.includes('starter'))}`; }
-    if (stTab === 'passes') body = `<div class="vipcard"><b>👑 Coach's Club</b><p>+1 training slot · +1 staff slot · +1 career slot · 25 Coins a day</p>
+        ${row('buypack', 'starter', '🎒', 'Starter Pack', 'Once only', '$1.99', L.cos.includes('starter'), C.PACKS.starter.r)}`; }
+    if (stTab === 'passes') body = `${C.cpp && C.cpp() ? (n => `<button class="passcard" data-act="passopen"><span>🎓</span><span><b>Career Progression Pass</b><small>Rewards · Daily Tasks · Target Tasks${C.cpp().closed ? ' · ended' : ''}</small></span>${n ? `<i class="mdot">${n}</i>` : ''}<em>›</em></button>`)(C.cppClaimable()) : '<p class="note">The Career Progression Pass starts with the season.</p>'}<div class="vipcard"><b>👑 Coach's Club</b><p>+1 training slot · +1 staff slot · +1 career slot · 25 Coins a day</p>
         <button class="btn full ${vip ? 'sec2' : 'pri'}" data-act="buy" data-v="vip">${vip ? 'Active · ' + Math.ceil((a.vipUntil - C.now()) / 864e5) + ' days left (extend +30)' : 'Join · $4.99 / month'}</button></div>
       <h3 class="jh">${C.curEvent().th.icon} ${C.curEvent().th.name}</h3><button class="lrow" data-act="evopen"><span class="li">${C.curEvent().th.icon}</span><span class="lt"><b>Event packs</b><small>$4.99, then $9.99: open the premium tracks</small></span><span class="lr">›</span></button>`;
-    if (stTab === 'coins') body = ['g100', 'g550', 'g1200'].map(k => row('buypack', k, '<i class="coin"></i>', C.PACKS[k].name, 'Speed-ups, coaching searches, agency scouts', C.PACKS[k].price)).join('');
+    if (stTab === 'coins') body = ['g100', 'g550', 'g1200'].map(k => row('buypack', k, '<i class="coin"></i>', C.PACKS[k].name, 'Speed-ups, coaching searches, agency scouts', C.PACKS[k].price, false, C.PACKS[k].r)).join('');
     if (stTab === 'items') body = `<h3 class="jh" style="margin-top:2px">Themed packs</h3>${['packTrain', 'packCoach', 'packBuild', 'packRec'].map(k => `<div class="pack"><div class="pkh"><b>${C.PACKS[k].icon} ${C.PACKS[k].name}</b></div>${C.itemTiles(C.PACKS[k].r)}<div class="packft"><small></small><button class="btn sm2 pri" data-act="buypack" data-v="${k}">${C.PACKS[k].price}</button></div></div>`).join('')}
-      ${row('buypack', 'xp', '📗', 'Coach XP bundle', C.rwText(C.PACKS.xp.r), '$2.99')}${row('buypack', 'clinic', '🎫', 'Clinic Credit pack', C.rwText(C.PACKS.clinic.r), '$2.99')}
+      ${row('buypack', 'xp', '📗', 'Coach XP bundle', '', '$2.99', false, C.PACKS.xp.r)}${row('buypack', 'clinic', '🎫', 'Clinic Credit pack', '', '$2.99', false, C.PACKS.clinic.r)}
       <h3 class="jh">Builders</h3>${C.builderPacksHTML()}
-      <h3 class="jh">Booster Crates</h3>${['crR', 'crE', 'crL'].map(k => row('buypack', k, '📦', C.PACKS[k].name, `${C.CRH[C.PACKS[k].r && Object.keys(C.PACKS[k].r)[0]]} hours of Clubhouse output at your level, sized when opened`, C.PACKS[k].price)).join('')}
+      <h3 class="jh">Booster Crates</h3>${['crR', 'crE', 'crL'].map(k => row('buypack', k, '📦', C.PACKS[k].name, `${C.CRH[C.PACKS[k].r && Object.keys(C.PACKS[k].r)[0]]} h of Clubhouse output, sized when opened`, C.PACKS[k].price, false, C.PACKS[k].r)).join('')}
+      <h3 class="jh">CP Crates</h3>${['cpR', 'cpE', 'cpL'].map(k => row('buypack', k, '🧪', C.PACKS[k].name, `${C.CRH[Object.keys(C.PACKS[k].r)[0]]} h of Performance Lab output, sized when opened`, C.PACKS[k].price, false, C.PACKS[k].r)).join('')}
       <h3 class="jh">Permanent slots</h3>${row('buy', 'tslot3', '🏋️', 'Extra training slot', 'A permanent 3rd training-plan slot', '$2.99', a.tslot3)}${row('buy', 'sslot3', '🧑‍🏫', 'Extra staff slot', 'A permanent 3rd coach on duty', '$2.99', a.sslot3)}
       ${row('buy', 'tokens', '🎟', '3 Number Changes', 'Give players the number they want', '$0.99')}
       <h3 class="jh">Kits (cosmetic)</h3>${Object.keys(C.KITS).map(k => row('kit', k, C.KITS[k][0], C.KITS[k][1], C.kit() === k ? 'Wearing now' : L.cos.includes('kit_' + k) || k === 'classic' ? 'Owned: tap to wear' : 'Changes how your team looks, nothing else', C.KITS[k][2] || 'Free', false)).join('')}`;
@@ -449,6 +471,7 @@
     ['lineup', '📋', 'Set your line-up', c => !!meta().ms.lineup, 'tactics', ''],
     ['friendlies', '⚽', 'Play the 5 pre-season friendlies', c => C.friendliesLeft(c) === 0, 'prematch', '']];
   const preList = car => car.season > 1 || car.preLite ? PRE.filter(t => t[0] === 'friendlies') : PRE;
+  C.preNext = () => { const car = C.car(); return preList(car).find(t => !t[3](car)) || null; };   // 1.06 (QA-78): the task bar follows Pre-season
   C.preTasksLeft = () => { const car = C.car(); return preList(car).filter(t => !t[3](car)).length; };
   const preReady = car => preList(car).every(t => t[3](car)) && (car.season > 1 || car.preLite || ((C.staffState().list || []).length >= 2 && car.squad.length >= C.PRE_MIN && C.coverageOK(car)));
   C.openPreseason = () => C.ui.open('Pre-season', () => {
@@ -520,7 +543,7 @@
     return `<div class="srow"><span>🔋 Starting XI average</span><b>${Math.round(xi.reduce((s, p) => s + p.energy, 0) / (xi.length || 1))}%</b></div>
       <button class="lrow" data-act="teamsess"><span class="li">👥</span><span class="lt"><b>Team session: +12 for the whole squad</b><small>${M.team ? `Free in ${M.team} match${M.team > 1 ? 'es' : ''}` : 'Free now'}</small></span><span class="lr">${M.team ? `${C.GEM} ${C.TREAT.team}` : 'Free'}</span></button>
       <label class="fld">Recovery kits: +25 for one player (you have ${kits})</label>${tired.length ? tired.map(p => `<div class="medrow"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(C.sn(p))}</b><small>🔋 ${Math.round(p.energy)}%</small></div><div class="medbt"><button class="btn sm2 ${kits ? 'pri' : 'off'}" data-act="treat" data-v="${p.id}|kit" ${kits ? '' : 'disabled'}>🧴 Kit</button></div></div>`).join('') : '<p class="note">Everyone is fresh.</p>'}
-      <div class="jbtns" style="grid-template-columns:1fr 1fr;margin-top:8px"><button class="btn sec2" data-act="buykitc">🧴 Buy kit · ${C.GEM} ${C.TREAT.kit}</button><button class="btn sec2" data-act="storeat" data-v="items">Recovery Pack</button></div>
+      <div class="jbtns" style="grid-template-columns:1fr 1fr;margin-top:8px"><button class="btn sec2" data-act="buykitc">🧴 Buy kit · ${C.GEM} ${C.TREAT.kit}</button><button class="btn sec2" data-act="buypack" data-v="packRec">🧴 Recovery Pack · ${C.PACKS.packRec.price}</button></div>
       <p class="note">Resting a player for a match also restores Freshness: +30 on the bench, +40 out of the squad.</p>`; }, { popup: true });
   A.rejuv = () => C.openRejuv();
   // the Home tiles and campus buttons link here

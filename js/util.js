@@ -38,3 +38,12 @@ window.CFC = window.CFC || {};
   C.seatIcon = (c = '#1e3a8a') => `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v8H5V4a1 1 0 0 1 1-1z" fill="${c}"/><path d="M4 12h16l-1.5 4h-13z" fill="${c}" opacity=".85"/><path d="M6.5 16v5M17.5 16v5M5 21h3M16 21h3" stroke="#475569" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 })(window.CFC);
 window.CFC.ACTS = window.CFC.ACTS || {};
+
+// 1.06 (QA-60): queue lanes. Each build, research or training plan keeps the slot (lane) it started in; finishing one
+// empties only that lane. Items from older saves get lanes in their current order, so nothing moves.
+(function (C) {
+  C.laneSet = arr => { if (!arr) return arr; const used = new Set(arr.filter(q => q.lane != null).map(q => q.lane)); arr.forEach(q => { if (q.lane == null) { let i = 0; while (used.has(i)) i++; q.lane = i; used.add(i); } }); return arr; };
+  C.laneItem = (arr, i) => { C.laneSet(arr); return (arr || []).find(q => q.lane === i); };
+  C.laneFree = arr => { C.laneSet(arr); const used = new Set((arr || []).map(q => q.lane)); let i = 0; while (used.has(i)) i++; return i; };
+  C.laneExtra = (arr, n) => { C.laneSet(arr); return (arr || []).filter(q => q.lane >= n).sort((a, b) => a.lane - b.lane); };
+})(window.CFC);

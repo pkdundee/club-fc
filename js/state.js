@@ -1,7 +1,7 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc_v105';   // CLUB FC 1.05: its own save; carries over the 1.04 save on first open (never writes 1.04's)
-  const KEY_PREV = 'clubfc_v104';
+  const KEY = 'clubfc_v106';   // CLUB FC 1.06: its own save; carries over the 1.05 save on first open (never writes 1.05's)
+  const KEY_PREV = 'clubfc_v105';
   const KEY_9T = 'clubfc2_p9t'; // phase-9t's save: read only, never written by 1.00
   const FREE_SLOTS = 2;
 
@@ -32,7 +32,9 @@
       c.queue = (c.queue || []).filter(q => C.BUILDINGS[q.key]); (c.squad || []).forEach(C.ensureAlts);
       if (!c.num9m && c.squad) { C.tidyNumbers(c.squad); c.num9m = 1; }
       if (c.myCol && C.registerCustomCollege) C.registerCustomCollege(c);
-      if (!c.m104) { c.m104 = 1; c.offers = []; delete c.reclass; delete c.band; if (!c.myCol) c.renameFree = true; if (c.pre) c.preLite = 1; } });   // 1.04 (SCOPE_1.04 s8)
+      if (!c.m104) { c.m104 = 1; c.offers = []; delete c.reclass; delete c.band; if (!c.myCol) c.renameFree = true; if (c.pre) c.preLite = 1; }
+      // 1.06 (QA-78): repair new careers (1.04+, own program, never renamed) that were wrongly given the short Pre-season on reopening
+      if (!c.m106pl) { c.m106pl = 1; if (c.captains && c.captains.length > 1) c.captains = c.captains.slice(0, 1);   /* QA-69: one captain */ if (c.preLite && c.myCol && !c.renamed && c.season === 1 && c.pre) delete c.preLite; } });   // 1.04 (SCOPE_1.04 s8)
   };
   // Delete all data (Settings): leave an empty save in place. Also clears the 9t-import flag, so the import can be tried again after a wipe.
   C.wipe = () => { try { localStorage.setItem(KEY, JSON.stringify({ v: 2, account: freshAccount(), careers: [], active: -1 })); localStorage.removeItem(KEY + '_intro'); localStorage.removeItem(KEY + '_import9t'); } catch (e) { } };
@@ -57,7 +59,7 @@
     const car = { id: 'c' + t, coach, pron, gender: job.gender, college: job.college, tier: 5, created: t, myCol: myCol || undefined,   // 1.04: your own college (program.js)
       job: { story: job.story, style: job.style, type: job.type, stars: job.stars, coa: job.coa, eq: job.eq, limit: job.limit, pool: job.pool, rating: job.rating, mix: job.mix, squad16: job.squad16 || undefined },
       cash: job.cash, cp: 60, b: Object.assign({}, job.b), queue: [], store: { booster: t, lab: t },
-      gameDay: 1, season: 1, realDay: C.todayKey(), seen: {} };
+      gameDay: 1, season: 1, realDay: C.todayKey(), seen: {}, m104: 1 };   // 1.06 (QA-78): a new career is already on the 1.04+ rules, so the 1.04 save upgrade never touches it
     if (car.myCol && C.registerCustomCollege) C.registerCustomCollege(car);
     C.db.careers.push(car); C.db.active = C.db.careers.length - 1; C.ensureSquad(car); C.save(); return car;
   };

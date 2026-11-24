@@ -7,6 +7,31 @@
   C.moraleFace = (m, size = 18) => { const i = m >= 80 ? 0 : m >= 65 ? 1 : m >= 50 ? 2 : m >= 35 ? 3 : 4, col = ['#16a34a', '#84cc16', '#eab308', '#f97316', '#dc2626'][i], mouth = ['M7 13.5q5 5 10 0', 'M7.5 14q4.5 3 9 0', 'M8 15h8', 'M7.5 16q4.5-3 9 0', 'M7 17q5-5 10 0'][i];
     return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-label="Morale"><circle cx="12" cy="12" r="11" fill="${col}"/><circle cx="8.3" cy="9.3" r="1.6" fill="#111827"/><circle cx="15.7" cy="9.3" r="1.6" fill="#111827"/><path d="${mouth}" fill="none" stroke="#111827" stroke-width="1.9" stroke-linecap="round"/></svg>`; };
   const moraleIcon = m => C.moraleFace(m);
+  // 1.06 (QA-74): the player's voice. One line at a time (the most pressing), and what's raising or lowering morale.
+  // A speech bubble shows only for an issue you can act on that you haven't seen; seeing it clears the bubble, not the issue.
+  C.playerVoice = p => { const car = C.car(), st = C.promiseStatus ? C.promiseStatus(p) : null, f = [], n = C.leagueN ? C.leagueN() : 0, apps = p.ss ? (p.ss.lapps ?? p.ss.apps ?? 0) : 0;
+    let line = '', issue = null;
+    if (st && st.k === 'no') { line = "Coach, I'm not getting the games I was promised."; issue = 'promise'; }
+    else if (st && st.k === 'risk') { line = "Coach, you promised me minutes. I need to play more."; issue = 'promise'; }
+    else if (p.want && p.want !== p.num) { line = `Coach, I'd love to wear No. ${p.want}.`; issue = 'num' + p.want; }
+    else if (!p.promise && n >= 4 && apps / n < .3 && !p.inj) { line = "I'd like more minutes, Coach."; issue = 'mins'; }
+    else if (p.inj) line = "I'm working hard to get back, Coach.";
+    else if (p.morale < 45) line = "I'm not enjoying it here right now.";
+    else line = p.morale >= 75 ? 'Loving it here, Coach.' : 'All good, Coach.';
+    if (st) f.push([`Promise (${C.ROLES[p.promise][1]}): ${st.t}`, st.k === 'ok' ? 1 : st.k === 'wait' ? 0 : -1]);
+    if (p.want) f.push([p.want === p.num ? `Wears their favourite No. ${p.num}` : `Wants No. ${p.want}`, p.want === p.num ? 1 : -1]);
+    if (n) f.push([`League minutes: ${apps} of ${n} matches`, apps / n >= .5 ? 1 : apps / n >= .3 ? 0 : -1]);
+    if (p.bonus) f.push([`Season bonus +${C.money(p.bonus)}`, 1]);
+    const tb = C.table ? C.table() : [], me = tb.findIndex(x => x.i === 0); if (me >= 0 && tb[me].p) f.push([`Team: ${C.ord(me + 1)} in the table`, me < tb.length / 2 ? 1 : -1]);
+    if (car.captains && car.captains[0] === p.id) f.push(['Club captain', 1]);
+    return { line, f, issue, bubble: !!issue && p.voiceSeen !== issue }; };
+  C.openVoice = id => { const p = C.P(id); if (!p) return; const v = C.playerVoice(p); if (v.issue) { p.voiceSeen = v.issue; C.save(); }
+    C.ui.open(C.sn(p), () => { const w = C.playerVoice(p); return `<div class="voice"><div class="vf">${C.faceOf(p)}</div><p>“${C.esc(w.line)}”</p></div>
+      <div class="card srows">${w.f.map(([t, s]) => `<div class="srow"><span>${C.esc(t)}</span><b style="color:${s > 0 ? 'var(--fit5)' : s < 0 ? 'var(--fit1)' : 'var(--mute)'}">${s > 0 ? '+' : s < 0 ? '−' : '·'}</b></div>`).join('') || '<p class="note">Nothing to report.</p>'}</div>
+      <div class="srow" style="margin-top:6px"><span>Morale</span><b>${C.moraleFace(p.morale, 22)} ${Math.round(p.morale)}</b></div>
+      <button class="btn full sec2" data-act="player" data-v="${p.id}" style="margin-top:8px">Player card</button>`; }, { popup: true }); };
+  C.ACTS.voice = id => C.openVoice(id);
+  const voiceFace = (p, size) => `<span class="mface" data-act="voice" data-v="${p.id}">${C.moraleFace(p.morale, size)}${C.playerVoice(p).bubble ? '<i class="vbub">💬</i>' : ''}</span>`;
   const ROLE = { xi: ['XI', 'var(--school)'], bench: ['Bench', 'var(--sky)'], res: ['Reserves', 'var(--silver)'], inj: ['Injured', '#dc2626'] };
   const STARS = n => `<span class="rstars">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`;
   // current job in the side: the position they're selected at, otherwise SUB, RES or INJ in grey
@@ -23,13 +48,13 @@
     // 9q (FEEDBACK 89): your players by line, not a team sheet. A player is in every line their positions fit, ranked by
     // ability there; All is ranked by rating. XI / bench / reserves now live in Matchday team selection.
     const t = C.tac(), G = { gk: ['gk'], def: ['def'], mid: ['mid'], att: ['fwd'] };
-    const inLine = (p, ln) => [p.pos].concat(p.sec || []).some(x => G[ln].includes(C.POSGROUP(x)));
+    const inLine = (p, ln) => G[ln].includes(C.POSGROUP(p.pos));   // 1.06 (QA-65): main position only, so each player is in one group
     const lineScore = (p, ln) => p.rating - (G[ln].includes(C.POSGROUP(p.pos)) ? 0 : 4);
     const f9 = ['all', 'gk', 'def', 'mid', 'att'].includes(filter) ? filter : 'all';
     const list = sq.filter(p => f9 === 'all' || inLine(p, f9)).sort((a, b) => f9 === 'all' ? b.rating - a.rating : lineScore(b, f9) - lineScore(a, f9));
     // training slots: running plans first; locked slots carry their requirement inside the icon, active ones need no tag
     let qi = 0;
-    const dev = C.DEVSLOTS.map(s => { if (C.devSlotOpen(s.id)) { const q = car.devq[qi++];
+    const dev = C.DEVSLOTS.map(s => { if (C.devSlotOpen(s.id)) { const q = C.laneItem(car.devq, qi++);
         if (q) { const p = C.P(q.pid), f = 1 - C.remaining(q) / ((q.end - q.start) / 1000); return `<button class="dq" data-act="player" data-v="${q.pid}"><span class="c">${C.ringSVG(f, '#22c55e', 46)}<i>${C.faceOf(p)}</i></span><b data-dtimer="${q.pid}">${C.dur(C.remaining(q))}</b></button>`; }
         return `<button class="dq free" data-act="toast" data-v="Open a player card and tap Train"><span class="c"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></span></button>`; }
       return `<button class="dq lockd" data-act="devslot" data-v="${s.id}"><span class="c">${LOCKI}<em>${s.id === 'vip' ? 'VIP' : s.id === 'iap' ? '$2.99' : 'TG 10'}</em></span></button>`; }).join('');
@@ -37,23 +62,30 @@
     // the header stays put; only the list scrolls (round 6)
     return `<div class="view sqv">
       ${C.topBar(false)}<div class="phdr9"><b>Squad</b><small>${sq.length} / ${C.rosterCap()} players · 🎟 ${car.tokens}</small></div>
-      <div class="ptabs9">${[['all', 'All'], ['gk', 'GK'], ['def', 'DEF'], ['mid', 'MID'], ['att', 'ATT']].map(([k, n]) => `<button class="${f9 === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${n}</button>`).join('')}</div>
-      <div class="sqscroll" id="sqscroll">${(n => n.length ? `<div class="slimadv" data-act="advall">${n[0]}${n.length > 1 ? `<em class="advn">+${n.length - 1}</em>` : ''}</div>` : '')(C.allAdvice())}${rare}
+      <div class="ptabs9">${(cv => [['all', 'All', sq.length, C.PRE_MIN], ['gk', 'GK', cv.gk, C.COVER.gk], ['def', 'DEF', cv.def, C.COVER.def], ['mid', 'MID', cv.mid, C.COVER.mid], ['att', 'ATT', cv.fwd, C.COVER.fwd]])(C.coverage(car)).map(([k, n, have, need]) => `<button class="${f9 === k ? 'on' : ''}" data-act="sqf" data-v="${k}">${n}<small class="${have < need ? 'short' : 'ok'}">${have}/${need}</small></button>`).join('')}</div>
+      <div class="sqscroll" id="sqscroll">${(n => n.length ? `<div class="slimadv" data-act="advall">${n[0]}${n.length > 1 ? `<em class="advn">+${n.length - 1} tip${n.length > 2 ? 's' : ''}</em>` : ''}</div>` : '')(C.allAdvice())}${rare}
       ${list.map(p => `<button class="prow" style="--mk:${p.inj ? '#dc2626' : ROLE[roles[p.id]][1]}" data-act="player" data-v="${p.id}">
         <div class="av plain"><div class="face">${C.faceOf(p)}</div><span class="num">${p.num}</span>${p.inj ? '<span class="injx"></span>' : ''}</div>
         <div class="pinfo"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(p.id) ? ' <span class="cap">C</span>' : ''}${p.want && p.want !== p.num ? ' <span title="Wants a different number">🎟</span>' : ''}${C.inDev(p.id) ? ' <span title="In training">🏋️</span>' : ''}${p.ban ? ' <span title="Suspended">🟥</span>' : ''}</b>
           <div class="tags">${selBadge(p, t, roles[p.id])}<span class="yr plain">${yrN[p.year]}</span>${STARS(p.stars)}${p.rs ? '<span class="sch">🎽</span>' : ''}</div>
           <div class="pmatch">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}</div></div>
-        <div class="rate3"><b>${p.rating}</b>${p.up > 0 ? `<span class="up">▲ +${p.up}</span>` : ''}<span class="cond" style="color:${C.condCol(p.energy)}">${C.condRing(p.energy, 13)} ${Math.round(p.energy)}%</span>${moraleIcon(p.morale)}</div></button>`).join('')}
+        <div class="rate3"><b>${p.rating}</b>${p.up > 0 ? `<span class="up">▲ +${p.up}</span>` : ''}<span class="cond" style="color:${C.condCol(p.energy)}">${C.condRing(p.energy, 13)} ${Math.round(p.energy)}%</span>${voiceFace(p)}</div></button>`).join('')}
       <p class="note" style="padding:0 16px">★ Development Stars come from completing training plans. Freshness drops when players play and comes back when they rest a match.</p></div></div>`;
   };
   C.setSquadFilter = v => { filter = v; C.render(); };
   // Promises (Q7a): line-up for the first few matches, then real starts and appearances
-  C.promiseKept = (p, roleNow = C.roles()[p.id]) => {
-    if (!p.promise) return true; const n = C.car().sea ? C.car().sea.fx.filter(f => (f.h === 0 || f.a === 0) && f.hs != null).length : 0, ss = p.ss || { st: 0, apps: 0 };
-    if (n < 3) return p.promise === 'starter' ? roleNow === 'xi' : p.promise === 'rotation' ? roleNow !== 'res' : true;
-    return p.promise === 'starter' ? ss.st / n >= .6 : p.promise === 'rotation' ? ss.apps / n >= .5 : true;
-  };
+  // 1.06 (QA-73): promises are judged on league matches since the player joined. Starter: start 60% of them; Rotation: play in 50%.
+  // Not started (no league match yet) → On track / At risk (still reachable, with what's needed) → Not kept (can't be reached this season).
+  C.leagueN = () => { const S = C.car().sea; return S ? S.fx.filter(f => (f.h === 0 || f.a === 0) && f.hs != null && f.md >= 1 && !f.ko && !f.friendly).length : 0; };
+  C.promiseStatus = p => { if (!p.promise || (p.promise !== 'starter' && p.promise !== 'rotation')) return null;
+    const car = C.car(), S = car.sea, R = S ? (S.R || 14) : 14, from = p.joinS === car.season ? (p.joinN || 0) : 0, n = Math.max(0, C.leagueN() - from), tot = Math.max(1, R - from), left = Math.max(0, tot - n);
+    const ss = p.ss || {}, have = p.promise === 'starter' ? (ss.lst ?? ss.st ?? 0) : (ss.lapps ?? ss.apps ?? 0), rate = p.promise === 'starter' ? .6 : .5, word = p.promise === 'starter' ? 'start' : 'appearance';
+    if (n === 0) return { k: 'wait', t: 'Not started', c: '#94a3b8' };
+    if (have >= rate * n) return { k: 'ok', t: 'On track', c: 'var(--fit5)' };
+    const need = Math.ceil(rate * tot - have);
+    if (need <= left) return { k: 'risk', t: `At risk: needs ${need} ${word}${need > 1 ? 's' : ''} in the last ${left} match${left > 1 ? 'es' : ''}`, c: '#d97706' };
+    return { k: 'no', t: 'Not kept', c: 'var(--fit1)' }; };
+  C.promiseKept = p => { const s = C.promiseStatus(p); return !s || s.k !== 'no'; };
 
   // ================= player card =================
   C.openPlayer = id => C.ui.open('Player', () => cardHTML(id));
@@ -76,7 +108,7 @@
       <div class="kpis" style="margin-top:12px">
         <div class="kpi"><b>${p.rating}</b><small>Rating</small></div><div class="kpi"><b style="color:var(--fit5)">${p.pot}</b><small>Potential</small></div>
         <div class="kpi"><div class="mini">${C.ringSVG(p.energy / 100, ec(p.energy), 40, 4)}<span>${Math.round(p.energy)}%</span></div><small>Freshness</small></div>
-        <div class="kpi">${C.moraleFace(p.morale, 30)}<small>Morale</small></div></div>${p.energy < 60 && !p.inj ? (() => { const kits = (car.items && car.items.kit) || 0;   // 1.01 (D7.7): the recovery kit right here, the same action as the Medical Room
+        <div class="kpi">${voiceFace(p, 30)}<small>Morale</small></div></div>${p.energy < 60 && !p.inj ? (() => { const kits = (car.items && car.items.kit) || 0;   // 1.01 (D7.7): the recovery kit right here, the same action as the Medical Room
           return `<div class="cardacts">${kits ? `<button class="btn full pri" data-act="treat" data-v="${id}|kit" style="margin-top:8px">🧴 Use Recovery Kit: +25 Freshness <small>(you have ${kits})</small></button>` : `<button class="btn full sec2" data-act="buykitc" style="margin-top:8px">🧴 Buy a recovery kit · ${C.GEM} ${C.TREAT.kit}</button>`}<button class="btn sm2 sec2" data-act="rejuv" style="margin-top:6px">👥 Team recovery options</button></div>`; })() : ''}
         ${p.inj && C.injButtons ? `<div class="card" style="margin-top:8px"><b>${(p.injury || {}).icon || '🩹'} ${C.esc((p.injury || {}).name || 'Injury')}</b> <small class="mutey">${(p.injury || {}).season ? 'out for the season (medical redshirt)' : 'out ' + p.inj + ' more match' + (p.inj > 1 ? 'es' : '')}</small><div class="medbt" style="margin-top:6px">${C.injButtons(p)}</div></div>` : ''}
       <h3 class="jh">${gk ? 'Goalkeeping' : 'Skills'} <button class="hlink" data-act="help" data-v="attrs">?</button></h3>
@@ -90,13 +122,14 @@
       ${p.want && p.want !== p.num ? `<button class="btn full sec2" data-act="numpick" data-v="${id}|${p.want}" style="margin-top:8px">Give No. ${p.want} (🎟 1)${car.squad.some(x => x.num === p.want) ? ' · worn by ' + C.esc(C.sn(car.squad.find(x => x.num === p.want))) : ''}</button>` : ''}
       <h3 class="jh">Package <button class="hlink" data-act="academic" data-v="">📚</button></h3>
       <div class="card srows"><div class="srow"><span>Scholarship</span><b>${p.acad ? '📚 Academic aid (college pays)' : p.schol ? `🎓 ${C.money(p.schol)}/yr · ${Math.round(p.schol / car.job.coa * 100)}% of costs` : 'Walk-on (no athletic aid)'}</b></div>
-        ${!p.acad && C.poolLeft() >= 500 && (p.schol || 0) < car.job.coa ? `<div class="srow"><span>Pool left ${C.money(C.poolLeft())}</span><button class="btn sm2 pri" data-act="schup" data-v="${p.id}">+$500 scholarship</button></div>` : ''}
+        ${p.bonus ? `<div class="srow"><span>🎁 Season bonus</span><b>+${C.money(p.bonus)} · ends when the next season starts</b></div>` : ''}
+        ${!p.acad && C.poolLeft() >= 500 && (p.schol || 0) + (p.bonus || 0) < car.job.coa ? `<div class="srow"><span>Spare pool ${C.money(C.poolLeft())}</span><button class="btn sm2 pri" data-act="schup" data-v="${p.id}">+$500 season bonus</button></div>` : ''}
         ${extras.length ? `<div class="srow"><span>Extras</span><b>${extras.join(' · ')}</b></div>` : ''}
-        ${p.promise ? `<div class="srow"><span>Promise</span><b>${C.ROLES[p.promise][0]} ${C.ROLES[p.promise][1]} · ${kept ? '<span style="color:var(--fit5)">kept ✔</span>' : '<span style="color:var(--fit1)">not kept ✖</span>'}</b></div>` : ''}
+        ${p.promise ? `<div class="srow"><span>Promise</span><b>${C.ROLES[p.promise][0]} ${C.ROLES[p.promise][1]} · ${(s => s ? `<span style="color:${s.c}">${s.t}</span>` : '')(C.promiseStatus(p))}</b></div>` : ''}
         ${p.from ? `<div class="srow"><span>Joined from</span><b>${C.esc(p.from)}</b></div>` : ''}
         <div class="srow"><span>Leadership</span><b>${p.lead}</b></div></div>
       ${p.promise ? `<p class="note">Promises are checked against real minutes once 3 matches are played${p.ss && p.ss.apps ? ` (started ${p.ss.st} of ${C.sea().fx.filter(f => (f.h === 0 || f.a === 0) && f.hs != null).length})` : ''}.</p>` : ''}
-      <div class="jbtns"><button class="btn sec2" data-act="captain" data-v="${id}">${car.captains.includes(id) ? '✖ Remove captain' : '🅲 Make captain'}</button><button class="btn danger" data-act="release" data-v="${id}">Release…</button></div>
+      <div class="jbtns"><button class="btn sec2" data-act="tactics">${car.captains.includes(id) ? '🅲 Captain · change on Tactics' : '🅲 Captain: choose on Tactics'}</button><button class="btn danger" data-act="release" data-v="${id}">Release…</button></div>
       <h3 class="jh">This season</h3><div class="kpis">${p.ss && p.ss.apps ? `<div class="kpi"><b>${p.ss.apps}</b><small>Apps</small></div><div class="kpi"><b>${p.pos === 'GK' ? p.ss.cs : p.ss.g}</b><small>${p.pos === 'GK' ? 'Clean sheets' : 'Goals'}</small></div><div class="kpi"><b>${p.ss.a}</b><small>Assists</small></div><div class="kpi"><b>${(p.ss.rs / p.ss.apps).toFixed(1)}</b><small>Avg rating</small></div>` : '<p class="note" style="grid-column:1/-1;margin:0">No matches yet this season.</p>'}</div>
       ${p.cs ? `<p class="note">Career: ${p.cs.seasons} season${p.cs.seasons > 1 ? 's' : ''} · ${p.cs.apps} apps · ${p.cs.g} goals · ${p.cs.a} assists</p>` : ''}${p.inj ? `<p class="note" style="color:#b91c1c">🩹 Injured: out for ${p.inj} more match${p.inj > 1 ? 'es' : ''}</p>` : ''}${p.ban ? '<p class="note" style="color:#b91c1c">🟥 Suspended for the next match</p>' : ''}`;
   }
@@ -133,8 +166,12 @@
   // every selection confirms first
   A2.planask = v => { const [id, f] = v.split('|'), p = C.P(id); C.confirm('Start training?', `<div class="card"><b style="font-size:15px">${C.esc(C.sn(p))}: ${planInfo(p, f)}</b><div class="srow" style="margin-top:6px"><span>Time</span><b>⏱ ${C.dur(C.planTime(p, f))}</b></div><div class="srow"><span>Cost</span><b>💵 ${C.full(C.planCost(p, f))}</b></div></div>`, 'Start', 'plan', v); };
   A2.reposask = id => { const p = C.P(id), near = C.nearPositions(p);
-    C.ui.open('Reposition training', () => `<p class="note" style="margin-top:0">Current positions:</p><div class="pmatch" style="margin-bottom:8px">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}</div>
-      ${near.length ? near.map(q => `<button class="lrow" data-act="planask" data-v="${id}|pos:${q}"><span class="li">🔄</span><span class="lt"><b>Retrain as ${q}</b><small>${C.FITLABEL[C.fit(p, q)]} now · ⏱ ${C.dur(C.planTime(p, 'pos:' + q))} · 💵 ${C.full(C.planCost(p, 'pos:' + q))}</small></span></button>`).join('') : '<p class="note">No nearby positions to learn.</p>'}`, { popup: true }); };
+    // 1.06 (QA-70): the player's name in the title; what each option does (one fit step, rating before → after); a color key; plays-best-at pills with their fit level
+    const after = q => { const fb = p.fitB || (p.fitB = {}), was = fb[q]; fb[q] = (was || 0) + 1; const r = C.posRating(p, q), f = C.fit(p, q); if (was == null) delete fb[q]; else fb[q] = was; return [r, f]; };
+    C.ui.open('Reposition: ' + C.sn(p), () => `<p class="note" style="margin-top:0"><b>Plays best at</b> (the 3 best ratings; the color is how natural the position is):</p><div class="pmatch pfit" style="margin-bottom:6px">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}<small>${C.FITLABEL[C.fit(p, x)]}</small></i>`).join('')}</div>
+      <div class="fitkey">${[5, 4, 3, 2, 1].map(f => `<span><i style="background:${C.FITPILL[f]}"></i>${C.FITLABEL[f]}</span>`).join('')}</div>
+      <p class="note">One session moves a position up <b>one step</b> (at most 3 steps); playing there 20+ minutes a match also helps.</p>
+      ${near.length ? near.map(q => { const [r2, f2] = after(q); return `<button class="lrow" data-act="planask" data-v="${id}|pos:${q}"><span class="li">🔄</span><span class="lt"><b>${q}: ${C.FITLABEL[C.fit(p, q)]} → ${C.FITLABEL[f2]} · rating ${C.posRating(p, q)} → ${r2}</b><small>⏱ ${C.dur(C.planTime(p, 'pos:' + q))} · 💵 ${C.full(C.planCost(p, 'pos:' + q))}</small></span></button>`; }).join('') : '<p class="note">No positions left that can improve.</p>'}`, { popup: true }); };
   A2.plan = v => { const [pid, f] = v.split('|'), r = C.startPlan(pid, f);
     if (r === true) { C.toast('🏋️ Training plan started'); C.ui.popTo('Player'); if (C.tab === 'squad') C.render(); }
     else if (r === 'pre') C.toast('🗓 Player training starts with the season'); else if (r === 'cash') C.toast('Not enough Booster $'); else if (r === 'cap') C.toast("At this player's limit"); else C.slotsBusy(); };
@@ -148,9 +185,11 @@
     C.openStoreAt && C.openStoreAt(v === 'vip' ? 'passes' : 'items'); };
   // 1.03.01 (QA-42 a): small amounts left in the scholarship pool can top up any player in $500 steps (up to the full cost to attend);
   // the player is pleased (+3 morale, provisional)
-  A2.schup = id => { const p = C.P(id), car = C.car(); if (!p || p.acad || C.poolLeft() < 500) return; const add = Math.min(500, car.job.coa - (p.schol || 0)); if (add <= 0) return;
-    p.schol = (p.schol || 0) + add; p.morale = Math.min(100, (p.morale || 60) + 3); C.save(); C.toast(`🎓 ${C.sn(p)}: scholarship ${C.money(p.schol)} a year`); C.ui.refresh(); };
+  // 1.06 (QA-68): a one-season bonus from spare pool money: a morale lift now; it ends when the next season starts (not a permanent raise)
+  A2.schup = id => { const p = C.P(id), car = C.car(); if (!p || p.acad || C.poolLeft() < 500) return; const add = Math.min(500, car.job.coa - (p.schol || 0) - (p.bonus || 0)); if (add <= 0) return;
+    p.bonus = (p.bonus || 0) + add; p.morale = Math.min(100, (p.morale || 60) + 4); C.save(); C.toast(`🎁 ${C.sn(p)}: +${C.money(add)} season bonus · morale up`); C.ui.refresh(); };
   A2.storeat = v => C.openStoreAt && C.openStoreAt(v);
+  A2.signedcard = id => { C.ui.closeAll(); C.openPlayer(id); };   // 1.06 (QA-72): Back from the card returns to Recruiting
 
   // ================= numbers: taken numbers swap, and you see who you'd be taking one from =================
   C.openNumbers = id => C.ui.open('Squad number', () => {

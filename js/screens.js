@@ -7,7 +7,15 @@
   C.power = () => { const b = C.car().b; let p = 0; for (const k in b) p += b[k] * (k === 'hq' ? 300 : k === 'stadium' ? 200 : 120); return p; };
   // Program Power (playtest round 4): campus + staff + the squad's best XI, one number that only grows as the program does
   C.squadPower = () => { const r = C.squad().map(p => p.rating).sort((a, b) => b - a).slice(0, 11); return Math.round(r.reduce((s, v) => s + v * v, 0) / 4); };
-  C.programPower = () => C.power() + (C.staffPower ? C.staffPower() : 0) + C.squadPower();
+  // 1.06 (QA-92): Program Power counts everything the program owns: buildings, every hired coach, research, the whole squad,
+  // gear (worn or not) and inventory items that build the program. Speed-ups, Coins and Booster $ don't count. Display only.
+  C.powerParts = () => { const car = C.car(), S = C.staffState ? C.staffState() : { list: [], items: {} }, it = car.items || {}, inv = (C.meta && C.meta().inv) || {}, si = S.items || {};
+    const coach = (S.list || []).reduce((s, c) => s + (C.coachPower ? C.coachPower(c) : 0), 0);
+    const squad = Math.round(car.squad.reduce((s, p) => s + p.rating * p.rating, 0) / 14);   // provisional weight, so no one part dominates
+    const gear = (C.gearList ? C.gearList() : []).reduce((s, g) => s + Math.round(40 * (1 + g.rar) * g.lv), 0);
+    const items = (si.manual || 0) * 5 + (si.books || 0) * 15 + (inv.badge || 0) * 10 + (it.kit || 0) * 3 + (si.credits || 0) * 1;
+    return [['campus', '🏗', 'Campus', C.power()], ['coach', '🧑‍🏫', 'Coaches', coach], ['research', '📋', 'Research', C.pbPower ? C.pbPower() : 0], ['squad', '👕', 'Squad', squad], ['gear', '🎽', 'Gear', gear], ['items', '🎒', 'Items', items]]; };
+  C.programPower = () => C.powerParts().reduce((s, x) => s + x[3], 0);
   C.powerBadge = (cls = '') => `<span class="ppow ${cls}" data-act="proginfo" title="Program Power: campus, staff and squad"><i class="ppi"></i>${C.programPower().toLocaleString()}</span>`;
   // the one build-queue icon (item 38) and the buildings list (items 31, 44)
   C.idleBuilders = () => Math.max(0, C.openSlots() - C.car().queue.length);
@@ -62,7 +70,7 @@
         ${rnd('drawer', 'hammer', newB)}
       </div>
       <div class="side br9">
-        <div class="mailrow">${C.adWaiting && C.adWaiting() && !C.drawerOpen ? `<button class="adport" data-act="inbox" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}</div>
+        <div class="mailrow">${C.adWaiting && C.adWaiting() && !C.drawerOpen ? `<button class="adport" data-act="inboxdir" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}</div>
         ${sq('inventory', 'bag', 'Inventory', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
       </div>
       <div class="tstrip9"><button class="tsradio" data-act="nexttask" aria-label="Missions">${C.ico('clip', 34)}${C.msClaimable() ? `<i class="rd">${C.msClaimable()}</i>` : ''}</button>
@@ -165,7 +173,7 @@
     const S = C.sea(), f = C.myFixture();
     if (!f) return `<div class="gameday"><span class="gdc">🏆</span><div class="vs"><div><small>SEASON ${S.n} · ${S.end ? 'FINISHED ' + C.ord(S.end.pos).toUpperCase() : 'WAITING'}</small>${S.end && S.end.champ ? 'Conference champions!' : 'Season review'}</div></div><button class="go" data-act="tab" data-v="season">Review</button></div>`;
     const opp = S.teams[f.h === 0 ? f.a : f.h], xi = C.tac().xi.map(C.P).filter(Boolean), e = Math.round(xi.reduce((s, p) => s + p.energy, 0) / (xi.length || 1));
-    return `<div class="gameday">${C.crestSVG(opp.c1, opp.c2, opp.abbr.slice(0, 2), 34)}<div class="vs"><div><small>${C.fxLabel(f).up} · ${f.n ? 'NEUTRAL' : f.h === 0 ? 'HOME' : 'AWAY'} · 🔋 ${e}%</small>vs ${C.esc(opp.name)}</div></div><button class="gotac" data-act="tactics" aria-label="Tactics"><i class="xoi"></i></button><button class="go" data-act="prematch">▶ Play</button></div>`;
+    return `<div class="gameday">${C.crestSVG(opp.c1, opp.c2, opp.abbr.slice(0, 2), 34)}<div class="vs"><div><small>${C.fxLabel(f).up} · ${f.n ? 'NEUTRAL' : f.h === 0 ? 'HOME' : 'AWAY'} · 🔋 ${e}%</small>vs ${C.esc(opp.name)} ${C.oppRatingChip(opp.rating)}</div></div><button class="gotac" data-act="tactics" aria-label="Tactics"><i class="xoi"></i></button><button class="go" data-act="prematch">▶ Play</button></div>`;
   }
 
   let dragged = false;
@@ -267,14 +275,14 @@
     const car = C.car(), openS = C.SLOTS.filter(x => C.slotOpen(x.id)), rec = C.recommendBuilding();
     const rows = C.SLOTS.map((sl, i) => {
       if (!C.slotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), `<small>${C.esc(sl.why)}: a permanent builder${C.nextBuilderPack && C.nextBuilderPack() !== sl.pack ? ' (after the packs before it)' : ''}</small>`, '<button class="btn sm2" data-act="storeat" data-v="items">Get</button>');
-      const q = car.queue[openS.indexOf(sl)];
+      const q = C.laneItem(car.queue, openS.indexOf(sl));
       if (q) { const d = C.BUILDINGS[q.key], f = C.buildReady(q.key) ? 1 : 1 - C.remaining(q) / ((q.end - q.start) / 1000);
         return slotRow(i, 'busy', `${C.esc(d.name)} → Lv ${q.to}`, `<div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><small ${C.buildReady(q.key) ? '' : `data-timer="${q.key}"`}>${C.buildReady(q.key) ? 'Finished' : C.dur(C.remaining(q))}</small>`,
           C.buildReady(q.key) ? `<button class="btn sm2 pri" data-act="bdone" data-v="${q.key}">Complete</button>` : `<button class="btn sm2" data-act="bgo" data-v="${q.key}">Go</button>`); }
       return slotRow(i, 'idle', 'Idle', `<small>Next: ${C.esc(C.BUILDINGS[rec].name)}</small>`, `<button class="btn sm2 pri" data-act="bgo" data-v="${rec}">Go</button>`);
     }).join('');
     // 1.03: a build started in a withdrawn slot (Coaches' Office Lv 10 or Coach's Club) carries on until it finishes
-    const extra = car.queue.slice(openS.length).map((q, j) => slotRow(C.SLOTS.length + j, 'busy', `${C.esc(C.BUILDINGS[q.key].name)} → Lv ${q.to}`, `<small>${C.buildReady(q.key) ? 'Finished' : C.dur(C.remaining(q)) + ' · finishing in a retired slot'}</small>`,
+    const extra = C.laneExtra(car.queue, openS.length).map((q, j) => slotRow(C.SLOTS.length + j, 'busy', `${C.esc(C.BUILDINGS[q.key].name)} → Lv ${q.to}`, `<small>${C.buildReady(q.key) ? 'Finished' : C.dur(C.remaining(q)) + ' · finishing in a retired slot'}</small>`,
       C.buildReady(q.key) ? `<button class="btn sm2 pri" data-act="bdone" data-v="${q.key}">Complete</button>` : `<button class="btn sm2" data-act="bgo" data-v="${q.key}">Go</button>`)).join('');
     return `<p class="note" style="margin-top:0">Each builder works on one building at a time. Tap Go on an idle builder for the recommended next upgrade.</p>${rows}${extra}`;
   });
@@ -282,11 +290,11 @@
     const car = C.car(), openS = C.PBSLOTS.filter(x => C.pbSlotOpen(x.id)), q = car.pbq || [];
     const rows = C.PBSLOTS.map((sl, i) => {
       if (!C.pbSlotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), '<small>Available at Performance Lab Lv 10, or with the Playbook\'s Extra Queue Slot</small>', '');
-      const r = q[openS.indexOf(sl)];
+      const r = C.laneItem(q, openS.indexOf(sl));
       if (r) { const nm = C.pbName ? C.pbName(r.key) : r.key; return slotRow(i, 'busy', `${C.esc(nm)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))}</small>`, '<button class="btn sm2" data-act="playbook">Go</button>'); }
       return slotRow(i, 'idle', 'Idle', '<small>Start the recommended research</small>', '<button class="btn sm2 pri" data-act="playbook">Go</button>');
     }).join('');
-    const extra = q.slice(openS.length).map((r, j) => slotRow(C.PBSLOTS.length + j, 'busy', `${C.esc(C.pbName ? C.pbName(r.key) : r.key)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))} · finishing in a retired slot</small>`, '<button class="btn sm2" data-act="playbook">Go</button>')).join('');
+    const extra = C.laneExtra(q, openS.length).map((r, j) => slotRow(C.PBSLOTS.length + j, 'busy', `${C.esc(C.pbName ? C.pbName(r.key) : r.key)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))} · finishing in a retired slot</small>`, '<button class="btn sm2" data-act="playbook">Go</button>')).join('');
     return `<p class="note" style="margin-top:0">Research runs in the Performance Lab. Each slot researches one Playbook item at a time.</p>${rows}${extra}`;
   }, { popup: true });
   // take the player to a building on the campus map: pan to it and select it, ready to upgrade (FEEDBACK 93, 94)
@@ -354,13 +362,25 @@
       <div class="bgrid9">${keys.sort((a, b) => C.blistSort === 'level' ? C.level(b) - C.level(a) : C.blistSort === 'name' ? C.BUILDINGS[a].name.localeCompare(C.BUILDINGS[b].name) : rank(a) - rank(b) || C.level(a) - C.level(b)).map(card).join('')}</div>
       <div class="bfoot bfoot9"><span>👷 Building Queue: ${car.queue.length}/${C.openSlots()}</span><button class="bsort" data-act="blistsort">⇅ ${{ status: 'Ready first', level: 'Highest level', name: 'A–Z' }[C.blistSort || 'status']}</button></div>`;
   });
+  C.ACTS.powpart = k => { const car = C.car(), S = C.staffState(), go = { campus: ['tab', 'campus'], coach: ['tab', 'staff'], research: ['playbook', ''], squad: ['tab', 'squad'], gear: ['bpop', 'kitroom'], items: ['inventory', ''] }[k];
+    const list = k === 'campus' ? Object.keys(C.BUILDINGS).filter(b => car.b[b] > 0).map(b => [C.BUILDINGS[b].icon + ' ' + C.BUILDINGS[b].name, 'Lv ' + car.b[b], car.b[b] * (b === 'hq' ? 300 : b === 'stadium' ? 200 : 120)])
+      : k === 'coach' ? S.list.map(c => [C.esc(c.fn + ' ' + c.ln) + (S.on.includes(c.id) ? ' · on duty' : ''), 'Lv ' + c.level, C.coachPower(c)])
+      : k === 'research' ? Object.entries(C.car().pb || {}).filter(([, v]) => v > 0).map(([key, v]) => [C.esc(C.pbName ? C.pbName(key) : key), 'Lv ' + v, v * 60])
+      : k === 'squad' ? car.squad.slice().sort((a, b) => b.rating - a.rating).map(p => [C.esc(C.sn(p)) + ' · ' + p.pos, p.rating, Math.round(p.rating * p.rating / 14)])
+      : k === 'gear' ? C.gearList().map(g => [g.slot + ' · ' + ['Common', 'Uncommon', 'Rare', 'Epic', 'Ultra Rare'][g.rar] + (g.on ? ' · worn' : ''), 'Lv ' + g.lv, Math.round(40 * (1 + g.rar) * g.lv)])
+      : [['📗 Coaching manuals', S.items.manual || 0, (S.items.manual || 0) * 5], ['📕 Trait Books', S.items.books || 0, (S.items.books || 0) * 15], ['🏅 Coaching Badges', C.meta().inv.badge || 0, (C.meta().inv.badge || 0) * 10], ['🧴 Recovery kits', (car.items || {}).kit || 0, ((car.items || {}).kit || 0) * 3], ['🎫 Clinic Credits', S.items.credits || 0, S.items.credits || 0]];
+    const part = C.powerParts().find(x => x[0] === k);
+    C.ui.open(part[2] + ' Power', () => `<div class="card powhd"><small>${part[1]} ${part[2]}</small><b><i class="ppi"></i> ${part[3].toLocaleString()}</b></div><div class="card srows">${list.sort((a, b) => b[2] - a[2]).map(r => `<div class="srow"><span>${r[0]}</span><b>${r[1]} · <span class="mutey">${r[2].toLocaleString()}</span></b></div>`).join('') || '<p class="note">Nothing yet.</p>'}</div>
+      ${k === 'items' ? '<p class="note">Speed-ups, Coins and Booster $ don\'t count: they\'re spent, not owned strength.</p>' : ''}<button class="btn full pri" data-act="${go[0]}" data-v="${go[1]}">Go</button>`, { popup: true }); };
   C.openProgramInfo = () => C.ui.open('Program', () => {
     const car = C.car(), col = C.college(), t = C.table().find(x => x.i === 0);
     const rows = [['🪜', 'Tier', C.tierLabel()], ['⭐', 'Reputation', C.rep() + ' / 100'], ['🧳', 'Program level', C.programLevel()], ['🧱', 'Building cap', 'Lv ' + C.maxLevel('training')],
-      ['⚡', 'Program Power', C.programPower().toLocaleString()], ['🏗', ' · Campus', C.power().toLocaleString()], ['🧑‍🏫', ' · Staff', C.staffPower().toLocaleString()], ['👕', ' · Squad', C.squadPower().toLocaleString()], ['📋', 'Playbook levels', C.pbTotal()],
+      ['📋', 'Playbook levels', C.pbTotal()],
       ['🏆', 'Season ' + C.sea().n, C.sea().end ? 'Finished ' + C.ord(C.sea().end.pos) : t && t.p ? C.ord(C.myPos()) + ' · ' + t.w + 'W ' + t.d + 'D ' + t.l + 'L' : 'Not started'],
       ['🏛', 'Director confidence', ['😟', '🙁', '😐', '🙂', '😀'][Math.min(4, Math.floor((car.adConf ?? 50) / 20))]], ['👕', 'Roster', car.squad.length + ' / ' + C.rosterCap()], ['🎓', 'Scholarships left', '$' + C.short(C.poolLeft())]];
     return `<div class="collegecard">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 56)}<div><b style="font-family:Graduate,serif;font-size:18px">${C.esc(col.full)}</b><br><small class="mutey">${car.gender === 'w' ? "Women's" : "Men's"} program</small></div></div><button class="btn full sec2" data-act="yourcollege" style="margin-top:10px">📜 Your college and contract</button>
+      ${(parts => { const tot = parts.reduce((s, x) => s + x[3], 0) || 1; return `<div class="card powhd"><small>Program Power</small><b><i class="ppi"></i> ${tot.toLocaleString()}</b></div>
+      <div class="card powbr">${parts.map(([k, ic, nm, v]) => `<button class="powrow" data-act="powpart" data-v="${k}"><span>${ic} ${nm}</span><i class="powbar"><i style="width:${Math.round(v / tot * 100)}%"></i></i><b>${v.toLocaleString()}</b><em>›</em></button>`).join('')}</div>`; })(C.powerParts())}
       <div class="card srows" style="margin-top:12px">${rows.map(r => `<div class="srow"><span>${r[0]} ${r[1]}</span><b>${r[2]}</b></div>`).join('')}</div>`;
   });
 
@@ -399,7 +419,7 @@
     const car = C.car(), def = C.BUILDINGS[k], lv = car.b[k], q = C.inQueue(k);
     const head = (lvTxt) => `<div class="uc"><div class="top"><div class="pic">${C.buildingThumb(k, q ? q.to : Math.min(30, lv + (lv < 30 ? 1 : 0)), car, 170, 112)}</div>
       <div class="ttl"><b>${C.esc(def.name)}</b><div class="lv">${lvTxt}</div><div class="xp">${def.owner === 'program' ? '🧳 Your program' : '🏛 School building'}</div></div>
-      <button class="xbtn" data-act="close" aria-label="Close">✕</button></div><div class="desc">${def.desc}</div>${collectRow(k)}`;
+      <button class="xbtn" data-act="close" aria-label="Close">✕</button></div><div class="desc">${def.desc}</div>${C.instDone && C.instDone.k === k && C.now() - C.instDone.t < 4000 ? `<div class="instok">✔ ${C.esc(def.name)} Lv ${C.instDone.to}${C.instDone.cp ? ` · +${C.instDone.cp} 🧪` : ''}</div>` : ''}${k === 'hq' && C.staffSlots ? `<div class="desc" style="font-weight:900">🧢 Coach slots: ${C.staffSlots()} of ${C.STAFFSLOTS.length} open${C.level('hq') < 5 ? " · the earned slot opens at Coaches' Office Lv 5" : ''}</div>` : ''}${collectRow(k)}`;   // 1.06 (QA-94)
 
     if (q && C.buildReady(k)) return head(`Lv.${lv} <span class="ar">▶</span> ${q.to}`) + `<div class="tbl">${statRows(k, lv)}</div>
         <div class="orig"><span>✅ Finished: tap Complete</span><span></span></div><div class="bt"><button class="upg" data-act="bdone" data-v="${k}">Complete</button></div></div>`;
@@ -427,7 +447,10 @@
     if (!C.requirements(k).every(r => r[2])) return false;
     if (C.acct().gold < g) { C.toast('Not enough Coins'); return false; }
     const cost = C.costOf(k, to); car.cash -= cost.cash; car.cp -= cost.cp; C.acct().gold -= g; car.b[k] = to;
-    const q = { key: k, to, cp: to <= 1 ? 0 : C.upgradeReward(k, to) }; car.cp += q.cp; (C.lvlQueue = C.lvlQueue || []).push(q); C.save(); setTimeout(C.nextLevelUp, 300); return true;
+    const q = { key: k, to, cp: to <= 1 ? 0 : C.upgradeReward(k, to) }; car.cp += q.cp;
+    // 1.06 (QA-97): Finish Now completes in place: the reward is added and the popup moves on to the next level. Only the Coaches' Office keeps its level-up sequence.
+    if (k === 'hq') { (C.lvlQueue = C.lvlQueue || []).push(q); C.save(); setTimeout(C.nextLevelUp, 300); return true; }
+    C.instDone = { k, to, cp: q.cp, t: C.now() }; C.save(); return true;
   };
 
   // ================= careers (save slots, Q27) =================

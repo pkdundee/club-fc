@@ -12,7 +12,7 @@
   C.rep = (car = C.car()) => Math.round(C.clamp(car.rep ?? 10, 0, 100));
   C.programLevel = (car = C.car()) => Math.round(PROGRAM.reduce((s, k) => s + car.b[k], 0) / PROGRAM.length * 10) / 10;
   C.band = (car = C.car()) => car.band ?? 0;
-  C.tierLabel = (car = C.car()) => `${C.TIERS[car.tier].n} · ${C.TIERS[car.tier].name}`;   // 1.04: no bands
+  C.tierLabel = (car = C.car()) => C.TIERS[car.tier].name;   // 1.06 (QA-91): FCSA Division I-V   // 1.04: no bands
   // reclassification: what your own college needs to move up a division
   C.reclassReqs = (car = C.car()) => {
     const cap = C.TIERS[car.tier].cap, S = car.sea;

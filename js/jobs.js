@@ -26,7 +26,7 @@
   };
   const STRONG = ['crumbling', 'promises', 'heroes'], WEAK = ['boosters', 'floods', 'blank'];
   const TYPES = {
-    sch: { icon: '🎓', name: 'Scholarship college', hint: 'like NAIA or Division II', line: 'Partial athletic scholarships from a yearly pool.' },
+    sch: { icon: '🎓', name: 'Scholarship college', hint: 'partial scholarships', line: 'Partial athletic scholarships from a yearly pool.' },
     juco: { icon: '🚌', name: 'Junior college', hint: 'two-year college', line: 'Players stay 2 years. High turnover; your best players move on to 4-year colleges.' },
     acad: { icon: '📚', name: 'Academic college', hint: 'like Division III', line: 'No athletic scholarships. You recruit with academic aid, the campus and playing time.' }
   };
@@ -118,6 +118,7 @@
       ${car.renameFree ? `<button class="btn full pri" data-act="pgrename" style="margin:8px 0">✏️ Rename your program (free once)</button>` : ''}
       ${car.myCol ? '' : `<div class="card jcard"><b>${C.esc(st.title || '')}</b><p>${C.esc(st.text || '')}</p></div>`}
       ${(car.trophies || []).length ? `<h3 class="jh">🏆 Trophy cabinet</h3><div class="card srows">${car.trophies.map(t => `<div class="srow"><span>🏆 ${C.esc(t.title)}</span><b>Season ${t.season} · ${C.esc((C.TIERS[t.tier] || {}).name || 'Tier ' + t.tier)}</b></div>`).join('')}</div>` : ''}
+      ${C.adOfficeCard ? C.adOfficeCard() : ''}
       <h3 class="jh">📜 Your appointment</h3>
       <div class="kgrid">
         <div class="k"><small>Athletic director's goal</small><b>${GOAL[j.stars] || ''}</b></div>
@@ -145,7 +146,7 @@
   // 1.02 (FEEDBACK 144.1): what exactly is being signed, before the career starts
   C.contractHTML = () => { const j = M.jobs[M.pick], col = C.COLLEGES[j.college], ty = TYPES[j.type], row = (k, v) => `<div class="srow"><span>${k}</span><b>${v}</b></div>`;
     return `<div class="jhead">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 46)}<div><b>${C.esc(col.full)}</b><small>Head coach · ${j.gender === 'w' ? "Women's" : "Men's"} soccer · ${col.state}</small></div></div>
-      <div class="card" style="margin-top:10px">${row('College', `${ty.icon} ${ty.name} · Tier 5`)}${row("Athletic director's goal", GOAL[j.stars])}${row('Cost to attend', C.money(j.coa) + '/yr')}${row('Scholarships', j.eq ? `${C.money(j.pool)} a year` : 'Academic aid only')}${row('Booster budget', C.money(j.cash))}${row('Squad', `${j.mix.reduce((a, b) => a + b, 0)} players · avg ${j.rating}`)}</div>
+      <div class="card" style="margin-top:10px">${row('College', `${ty.icon} ${ty.name} · ${C.tierLabel()}`)}${row("Athletic director's goal", GOAL[j.stars])}${row('Cost to attend', C.money(j.coa) + '/yr')}${row('Scholarships', j.eq ? `${C.money(j.pool)} a year` : 'Academic aid only')}${row('Booster budget', C.money(j.cash))}${row('Squad', `${j.mix.reduce((a, b) => a + b, 0)} players · avg ${j.rating}`)}</div>
       <p class="note">This starts your career at ${C.esc(col.short)}. One campus for your whole career. You can't change college later.</p>`; };
 
   // ---------------- college preview ----------------

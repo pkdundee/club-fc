@@ -189,10 +189,11 @@
     p.schol = Math.round(c.schol / 500) * 500; p.acad = !!o.aid; p.cjob = !!o.job; p.house = !!o.house; p.raise = o.raise ? .1 : 0; p.promise = o.role; p.rs = o.role === 'redshirt'; p.from = x.from || SRC[x.src][1];
     p.morale = 75; p.num = 0;
     if (o.job) R.jobsUsed++; if (o.house) car.cash -= HOUSE_VALUE;
+    p.joinS = car.season; p.joinN = C.leagueN ? C.leagueN() : 0;   // 1.06 (QA-73): promises count from here
     car.squad.push(p); C.assignNumbers(car.squad); drop(x.id); R.signed++; O = null; C.save();
     C.ui.closeAll(); C.render(); const col = C.college();
     C.ui.open('Signed!', () => `<div class="scenebn">${C.artSlot('signing', C.sceneSigning(col.c1, col.c2, p.num))}</div><div class="collegecard" style="margin-top:12px"><div class="relface">${C.faceOf(p)}</div><div><b style="font-size:18px">${C.esc(p.fn)} ${C.esc(p.ln)}</b><br><small class="mutey">${p.pos} · No. ${p.num} · ${p.schol ? Math.round(p.schol / C.car().job.coa * 100) + '% scholarship' : p.acad ? 'academic aid' : 'walk-on'}${p.cjob ? ' + 💼' : ''}</small></div></div>
-      <button class="btn full pri" data-act="player" data-v="${p.id}" style="margin-top:14px">See player card</button>`);
+      <button class="btn full pri" data-act="signedcard" data-v="${p.id}" style="margin-top:14px">See player card</button>`);
   }
 
   // ---------- routes ----------
@@ -270,12 +271,12 @@
     const list = R.list.filter(x => x.src === route).sort((a, b) => (b.rival ? 1 : 0) - (a.rival ? 1 : 0) || b.rating - a.rating);
     // same row style as Squad (round 5): plain avatar, plain year, top-3 position chips; recruit details where Squad shows condition
     const chips = x => `<div class="pmatch">${C.topPositions(x).map(([q, v]) => `<i style="background:${C.FITPILL[C.fit(x, q)]}">${q}${x.scouted ? v : ''}</i>`).join('')}
-        <span class="rinfo">${x.rival ? `<span class="rv">⚔ <span data-until="${x.rival.end}">${C.dur((x.rival.end - t) / 1000)}</span></span>` : ''}${isAcad() ? '' : `<span class="ask">🎓 ${Math.round(x.ask * 100)}%</span>`}</span></div>`;
+        <span class="rinfo">${x.rival ? `<span class="rv">⚔ <span data-until="${x.rival.end}">${C.dur((x.rival.end - t) / 1000)}</span></span>` : ''}${isAcad() ? '' : `<span class="ask">🎓 Asks ${Math.round(x.ask * 100)}%</span>`}<span class="gpa ${x.gpa >= 3.3 ? 'ok' : ''}" title="${x.gpa >= 3.3 ? 'Qualifies for academic aid' : 'Academic aid needs GPA 3.3'}">📚 GPA ${x.gpa}</span></span></div>`;   // 1.06 (QA-64)
     const cards = list.map(x => `<button class="prow rc" style="--mk:${C.RARITY[x.rar][1]}" data-act="recruit" data-v="${x.id}">
         <div class="av plain"><div class="face">${rface(x)}</div></div>
         <div class="pinfo"><b>${C.esc(x.fn)} ${C.esc(x.ln)} <small class="flag">${x.flag}</small></b>
           <div class="tags"><span class="pos ${C.POSGROUP(x.pos)}">${x.pos}</span><span class="yr plain">${yrN[x.year]}</span><span class="sch" title="${C.esc(C.ROLES[x.want][1] || '')}">${C.ROLES[x.want][0]}</span>${x.deal.round ? `<span class="rdeal">R${x.deal.round}</span>` : ''}</div>
-          ${chips(x)}</div>
+          ${chips(x)}<small class="rsay">💬 ${C.esc(x.gpa >= 3.3 && x.ask >= .4 ? 'My grades are strong: is there academic aid?' : x.ask >= .55 ? 'Is there a campus job, Coach? Money is tight.' : x.want === 'starter' ? 'I want to start, Coach.' : x.want === 'redshirt' ? "I'm happy to develop first." : 'I just want to be part of it.')}</small></div>
         <div class="rate"><b class="${x.scouted ? '' : 'fz'}">${ratingTxt(x)}</b><small>${x.scouted ? 'Rating' : '🔍 Range'}</small></div></button>`).join('');
     const empty = route !== 'portal' || P ? `<p class="note" style="padding:0 16px;text-align:center">${{ inbox: 'No applications right now. New ones arrive through the day.', camp: 'Run a camp to see new players.', jc: 'No transfers listed.', agency: 'Hire a scout to find an international player.', portal: 'Nobody left in the portal.' }[route]}</p>` : '';
     return `<div class="view scrolly">
