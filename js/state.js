@@ -10,6 +10,7 @@
 
   C.db = { v: 2, account: freshAccount(), careers: [], active: -1 };
 
+  C.SAVE_KEY = KEY;   // 1.05.02: the test scenarios back up and restore this save
   C.load = () => {
     // first open: copy the 1.04 save (and its intro flag) so playtest progress carries over. 1.04's save is only read.
     try { if (!localStorage.getItem(KEY)) { const old = localStorage.getItem(KEY_PREV); if (old) { localStorage.setItem(KEY, old); if (localStorage.getItem(KEY_PREV + '_intro')) localStorage.setItem(KEY + '_intro', '1'); } } } catch (e) { }

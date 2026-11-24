@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.05.01 · 24 Nov 2026';
+  C.BUILD = 'CLUB FC 1.05.02 · 24 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -211,6 +211,7 @@
       case 'settings': C.openSettings(); break;
       case 'checkupdate': C.toast('Checking…'); (navigator.serviceWorker ? navigator.serviceWorker.getRegistration().then(r => r && r.update()) : Promise.resolve()).catch(() => {}).finally(() => setTimeout(() => location.reload(), 600)); break;
       case 'theme': C.acct().theme = v; C.save(); C.applyTheme(); C.ui.refresh(); break;
+      case 'tscenopen': C.openTestScen(); break;
       case 'testrender': C.acct().testRender = +v; C.save(); C.ui.refresh(); C.toast(+v ? `🧪 Map shows every building at render ${v}` : 'Map back to normal'); break;
       case 'cheat': if (v === 'gold') C.acct().gold += 500; if (v === 'cash') car.cash += 20000; if (v === 'cp') car.cp += 100;
         if (v === 'apps') C.appsNow();
@@ -305,7 +306,7 @@
   const ready = C.loadArtManifest ? C.loadArtManifest() : Promise.resolve();
   // 1.02.05 (QA-14): start loading and decoding the campus art during the title screen, so the map's first draw is complete
   ready.then(() => { try { if (C.car() && C.campusLayers) C.campusLayers(C.car()); } catch (e) { } });
-  C.fitScreen(); Promise.all([ready, new Promise(r => setTimeout(r, C.TITLE_MS))]).then(() => { C.booting = false; C.fitScreen(); C.render(); });
+  C.fitScreen(); Promise.all([ready, new Promise(r => setTimeout(r, C.TITLE_MS))]).then(() => { C.booting = false; C.fitScreen(); C.render(); if (C.testScenLoaded) C.testScenLoaded(); });
   const cs = C.$('#calstrip .next'); if (cs) cs.scrollIntoView({ inline: 'center', block: 'nearest' });
   // offline support; when a new upload takes over, reload once so the new version shows straight away
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

@@ -242,6 +242,9 @@
   }
   // 1.04 (SCOPE_1.04 s6): "Simulate the rest" of the Pre-season friendlies: results only
   C.simFriendlies = () => { const S = C.sea(), r = C.rng(S.n * 977 + 5); S.fx.filter(f => f.friendly && f.md < 1 && f.hs == null).forEach(f => quickResult(f, r)); if (S.md < 1) S.md = 1; C.save(); };
+  // 1.05.02: test scenarios. Simulate league matchdays up to (not including) matchday `last`
+  C.simToMatchday = last => { const S = C.sea(), r = C.rng(S.n * 8191 + last);
+    while (S.phase === 'reg' && S.md < last) { S.fx.filter(f => f.md === S.md && f.hs == null).forEach(f => quickResult(f, r, f.ko)); if (S.md >= 1) C.car().squad.forEach(p => { if (p.ban) p.ban--; else if (p.inj) p.inj--; }); advance(); } C.save(); };
   C.simRestOfSeason = () => { // used by the "skip" test tool
     const S = C.sea(), r = C.rng(S.n * 8191);
     while (S.phase === 'reg') { S.fx.filter(f => f.md === S.md && f.hs == null).forEach(f => quickResult(f, r, f.ko)); if (S.md >= 1) C.car().squad.forEach(p => { if (p.ban) p.ban--; else if (p.inj) p.inj--; }); advance(); }

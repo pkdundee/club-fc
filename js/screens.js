@@ -459,6 +459,7 @@
       <div class="seg2" style="margin-top:8px"><button data-act="cheat" data-v="rep">+30 reputation</button><button data-act="cheat" data-v="prog">Program buildings +3</button></div>
       <div class="seg2" style="margin-top:8px"><button data-act="cheat" data-v="rest">Full Freshness</button><button data-act="cheat" data-v="season">Skip to season end</button></div>
       <button class="btn full sec2" data-act="cheat" data-v="portal" style="margin-top:8px">${C.car() && C.portalOpen() ? '🚪 Close the transfer window now' : '🚪 Open a transfer window'}</button>
+      <button class="btn full sec2" data-act="tscenopen" style="margin-top:8px">🧪 Test scenarios (ready-made saves)…</button>
       <label class="fld">Art check: show every building at render… (map only, nothing is changed)</label>
       <div class="rgrid">${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<button class="${(a.testRender || 0) === v ? 'on' : ''}" data-act="testrender" data-v="${v}">${v || 'Off'}</button>`).join('')}</div>
       <p class="note">Testing tools are for this preview build only.</p>
