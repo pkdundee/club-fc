@@ -1,7 +1,7 @@
 // Club FC: the Academic Center as a real part of the program (phase-9o, round 6 item 59). One page for each player's package,
 // academics and wellbeing, and upgrades that help keep players happy and bring recruits in. Boosts here are first proposals.
 (function (C) {
-  const A = C.ACTS, YR = ['', 'Fr', 'So', 'Jr', 'Sr'];
+  const A = C.ACTS, YR = ['', 'Fr', 'So', 'Jr', 'Sr', '5th'];
   const acad = () => C.eff('academic');
   // family and fitting in come from morale, promises and game time for now
   const wellbeing = p => { const kept = C.promiseKept(p), apps = p.ss ? p.ss.apps : 0, fam = !kept ? ['😟', 'Worried'] : p.morale >= 65 ? ['😀', 'Happy'] : p.morale >= 45 ? ['🙂', 'Content'] : ['😟', 'Worried'], fit = p.morale >= 70 || apps >= 5 ? ['😀', 'Settled'] : p.morale >= 45 ? ['🙂', 'Settling in'] : ['😟', 'Struggling']; return { fam, fit }; };

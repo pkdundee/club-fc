@@ -89,7 +89,7 @@
   const winnerOf = f => f.hs > f.as ? f.h : f.hs < f.as ? f.a : (f.pens[0] > f.pens[1] ? f.h : f.a);
 
   // ---------- applying my match (Q20k, Q20l, Q7a) ----------
-  C.applyResult = (m, f) => {
+  C.applyResult = (m, f) => { const car0 = C.car(); car0.rclock = (car0.rclock || 0) + 1;   // 1.08 (R-47..R-53): recruiting deadlines count your matches
     const car = C.car(), S = car.sea, my = f.h === 0 ? 0 : 1, r = C.rng(m.events.length * 977 + S.md);
     f.hs = m.score[0]; f.as = m.score[1]; if (m.pens) f.pens = m.pens;
     const keep = f.friendly ? car.squad.map(p => [p, p.energy, p.inj, p.injury, p.ban, p.reinj]) : null;   // 1.04 (SCOPE_1.04 s6)
@@ -263,18 +263,23 @@
   // ---------- next season: graduation, class years, raises, walk-on tryouts ----------
   C.startNextSeason = () => {
     const car = C.car(); if (C.portalOpen()) C.closePortalNow();
-    const left = car.squad.filter(p => p.year >= 4 && !p.rs);
-    car.squad = car.squad.filter(p => !(p.year >= 4 && !p.rs));
+    // 1.08 (Phase 3, R-47): five years (Fr, So, Jr, Sr, 5th); graduate after the 5th. A medical redshirt keeps the year.
+    const Se = car.sea || {}, Rr = Se.R || 14, met = !!(Se.end && Se.end.met);
+    const left = car.squad.filter(p => p.year >= 5 && !p.rs);
+    car.squad = car.squad.filter(p => !(p.year >= 5 && !p.rs));
+    car.raiseLog = [];
     for (const p of car.squad) {
       if (p.rs) p.rs = false; else p.year++;
       delete p.bonus;   // 1.06 (QA-68): season bonuses end when the new season starts
-      if (p.raise) { p.schol = Math.round((p.schol + p.raise * car.job.coa) / 500) * 500; p.raise = 0; }
+      // 1.08 (R-52): the +10% is paid only if they played half the season's league matches or the team met its season goal
+      if (p.raise) { const apps = p.ss ? (p.ss.lapps ?? p.ss.apps ?? 0) : 0, ok = apps >= Rr / 2 || met; if (ok) p.schol = Math.round((p.schol + p.raise * car.job.coa) / 500) * 500; else p.morale = Math.max(10, (p.morale || 60) - 5); car.raiseLog.push({ n: C.sn(p), ok, apps }); p.raise = 0; }
       if (p.ss) { p.cs = p.cs || { apps: 0, g: 0, a: 0, mins: 0, seasons: 0 }; p.cs.apps += p.ss.apps; p.cs.g += p.ss.g; p.cs.a += p.ss.a; p.cs.mins += p.ss.mins; p.cs.seasons++; p.ss = null; }
       p.ban = 0; p.inj = 0; p.energy = 100;
     }
     car.captains = car.captains.filter(id => C.P(id)); car.devq = car.devq.filter(q => C.P(q.pid));
     const walk = []; const r = C.rng(C.now() & 0xffffff);
-    while (car.squad.length < 22) { const pos = ['GK', 'CB', 'CM', 'ST', 'LB', 'RB', 'LW', 'RW', 'DM'][car.squad.length % 9]; const p = C.genPlayer(r, { gender: car.gender, pos, rating: car.job.rating - 7, year: 1 }); p.from = 'Walk-on tryout'; car.squad.push(p); walk.push(p); }
+    while (false && car.squad.length < 22) {   // 1.08 (QA-104): no automatic walk-ons; refill by recruiting (or optional walk-on tryouts in Pre-season)
+      const pos = ['GK', 'CB', 'CM', 'ST', 'LB', 'RB', 'LW', 'RW', 'DM'][car.squad.length % 9]; const p = C.genPlayer(r, { gender: car.gender, pos, rating: car.job.rating - 7, year: 1 }); p.from = 'Walk-on tryout'; car.squad.push(p); walk.push(p); }
     C.assignNumbers(car.squad);
     // 1.04 (SCOPE_1.04 s2-s4): promotion, or the faux AI promotion (that college sits out as the spare and the old spare comes back)
     const e = car.sea && car.sea.end; let up = null;
@@ -361,7 +366,7 @@
       const list = (title, arr, f, fmt) => `<h3 class="jh">${title}</h3><div class="card">${arr.length ? arr.map((p, i) => `<button class="srow strow ${i ? '' : 'top'}" data-act="player" data-v="${p.id}"><span>${C.esc(p.fn[0] + '. ' + p.ln)} <small class="mutey">${p.pos}</small></span><b>${fmt(f(p))} <i class="chev">›</i></b></button>`).join('') : '<p class="note" style="margin:0">No matches yet.</p>'}</div>`;
       body = list('⚽ Goals', top('g', p => p.ss.g), p => p.ss.g, v => v) + list('🅰️ Assists', top('a', p => p.ss.a), p => p.ss.a, v => v) + list('⭐ Average rating', top('r', p => p.ss.apps >= 2 ? p.ss.rs / p.ss.apps : 0), p => p.ss.rs / p.ss.apps, v => v.toFixed(2)) + list('🏆 Player of the Match', top('p', p => p.ss.potm), p => p.ss.potm, v => v); }
     const endCard = S.end ? `<div class="card seasonend">${S.end.champ ? `<div class="scenebn" style="margin:-14px -14px 10px">${C.artSlot('trophy', C.sceneTrophy(col.c1, col.c2))}</div>` : ''}<b>${S.end.champ ? `🏆 Conference tournament champions! · finished ${C.ord(S.end.pos)} in the league` : `Season ${S.n} over · finished ${C.ord(S.end.pos)}${S.end.pos === 1 ? ' · conference champions' : ''}`}</b><p>${S.end.met ? '✔ Director\'s goal met' : '✖ Director\'s goal missed'}: ${GOALS[car.job.stars][0]}.${S.end.prize ? ` 💵 Prize money: <b>${C.full(S.end.prize)}</b>.` : ''}${S.end.champName && !S.end.champ ? ' Tournament champions: ' + C.esc(S.end.champName) + '.' : ''}</p>
-      <p class="note" style="margin:6px 0">${C.portalOpen() ? '🚪 The transfer window is open. Seniors graduate when the new season starts.' : 'Seniors graduate when the new season starts.'}</p>
+      <p class="note" style="margin:6px 0">${C.portalOpen() ? '🚪 The transfer window is open. 5th-years graduate when the new season starts.' : 'Seniors graduate when the new season starts.'}</p>
       ${S.end.promo ? `<div class="card" style="background:#dcfce7;color:#14532d;font-weight:900;margin:6px 0">🏆 Promoted! Next season: ${C.esc(C.TIERS[car.tier - 1].name)}</div>`
         : S.end.why === 'hq' ? `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;margin:6px 0">A promotion place, but ${C.BUILDINGS.hq.name} Lv ${C.TIER_GATE[car.tier - 1]} is needed. No promotion this season.</div>`
         : S.end.why === 'playoff' ? `<p class="note">Lost the promotion play-off.</p>` : ''}

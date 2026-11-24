@@ -6,6 +6,11 @@
     ['s1', 'S1 Pre-season ready', 'Season 1 Pre-season: every task done except the 5 friendlies. 22 players, a full XI. For the 1.05.01 Tactics checks'],
     ['s2', 'S2 Last match, 1st', 'Season 1, last league matchday, top of the table. Play it for the National Championship'],
     ['s3', 'S3 Last match, 3rd', 'Season 1, last league matchday, 3rd, Coaches\' Office Lv 10 (needed to play the play-off). Play it for the promotion play-off'],
+    ['h10', 'HQ 10 · Division IV', 'Every building Lv 10, research and coaches to match, a Division IV squad. Start of the regular season'],
+    ['h15', 'HQ 15 · Division III', 'Every building Lv 15, research and coaches to match, a Division III squad. Start of the regular season'],
+    ['h20', 'HQ 20 · Division II', 'Every building Lv 20, research and coaches to match, a Division II squad. Start of the regular season'],
+    ['h25', 'HQ 25 · Division I', 'Every building Lv 25, research and coaches to match, a Division I squad. Start of the regular season'],
+    ['h30', 'HQ 30 · Division I, maxed', 'Every building Lv 30 (the top), research nearly complete, a strong Division I squad. Start of the regular season'],
     ['s4', 'S4 Mid-season, losing run', 'Matchday 6 of 14, bottom half after a poor start, the Progression Pass open. Play the next league match: the "How to improve" reminder follows']];
   const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const set = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } };
@@ -38,7 +43,25 @@
     C.autoPick(); C.save(); return car;
   }
   const third = S => { S.teams.forEach((t, k) => { t.rating = k === 0 ? 58 : 40; }); S.teams.map((t, k) => k).filter(k => k && S.fx.some(f => f.md >= 1 && (f.h === k || f.a === k))).slice(0, 2).forEach(k => S.teams[k].rating = 70); };
+  // 1.08.01: higher-level saves. Every building at the Coaches' Office level (capped by its own maximum; locked ones only if unlocked),
+  // research in proportion, coaches levelled, the division the level leads to, a squad rated for it, and enough Booster $ and CP for a few upgrades.
+  function levelSave(L) {
+    const car = preseasonReady(5), t = L >= 25 ? 1 : L >= 20 ? 2 : L >= 15 ? 3 : 4, f = L / 30;
+    car.season = { 10: 3, 15: 5, 20: 7, 25: 9, 30: 11 }[L] || 3;
+    Object.keys(C.BUILDINGS).forEach(k => { const d = C.BUILDINGS[k], top = C.topLevel(k); car.b[k] = d.needHQ && d.needHQ > L ? 0 : Math.min(L, top); }); car.b.hq = L; car.queue = [];
+    car.pb = {}; C.PB.forEach(B => { const t0 = Math.min(B[3][0][3], Math.round(B[3][0][3] * f)); car.pb[B[0] + '.0'] = t0; if (B[3][1]) { const t1 = t0 >= 5 ? Math.min(B[3][1][3], Math.round(B[3][1][3] * f * .85)) : 0; car.pb[B[0] + '.1'] = t1; if (B[3][2]) car.pb[B[0] + '.2'] = t1 >= 5 ? Math.min(B[3][2][3], Math.round(B[3][2][3] * f * .7)) : 0; } });
+    const S = C.staffState(); C.refreshMarket(true); const g0 = C.acct().gold; C.acct().gold = 99999; car.cash = 9999999; (S.market || []).slice(0, 2).forEach(c => C.hire(c.id)); C.acct().gold = g0;
+    const LV = [20, 30, 40, 50, 60]; S.list.forEach(c => { c.level = Math.max(c.level, Math.min(LV[c.rar] || 20, Math.round(L * (0.8 + c.rar * .15)))); }); S.on = S.list.slice(0, C.staffSlots()).map(c => c.id);
+    car.tier = t; const base = C.ECON.tierRating[t] + 2 + (L === 30 ? 3 : 0); car.job.rating = base; car.job.coa = C.TIER_COA[t]; car.job.eq = car.job.limit = C.TIER_FUNDED[t]; car.job.pool = car.job.coa * car.job.eq;
+    const r = C.rng(L * 7919), POS = ['GK', 'GK', 'CB', 'CB', 'CB', 'LB', 'RB', 'CB', 'DM', 'CM', 'CM', 'AM', 'LM', 'RM', 'CM', 'ST', 'ST', 'LW', 'RW', 'ST', 'CB', 'CM'];
+    car.squad = POS.map((pos, i) => { const p = C.genPlayer(r, { gender: car.gender, pos, rating: base - 7 + Math.floor(r() * 8) + (i < 11 ? 1 : -1), year: 1 + Math.floor(r() * 5) }); p.from = 'Test scenario'; p.schol = Math.round(car.job.coa * (.2 + r() * .3) / 500) * 500; return p; });
+    C.assignNumbers(car.squad); car.squad.forEach(C.ensureAlts); car.captains = []; car.devq = []; car.tac = null; C.autoPick();
+    const nx = Math.min(L + 1, 30), cost = C.costOf('hq', nx); car.cash = Math.max(50000, (cost.cash || 0) * 3); car.cp = Math.max(500, (cost.cp || 0) * 3);
+    car.conf = null; car.sea = null; car.cpp = null; car.cyc = null; car.guide = undefined; C.meta().ms.freshTut = 1; C.ensureSeason(car); C.simFriendlies(); A.startseasonok(); C.ui.closeAll();
+    car.squad.forEach(p => { p.energy = 100; }); C.meta().main = C.MAIN.map(t => t[0]); C.save(); return car;   // the early Main tasks are behind a career at this level
+  }
   const BUILD = {
+    h10: () => levelSave(10), h15: () => levelSave(15), h20: () => levelSave(20), h25: () => levelSave(25), h30: () => levelSave(30),
     s1: () => preseasonReady(),
     s2: () => inSeason(S => { S.teams[0].rating = 60; }, S => S.R),
     s3: () => inSeason(third, S => S.R, C.TIER_GATE[4]),   // the play-off is only played with the HQ level for the tier above (otherwise a walkover)
@@ -52,7 +75,7 @@
     return `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Loading a scenario replaces the game on this device. Your own save is backed up first, and <b>Restore my save</b> brings it back.</div>
       ${LIST.map(([id, name, sub]) => `<button class="lrow" data-act="tscen" data-v="${id}"><span class="li">🧪</span><span class="lt"><b>${name}</b><small>${sub}</small></span><span class="lr">›</span></button>`).join('')}
       ${at ? `<button class="btn full pri" data-act="tscenrestore" style="margin-top:10px">↩ Restore my save</button><p class="note">Backed up ${new Date(at).toLocaleString()}. Loading more scenarios keeps this backup.</p>` : '<p class="note">No backup yet: it\'s made when you load your first scenario.</p>'}
-      <p class="note">The test list for this build is TEST_1.07.md.</p>`;
+      <p class="note">The test list for this build is TEST_1.08.md.</p>`;
   });
   A.tscen = v => { const it = LIST.find(x => x[0] === v); if (!it) return;
     C.ui.open('Load scenario', () => `<div class="card"><p style="font-weight:800">${it[1]}</p><p class="note">${it[2]}</p></div>

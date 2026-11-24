@@ -110,8 +110,8 @@
   // Squad and facilities show the program as it is now (the signing-day squad isn't saved).
   C.openYourCollege = () => C.ui.open('Your college', () => {
     const car = C.car(), j = car.job, col = C.college(), st = STORIES[j.story] || {}, ty = TYPES[j.type] || TYPES.sch;
-    const best = [...car.squad].sort((a, b) => b.rating - a.rating).slice(0, 3), yrN = ['', 'Fr', 'So', 'Jr', 'Sr'];
-    const mix = [1, 2, 3, 4].map(y => car.squad.filter(p => p.year === y).length), mixCols = ['#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8'];
+    const best = [...car.squad].sort((a, b) => b.rating - a.rating).slice(0, 3), yrN = ['', 'Fr', 'So', 'Jr', 'Sr', '5th'];
+    const mix = [1, 2, 3, 4, 5].map(y => car.squad.filter(p => p.year === y).length), mixCols = ['#93c5fd', '#60a5fa', '#3b82f6', '#1d4ed8', '#1e3a8a'];
     const fac = Object.keys(C.BUILDINGS).map(k => { const d = C.BUILDINGS[k], l = car.b[k];
       return `<div class="fac"><span>${d.icon}</span><b>${d.name}</b><em>${l ? 'Lv ' + l : C.locked(k) ? '🔒' : 'Empty plot'}</em></div>`; }).join('');
     return `<div class="jhead">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<div><b>${C.esc(col.full)}</b><small>${C.esc(col.mascot)} · ${car.gender === 'w' ? "Women's" : "Men's"} soccer · ${col.state} · Head coach since season 1</small></div></div>
@@ -137,7 +137,7 @@
       <h3 class="jh">👕 Squad now</h3>
       <div class="card">
         <div class="srow"><span>Best players</span><b>${best.map(p => `${p.pos} ${p.rating} (${yrN[p.year] || ''})`).join(' · ')}</b></div>
-        <div class="mixbar">${mix.map((n, i) => n ? `<i style="flex:${n};background:${mixCols[i]}">${['Fr', 'So', 'Jr', 'Sr'][i]} ${n}</i>` : '').join('')}</div>
+        <div class="mixbar">${mix.map((n, i) => n ? `<i style="flex:${n};background:${mixCols[i]}">${['Fr', 'So', 'Jr', 'Sr', '5th'][i]} ${n}</i>` : '').join('')}</div>
       </div>
       <h3 class="jh">🏛 Facilities now</h3>
       <div class="facs">${fac}</div>

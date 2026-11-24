@@ -1,7 +1,7 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc_v107';   // CLUB FC 1.07: its own save; carries over the 1.06 save on first open (never writes 1.05's)
-  const KEY_PREV = 'clubfc_v106';
+  const KEY = 'clubfc_v108';   // CLUB FC 1.08: its own save; carries over the 1.07 save on first open (never writes 1.05's)
+  const KEY_PREV = 'clubfc_v107';
   const KEY_9T = 'clubfc2_p9t'; // phase-9t's save: read only, never written by 1.00
   const FREE_SLOTS = 2;
 
@@ -34,6 +34,9 @@
       if (c.myCol && C.registerCustomCollege) C.registerCustomCollege(c);
       if (!c.m104) { c.m104 = 1; c.offers = []; delete c.reclass; delete c.band; if (!c.myCol) c.renameFree = true; if (c.pre) c.preLite = 1; }
       // 1.06 (QA-78): repair new careers (1.04+, own program, never renamed) that were wrongly given the short Pre-season on reopening
+      if (!c.m108) { c.m108 = 1; (c.squad || []).forEach(p => { if (p.promise === 'redshirt') p.promise = 'squad'; });   // 1.08 (Phase 3)
+        if (c.rec) { (c.rec.list || []).forEach(x => { if (x.want === 'redshirt') x.want = 'squad'; if (x.exp) { x.expM = (c.rclock || 0) + 3; delete x.exp; } if (x.rival && x.rival.end) { x.rival.endM = (c.rclock || 0) + 1; delete x.rival.end; } });
+          if (c.rec.portal) c.rec.portal.untilStart = true; } }
       if (!c.m106pl) { c.m106pl = 1; if (c.captains && c.captains.length > 1) c.captains = c.captains.slice(0, 1);   /* QA-69: one captain */ if (c.preLite && c.myCol && !c.renamed && c.season === 1 && c.pre) delete c.preLite; } });   // 1.04 (SCOPE_1.04 s8)
   };
   // Delete all data (Settings): leave an empty save in place. Also clears the 9t-import flag, so the import can be tried again after a wipe.

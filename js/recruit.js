@@ -1,10 +1,15 @@
 // Club FC: recruiting (Phase 4). Recruit routes, offer negotiation (Q6, Q7a) and the transfer portal window (Q7b).
 (function (C) {
   const H = 3.6e6;
-  const yrN = ['', 'Fr', 'So', 'Jr', 'Sr'];
+  const yrN = ['', 'Fr', 'So', 'Jr', 'Sr', '5th'];
   const SRC = { inbox: ['📨', 'Application'], camp: ['🏕', 'ID Camp'], jc: ['🚌', 'Junior college'], agency: ['🌍', 'Agency'], portal: ['🚪', 'Portal'] };
-  C.ROLES = { starter: ['⭐', 'Starter', "You'll start for us."], rotation: ['🔄', 'Rotation', "You'll get real games."], squad: ['⏳', 'Squad', "Good squad: you'll earn your chance."], redshirt: ['🎽', 'Redshirt', 'Train for a year, keep all 4 seasons.'] };
-  const ROLE_ORDER = ['redshirt', 'squad', 'rotation', 'starter'];
+  // 1.08 (R-48): no ordinary redshirt offer; only the medical redshirt (a season-ending injury keeps the year)
+  C.ROLES = { starter: ['⭐', 'Starter', "You'll start for us."], rotation: ['🔄', 'Rotation', "You'll get real games."], squad: ['⏳', 'Squad', "Good squad: you'll earn your chance."] };
+  const ROLE_ORDER = ['squad', 'rotation', 'starter'];
+  // the recruiting clock: matches you've played. Deadlines count matches, never real time.
+  C.rclock = () => (C.car() && C.car().rclock) || 0;
+  const MS = n => n <= 0 ? 'now' : n === 1 ? 'after your next match' : `in ${n} matches`;
+  C.recDue = x => x.rival ? MS(x.rival.endM - C.rclock()) : x.expM != null ? MS(x.expM - C.rclock()) : '';
   const XI_SLOTS = { GK: 1, CB: 2, LB: 1, RB: 1, DM: 1, CM: 2, AM: 1, LM: 1, RM: 1, LW: 1, RW: 1, ST: 1 };
   const POSLIST = ['GK', 'CB', 'CB', 'LB', 'RB', 'DM', 'CM', 'CM', 'AM', 'LM', 'RM', 'LW', 'RW', 'ST', 'ST'];
   const KITS = [['#dc2626', '#fff'], ['#2563eb', '#fff'], ['#111827', '#facc15'], ['#16a34a', '#fff'], ['#7c3aed', '#fde68a'], ['#f8fafc', '#1e3a8a'], ['#ea580c', '#111827'], ['#0891b2', '#f8fafc']];
@@ -16,7 +21,10 @@
   const rec = () => { const car = C.car(); if (!car.rec) car.rec = { list: [], nextApp: C.now() - 2.5 * appEvery(), campReady: 0, jcNext: 0, jobsUsed: 0, signed: 0, portal: null, last: null }; return car.rec; };
   const appEvery = () => 24 * H / ((3 + C.level('recruit')) * (1 + C.pbv('apps') + C.staffF('rec') * .3));
   C.jobsCap = () => 2 + Math.floor(C.level('recruit') / 3) + Math.floor(C.pbv('jobs'));
-  C.jobsLeft = () => Math.max(0, C.jobsCap() - rec().jobsUsed);
+  C.jobsHeld = () => C.car().squad.filter(p => p.cjob).length;
+  C.jobsLeft = () => Math.max(0, C.jobsCap() - C.jobsHeld());   // 1.08 (R-50): a job is held until the player leaves
+  C.houseCap = () => 1 + Math.floor(C.level('dorms') / 3);   // 1.08 (R-51): housing places from the Dorms (provisional)
+  C.houseLeft = () => Math.max(0, C.houseCap() - C.car().squad.filter(p => p.house).length);
   C.campCost = () => Math.round((1500 + 300 * C.level('recruit')) / 100) * 100;
   const isJC = () => C.car().job.type === 'juco', isAcad = () => C.car().job.type === 'acad';
   C.R = id => rec().list.find(r => r.id === id);
@@ -45,17 +53,19 @@
     const kit = KITS[Math.floor(r() * KITS.length)];
     Object.assign(p, { src, from, ask, want, kit, u: r(), scouted: src === 'camp', interest: Math.round(40 + r() * 30 + C.level('dorms') + C.eff('academic') + (src === 'camp' ? 10 : 0)), deal: { round: 0, last: null, low: 0 } });
     const t = C.now();
-    if (src === 'inbox') p.exp = t + 48 * H;
-    if (src === 'camp' || src === 'agency') p.exp = t + 72 * H;
-    if (r() < (src === 'portal' ? .6 : .35)) { p.rival = { c: rivals()[Math.floor(r() * rivals().length)], end: t + (4 + r() * 16) * H }; p.ask = Math.min(1, p.ask + .08); }
+    const ck = C.rclock(), car1 = C.car();
+    if (src === 'inbox') p.expM = ck + 3;   // 1.08: an application waits 3 of your matches
+    if (src === 'camp' || src === 'agency') p.expM = ck + 4;
+    if (src === 'portal') p.expM = null;   // portal players stay until the window closes (Start Season)
+    if (r() < (src === 'portal' ? .6 : .35)) { p.rival = { c: rivals()[Math.floor(r() * rivals().length)], endM: src === 'portal' ? null : ck + 1 + Math.floor(r() * 2) }; p.ask = Math.min(1, p.ask + .08); }
     return p;
   }
   // 1.04: a one-off batch of 12 freshman applications for a new career's Pre-season, with at least 2 defenders and 2 forwards.
   // While you're in Pre-season they don't expire and have no rivals; at Start Season they become ordinary applications (48 hours).
   C.genBatch = () => { const R = rec(), r = newRng(), fix = ['CB', 'LB', 'ST', 'LW'];
-    for (let i = 0; i < 12; i++) { const p = genRecruit(r, 'inbox', null, fix[i]); p.year = 1; delete p.exp; delete p.rival; p.batch = 1; R.list.push(p); }
+    for (let i = 0; i < 12; i++) { const p = genRecruit(r, 'inbox', null, fix[i]); p.year = 1; delete p.exp; delete p.expM; delete p.rival; p.batch = 1; R.list.push(p); }
     R.nextApp = C.now() + appEvery(); C.save(); };
-  C.releaseBatch = () => { const R = rec(), t = C.now(); R.list.forEach(p => { if (p.batch) { delete p.batch; p.exp = t + 48 * H; } }); C.save(); };
+  C.releaseBatch = () => { const R = rec(); R.list.forEach(p => { if (p.batch) { delete p.batch; p.expM = C.rclock() + 3; } }); C.save(); };
   const newRng = () => C.rng((C.now() ^ Math.floor(Math.random() * 1e9)) & 0x7fffffff);
 
   // ---------- clock: new applications, expiries, rivals, the JC list, the portal closing ----------
@@ -68,10 +78,10 @@
     if (apps) { changed = true; msgs.push(apps > 1 ? `📨 ${apps} new applications` : '📨 New application'); }
     if (!isJC() && t >= R.jcNext) { R.list = R.list.filter(x => x.src !== 'jc' || x.deal.round > 0); const r = newRng(); for (let i = 0; i < 4; i++) R.list.push(genRecruit(r, 'jc')); R.jcNext = t + 24 * H; changed = true; }
     for (const x of [...R.list]) {
-      if (x.rival && x.rival.end <= t) { msgs.push(`❌ ${x.fn} ${x.ln} committed to ${x.rival.c}`); drop(x.id); changed = true; }
-      else if (x.exp && x.exp <= t) { drop(x.id); changed = true; }
+      if (x.rival && x.rival.endM != null && x.rival.endM <= C.rclock()) { msgs.push(`❌ ${x.fn} ${x.ln} committed to ${x.rival.c}`); drop(x.id); changed = true; }
+      else if (x.expM != null && x.expM <= C.rclock()) { drop(x.id); changed = true; }
     }
-    if (R.portal && R.portal.end <= t) { msgs.push(closePortal()); changed = true; }
+    // 1.08: the portal stays open until Start Season (closed there), not for a number of real days
     if (changed) C.save();
     return { changed, msgs };
   };
@@ -101,7 +111,6 @@
     const diff = ROLE_ORDER.indexOf(o.role) - ROLE_ORDER.indexOf(x.want);
     let role = diff >= 0 ? .08 + (o.role === 'starter' ? .1 : 0) : -.15 * -diff, warn = '';
     if (!credible(x, o.role)) { role = Math.min(role, o.role === 'starter' ? .02 : -.05); warn = `${better(x)} better ${x.pos}${better(x) > 1 ? 's' : ''} on your roster: less convincing.`; }
-    if (o.role === 'redshirt' && x.year >= 2) { role = -.35; warn = 'Upperclassmen hate sitting out a season.'; }
     const appeal = C.level('dorms') * .008 + C.level('stadium') * .004 + (x.interest - 50) / 400 + C.pbv('pitch') + C.staffF('rec') * .08;
     const happy = Math.min(cover, 1.25) * .85 + role + appeal;
     return { val, schol, askAmt, happy, warn, coa };
@@ -116,9 +125,9 @@
     C.ui.open('Make an offer', offerHTML); };
   C.offerSet = (k, v) => { if (!O) return; const x = C.R(O.id);
     if (k === 'role') O.role = v;
-    else if (k === 'job' && !O.job && !C.jobsLeft()) return C.toast('No campus jobs left this season');
+    else if (k === 'job' && !O.job && !C.jobsLeft()) return C.toast('No campus jobs free: each is held until its player leaves');
     else if (k === 'aid' && !aidOK(x)) return C.toast('Academic aid needs a GPA of 3.3 or more');
-    else if (k === 'house' && !O.house && C.car().cash < HOUSE_VALUE) return C.toast('Not enough Booster $');
+    else if (k === 'house' && !O.house && !C.houseLeft()) return C.toast('No housing places free: more come with the Dorms');
     else O[k] = !O[k];
     x.offer = Object.assign({}, O); C.ui.refresh(); };
 
@@ -133,7 +142,7 @@
     const car = C.car(), c = calc(x, O), m = mood(c.happy), full = car.squad.length >= C.rosterCap(), maxP = C.maxPct();
     const chip = (k, icon, label, sub, ok) => `<button class="xchip ${O[k] ? 'on' : ''} ${ok ? '' : 'off'}" data-act="oset" data-v="${k}"><span>${icon}</span><b>${label}</b><small>${sub}</small></button>`;
     const reply = x.deal.last ? `<div class="reply ${x.deal.last.k}"><span>${x.deal.last.e}</span><p>${C.esc(x.deal.last.t)}</p></div>` : '';
-    return `<div class="ohead"><div class="relface">${rface(x)}</div><div style="flex:1"><b>${C.esc(x.fn)} ${C.esc(x.ln)}</b><small>${x.pos} · ${yrN[x.year]} · ${ratingTxt(x)}${x.rival ? ` · ⚔ ${C.esc(x.rival.c)} <span data-until="${x.rival.end}">${C.dur((x.rival.end - C.now()) / 1000)}</span>` : ''}</small></div>
+    return `<div class="ohead"><div class="relface">${rface(x)}</div><div style="flex:1"><b>${C.esc(x.fn)} ${C.esc(x.ln)}</b><small>${x.pos} · ${yrN[x.year]} · ${ratingTxt(x)}${x.rival ? ` · ⚔ ${C.esc(x.rival.c)} <span>${C.recDue(x)}</span>` : ''}</small></div>
         <div class="rounds">${[0, 1, 2].map(i => `<i class="${i < x.deal.round ? 'used' : i === x.deal.round ? 'now' : ''}"></i>`).join('')}<small>Round ${Math.min(3, x.deal.round + 1)} of 3</small></div></div>
       ${reply}
       <div class="card happy"><div class="hrow"><span class="he" id="oMoodE">${m[0]}</span><div style="flex:1"><small>Family happy · hopes for ${Math.round(x.ask * 100)}% (${C.short(c.askAmt)})</small>
@@ -143,10 +152,10 @@
       ${isAcad() ? '<p class="note" style="margin-top:0">Academic colleges give no athletic scholarships. Use aid, a campus job and the role.</p>'
         : `<input type="range" class="slider" id="oPct" min="0" max="${maxP}" step="5" value="${O.pct}" ${maxP ? '' : 'disabled'}>${poolBar(c.schol)}`}
       <h3 class="jh">Extras</h3>
-      <div class="xchips">${chip('job', '💼', 'Campus job', `${C.jobsLeft()} left · ${C.short(JOB_VALUE)}/yr`, C.jobsLeft() || O.job)}
+      <div class="xchips">${chip('job', '💼', 'Campus job', `${C.jobsLeft()} of ${C.jobsCap()} free · ${C.short(JOB_VALUE)}/yr`, C.jobsLeft() || O.job)}
         ${chip('aid', '📚', 'Academic aid', aidOK(x) ? `${C.short(aidAmt(x))} · college pays` : `Needs GPA 3.3 (${x.gpa})`, aidOK(x))}
-        ${chip('house', '🏠', 'Housing help', `💵 ${C.short(HOUSE_VALUE)} once`, car.cash >= HOUSE_VALUE || O.house)}
-        ${chip('raise', '📈', 'More next year', '+10% if they perform', !isAcad())}</div>
+        ${chip('house', '🏠', 'Housing place', `${C.houseLeft()} of ${C.houseCap()} free · no cost`, C.houseLeft() || O.house)}
+        ${chip('raise', '📈', 'More next year', '+10% if they play half the matches or the team meets its goal', !isAcad())}</div>
       <h3 class="jh">Role pitch <small class="devp">wants ${C.ROLES[x.want][0]} ${C.ROLES[x.want][1]}</small></h3>
       <div class="rolepick">${ROLE_ORDER.slice().reverse().map(k => `<button class="${O.role === k ? 'on' : ''}" data-act="orole" data-v="${k}"><span>${C.ROLES[k][0]}</span>${C.ROLES[k][1]}</button>`).join('')}</div>
       <p class="pitch">“${C.ROLES[O.role][2]}”${c.warn ? `<br><b class="warn">⚠ ${C.esc(c.warn)}</b>` : ''}</p>
@@ -178,7 +187,7 @@
     if (!isAcad() && needPct <= C.maxPct() && needPct - O.pct <= 25) t = `Could you do ${needPct}%?`;
     else if (!O.job && C.jobsLeft()) t = 'A campus job would really help us.';
     else if (ROLE_ORDER.indexOf(O.role) < ROLE_ORDER.indexOf(x.want)) t = `${x.fn} wants to hear they'll get games.`;
-    else if (!O.house && car.cash >= HOUSE_VALUE) t = 'Any help with housing?';
+    else if (!O.house && C.houseLeft()) t = 'Any help with housing?';
     else t = 'Can you find a little more?';
     d.last = { k: 'mid', e: '🤔', t }; C.save(); C.ui.refresh();
   };
@@ -186,9 +195,9 @@
   function sign(x, o) {
     const car = C.car(), R = rec(), c = calc(x, o);
     const p = Object.assign({}, x); ['src', 'ask', 'want', 'kit', 'u', 'scouted', 'interest', 'deal', 'offer', 'rival', 'exp'].forEach(k => delete p[k]);
-    p.schol = Math.round(c.schol / 500) * 500; p.acad = !!o.aid; p.cjob = !!o.job; p.house = !!o.house; p.raise = o.raise ? .1 : 0; p.promise = o.role; p.rs = o.role === 'redshirt'; p.from = x.from || SRC[x.src][1];
+    p.schol = Math.round(c.schol / 500) * 500; p.acad = !!o.aid; p.cjob = !!o.job; p.house = !!o.house; p.raise = o.raise ? .1 : 0; p.promise = o.role; p.rs = false; p.from = x.from || SRC[x.src][1];
     p.morale = 75; p.num = 0;
-    if (o.job) R.jobsUsed++; if (o.house) car.cash -= HOUSE_VALUE;
+    // 1.08: jobs and housing are held places (counted from the players), not used up or paid for
     p.joinS = car.season; p.joinN = C.leagueN ? C.leagueN() : 0;   // 1.06 (QA-73): promises count from here
     car.squad.push(p); C.assignNumbers(car.squad); drop(x.id); R.signed++; O = null; C.save();
     C.ui.closeAll(); C.render(); const col = C.college();
@@ -206,12 +215,12 @@
   C.appsNow = () => { const R = rec(); R.nextApp = C.now() - 3 * appEvery(); };
 
   // ---------- transfer portal (Q7b) ----------
-  C.portalOpen = () => { const p = C.car() && rec().portal; return p && p.end > C.now() ? p : null; };
+  C.portalOpen = () => { const p = C.car() && rec().portal; return p && (p.untilStart || p.end > C.now()) ? p : null; };   // 1.08: open until Start Season
   C.openPortalWindow = () => {
     const car = C.car(), R = rec(); if (C.portalOpen()) return false;
     const roles = C.roles(), top = [...car.squad].sort((a, b) => b.rating - a.rating).slice(0, 3).map(p => p.id), risk = {}, r = newRng();
     for (const p of car.squad) {
-      if (p.year >= 4) continue;
+      if (p.year >= 5) continue;
       const opts = [];
       if (car.tier >= 3 && top.includes(p.id)) opts.push(['up', car.tier === 5 ? .5 : .35]);
       if (!C.promiseKept(p, roles[p.id])) opts.push(['promise', p.promise === 'starter' ? .6 : .5]);
@@ -224,8 +233,7 @@
     }
     R.list = R.list.filter(x => x.src !== 'portal');
     ['down', 'down', 'down', 'side', 'side', 'grad'].forEach(s => { const x = genRecruit(r, 'portal', s); R.list.push(x); });
-    R.portal = { start: C.now(), end: C.now() + PORTAL_DAYS * 24 * H, risk };
-    R.list.filter(x => x.src === 'portal').forEach(x => { x.exp = R.portal.end; if (x.rival) x.rival.end = Math.min(x.rival.end, R.portal.end); });
+    R.portal = { start: C.now(), end: 0, untilStart: true, risk };
     C.save(); return true;
   };
   C.keepOption = (pid, k) => {
@@ -262,7 +270,7 @@
       tile('camp', '🏕', 'ID Camp', t < R.campReady ? `Ready in <span data-until="${R.campReady}">${C.dur((R.campReady - t) / 1000)}</span>` : `Run · 💵 ${C.full(C.campCost())}`, count('camp')),
       isJC() ? tile('agency', '🌍', 'Agency scout', `<i class="coin"></i> ${agencyGold()} a recruit`, count('agency')) : tile('jc', '🚌', 'JC transfers', `New in <span data-until="${R.jcNext}">${C.dur((R.jcNext - t) / 1000)}</span>`, count('jc')),
       isJC() ? '' : tile('agency', '🌍', 'Agency scout', `<i class="coin"></i> ${agencyGold()} a recruit`, count('agency')),
-      tile('portal', '🚪', 'Transfer portal', P ? `Open · closes in <span data-until="${P.end}">${C.dur((P.end - t) / 1000)}</span>` : 'Opens after the season', P ? count('portal') : 0, 'wide ' + (P ? 'live' : ''))
+      tile('portal', '🚪', 'Transfer portal', P ? (P.untilStart ? 'Open until Start Season' : `Open · closes in <span data-until="${P.end}">${C.dur((P.end - t) / 1000)}</span>`) : 'Opens after the season', P ? count('portal') : 0, 'wide ' + (P ? 'live' : ''))
     ].join('');
     let body = '';
     if (route === 'camp') body = `<button class="btn full pri" data-act="camp" ${t < R.campReady ? 'disabled' : ''} style="margin:10px 16px 0;width:calc(100% - 32px)">${t < R.campReady ? '🏕 Next camp in ' + C.dur((R.campReady - t) / 1000) : `🏕 Run an ID Camp · 💵 ${C.full(C.campCost())}`}</button><p class="note" style="padding:0 16px">3 players attend. You see them play, so their ratings are exact.</p>`;
@@ -272,7 +280,7 @@
     const list = R.list.filter(x => x.src === route).sort((a, b) => (b.rival ? 1 : 0) - (a.rival ? 1 : 0) || b.rating - a.rating);
     // same row style as Squad (round 5): plain avatar, plain year, top-3 position chips; recruit details where Squad shows condition
     const chips = x => `<div class="pmatch">${C.topPositions(x).map(([q, v]) => `<i style="background:${C.FITPILL[C.fit(x, q)]}">${q}${x.scouted ? v : ''}</i>`).join('')}
-        <span class="rinfo">${x.rival ? `<span class="rv">⚔ <span data-until="${x.rival.end}">${C.dur((x.rival.end - t) / 1000)}</span></span>` : ''}${isAcad() ? '' : `<span class="ask">🎓 Asks ${Math.round(x.ask * 100)}%</span>`}<span class="gpa ${x.gpa >= 3.3 ? 'ok' : ''}" title="${x.gpa >= 3.3 ? 'Qualifies for academic aid' : 'Academic aid needs GPA 3.3'}">📚 GPA ${x.gpa}</span></span></div>`;   // 1.06 (QA-64)
+        <span class="rinfo">${x.rival ? `<span class="rv">⚔ ${C.recDue(x)}</span>` : x.expM != null ? `<span class="rv exp">⏳ ${C.recDue(x)}</span>` : ''}${isAcad() ? '' : `<span class="ask">🎓 Asks ${Math.round(x.ask * 100)}%</span>`}<span class="gpa ${x.gpa >= 3.3 ? 'ok' : ''}" title="${x.gpa >= 3.3 ? 'Qualifies for academic aid' : 'Academic aid needs GPA 3.3'}">📚 GPA ${x.gpa}</span></span></div>`;   // 1.06 (QA-64)
     const cards = list.map(x => `<button class="prow rc" style="--mk:${C.RARITY[x.rar][1]}" data-act="recruit" data-v="${x.id}">
         <div class="av plain"><div class="face">${rface(x)}</div></div>
         <div class="pinfo"><b>${C.esc(x.fn)} ${C.esc(x.ln)} <small class="flag">${x.flag}</small></b>
@@ -283,11 +291,11 @@
     return `<div class="view scrolly">
       ${C.topBar(true)}<div class="phdr9 tall"><div class="row1"><div><b>Recruiting</b><small>👕 ${car.squad.length}/${C.rosterCap()} roster · 💼 ${C.jobsLeft()} campus jobs</small></div><button class="hlink" style="margin-left:auto" data-act="help" data-v="offers">?</button></div>
         <div class="res hres">${C.resBar()}</div><div class="chips">${C.schChip()}</div></div>
-      <div style="padding:0 16px">${C.advice('rec')}</div><div class="rtiles">${tiles}</div>${body}${cards || empty}</div>`;
+      <div style="padding:0 16px">${C.advice('rec')}${(() => { const car = C.car(), g = car.squad.filter(p => p.year >= 5 && !p.rs).length, after = car.squad.length - g, need = Math.max(0, C.PRE_MIN - after); return g ? `<div class="card gradw">🎓 <b>${g} 5th-year${g > 1 ? 's' : ''} graduate${g > 1 ? '' : 's'}</b> when the next season starts${need ? `: you'll need <b>${need} signing${need > 1 ? 's' : ''}</b> to stay at ${C.PRE_MIN}` : ''}. No walk-ons are added for you.</div>` : ''; })()}</div><div class="rtiles">${tiles}</div>${body}${cards || empty}</div>`;   // 1.08 (QA-104)
   };
 
   function portalHTML(P, R) {
-    if (!P) return `<div class="card portalc"><b>🚪 The portal is closed</b><p>It opens for ${PORTAL_DAYS} days after every season. Players can only move then.</p>${R.last ? lastHTML(R.last) : ''}<small class="mutey">It opens automatically when the season ends (or from Settings for testing).</small></div>`;
+    if (!P) return `<div class="card portalc"><b>🚪 The portal is closed</b><p>It opens when the season ends and stays open until you start the next season. Players can only move then.</p>${R.last ? lastHTML(R.last) : ''}<small class="mutey">It opens automatically when the season ends (or from Settings for testing).</small></div>`;
     const ids = Object.keys(P.risk).filter(id => C.P(id));
     const lvl = c => c >= .45 ? ['High', '#dc2626'] : c >= .25 ? ['Medium', '#f59e0b'] : ['Low', '#16a34a'];
     const rows = ids.map(id => { const p = C.P(id), k = P.risk[id], L = lvl(k.chance), why = C.REASONS[k.why];
@@ -323,7 +331,7 @@
         <small class="hometown">${x.flag} ${C.esc(x.town)} · GPA ${x.gpa}</small><small class="hometown">${src[0]} ${src[1]}${x.from ? ' · from ' + C.esc(x.from) : ''}</small></div></div>
       <div class="kpis" style="margin-top:12px"><div class="kpi"><b class="${x.scouted ? '' : 'fz'}" style="${x.scouted ? '' : 'font-size:18px'}">${ratingTxt(x)}</b><small>Rating</small></div><div class="kpi"><b style="color:var(--fit5)">${x.scouted ? x.pot : '?'}</b><small>Potential</small></div>
         <div class="kpi"><b style="font-size:22px">${C.ROLES[x.want][0]}</b><small>Wants</small></div><div class="kpi"><b>${Math.round(x.ask * 100)}%</b><small>Hopes</small></div></div>
-      ${x.rival ? `<div class="card rivalc">⚔ <b>${C.esc(x.rival.c)}</b> has made an offer. Decision in <b data-until="${x.rival.end}">${C.dur((x.rival.end - C.now()) / 1000)}</b></div>` : ''}
+      ${x.rival ? `<div class="card rivalc">⚔ <b>${C.esc(x.rival.c)}</b> has made an offer. They decide <b>${C.recDue(x)}</b></div>` : ''}
       <h3 class="jh">${x.pos === 'GK' ? 'Goalkeeping' : 'Skills'} ${x.scouted ? '' : '<small class="devp">estimates</small>'}</h3>
       <div class="card"><div class="attrs">${Object.keys(A).map(k => `<div class="attr ${C.KEY[x.pos].includes(k) ? 'key' : ''}"><span class="ai">${A[k][0]}</span><div class="ab"><div><span>${A[k][1]}</span><em>${attrTxt(x, x.a[k])}</em></div><div class="bar"><i style="width:${x.scouted ? x.a[k] : round5(x.a[k])}%;background:${x.scouted ? 'var(--fit4)' : 'var(--silver)'}"></i></div></div></div>`).join('')}</div></div>
       ${x.scouted ? '' : `<button class="btn full sec2" data-act="scout" data-v="${id}" style="margin-top:10px">🔍 Scout for exact ratings · <i class="cpi"></i> ${SCOUT_CP}</button>`}

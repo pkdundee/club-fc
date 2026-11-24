@@ -1714,3 +1714,6 @@ button.srow.strow .chev{font-style:normal;color:var(--mute);margin-left:4px}
 .phon{display:flex;flex-wrap:wrap;gap:6px}.phon span{background:#fef3c7;color:#92400e;border-radius:8px;padding:2px 8px;font-weight:800;font-size:12px}
 .cyout p{font-weight:700}
 .cymd{margin:10px 16px 0}.cymd .card{margin-top:8px}
+
+/* 1.08 (Phase 3, QA-104) */
+.gradw{background:#eff6ff;color:#1e3a8a;font-size:13px;font-weight:700;margin-top:8px}.mrs{background:#fef2f2;color:#991b1b;font-weight:700;font-size:13px}.rinfo .rv.exp{background:#e2e8f0;color:#334155}

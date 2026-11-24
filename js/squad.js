@@ -1,7 +1,7 @@
 // Club FC: squad screens (Phases 3–4). Squad list, player card, training plans, numbers, captains, release.
 (function (C) {
   let filter = 'all';
-  const yrN = ['', 'Fr', 'So', 'Jr', 'Sr'];
+  const yrN = ['', 'Fr', 'So', 'Jr', 'Sr', '5th'];
   const ec = e => e >= 80 ? '#16a34a' : e >= 60 ? '#84cc16' : e >= 40 ? '#eab308' : '#f97316';
   // morale in the 5-colour scheme: a face drawn green, lime, gold, orange or red
   C.moraleFace = (m, size = 18) => { const i = m >= 80 ? 0 : m >= 65 ? 1 : m >= 50 ? 2 : m >= 35 ? 3 : 4, col = ['#16a34a', '#84cc16', '#eab308', '#f97316', '#dc2626'][i], mouth = ['M7 13.5q5 5 10 0', 'M7.5 14q4.5 3 9 0', 'M8 15h8', 'M7.5 16q4.5-3 9 0', 'M7 17q5-5 10 0'][i];
@@ -67,7 +67,7 @@
       ${list.map(p => `<button class="prow" style="--mk:${p.inj ? '#dc2626' : ROLE[roles[p.id]][1]}" data-act="player" data-v="${p.id}">
         <div class="av plain"><div class="face">${C.faceOf(p)}</div><span class="num">${p.num}</span>${p.inj ? '<span class="injx"></span>' : ''}</div>
         <div class="pinfo"><b>${C.esc(p.fn)} ${C.esc(p.ln)}${car.captains.includes(p.id) ? ' <span class="cap">C</span>' : ''}${p.want && p.want !== p.num ? ' <span title="Wants a different number">🎟</span>' : ''}${C.inDev(p.id) ? ' <span title="In training">🏋️</span>' : ''}${p.ban ? ' <span title="Suspended">🟥</span>' : ''}</b>
-          <div class="tags">${selBadge(p, t, roles[p.id])}<span class="yr plain">${yrN[p.year]}</span>${STARS(p.stars)}${p.rs ? '<span class="sch">🎽</span>' : ''}</div>
+          <div class="tags">${selBadge(p, t, roles[p.id])}<span class="yr plain">${yrN[p.year]}</span>${STARS(p.stars)}${p.rs ? '<span class="sch" title="Medical redshirt: this season doesn\'t count">🩹 MRS</span>' : ''}</div>
           <div class="pmatch">${C.topPositions(p).map(([x, v]) => `<i style="background:${C.FITPILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}</div></div>
         <div class="rate3"><b>${p.rating}</b>${p.up > 0 ? `<span class="up">▲ +${p.up}</span>` : ''}<span class="cond" style="color:${C.condCol(p.energy)}">${C.condRing(p.energy, 13)} ${Math.round(p.energy)}%</span>${voiceFace(p)}</div></button>`).join('')}
       <p class="note" style="padding:0 16px">★ Development Stars come from completing training plans. Freshness drops when players play and comes back when they rest a match.</p></div></div>`;
@@ -121,6 +121,7 @@
         <button class="btn sm2" data-act="numbers" data-v="${id}">Change</button></div>
       ${p.want && p.want !== p.num ? `<button class="btn full sec2" data-act="numpick" data-v="${id}|${p.want}" style="margin-top:8px">Give No. ${p.want} (🎟 1)${car.squad.some(x => x.num === p.want) ? ' · worn by ' + C.esc(C.sn(car.squad.find(x => x.num === p.want))) : ''}</button>` : ''}
       ${(p.honors || []).length ? `<div class="card phon">${p.honors.map(h => `<span>🏅 ${C.esc(h.t)} <small>S${h.s}</small></span>`).join('')}</div>` : ''}
+      ${p.rs ? `<div class="card mrs">🩹 <b>Medical redshirt</b>: a season-ending injury, so this season doesn't count. ${C.sn(p)} stays a ${['', 'Freshman', 'Sophomore', 'Junior', 'Senior', '5th-year'][p.year]} next season.</div>` : ''}
       <h3 class="jh">Package <button class="hlink" data-act="academic" data-v="">📚</button></h3>
       <div class="card srows"><div class="srow"><span>Scholarship</span><b>${p.acad ? '📚 Academic aid (college pays)' : p.schol ? `🎓 ${C.money(p.schol)}/yr · ${Math.round(p.schol / car.job.coa * 100)}% of costs` : 'Walk-on (no athletic aid)'}</b></div>
         ${p.bonus ? `<div class="srow"><span>🎁 Season bonus</span><b>+${C.money(p.bonus)} · ends when the next season starts</b></div>` : ''}

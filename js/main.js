@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.07 · 24 Nov 2026';
+  C.BUILD = 'CLUB FC 1.08.01 · 24 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -223,7 +223,7 @@
         if (v === 'prog') C.PROGRAM_B.forEach(k => car.b[k] = Math.min(C.tierCap(), car.b[k] + 3));
         if (v === 'season') { C.simRestOfSeason(); C.ui.closeAll(); C.tab = 'season'; C.render(); C.toast('Season skipped to the end'); break; }
         if (v === 'camp' && car.rec) car.rec.campReady = 0;
-        if (v === 'portal') { const m = C.portalOpen() ? C.closePortalNow() : (C.openPortalWindow(), '🚪 Transfer window open for 3 days'); C.save(); C.ui.closeAll(); C.tab = 'recruit'; C.setRoute('portal'); C.toast(m); break; }
+        if (v === 'portal') { const m = C.portalOpen() ? C.closePortalNow() : (C.openPortalWindow(), '🚪 Transfer window open until Start Season'); C.save(); C.ui.closeAll(); C.tab = 'recruit'; C.setRoute('portal'); C.toast(m); break; }
         if (v === 'finish') { car.queue.forEach(q => q.end = C.now()); (car.devq || []).forEach(q => q.end = C.now()); (car.pbq || []).forEach(q => q.end = C.now()); C.tickDev(); C.tickPB(); }
         C.save(); C.tick(); C.render(); C.ui.refresh(); C.toast('Done'); break;
       case 'resetcar': C.ui.open('Reset this career', () => `<p class="note" style="font-size:14px">This deletes <b>${C.esc(C.college().full)}</b> only: its campus, squad, research and items. Your Coins, purchases (builders and slots) and other careers stay.</p><button class="btn full danger" data-act="resetcaryes">Yes, reset this career</button><button class="btn full sec2" data-act="back" style="margin-top:6px">Cancel</button>`, { popup: true }); break;   // 1.04.01 (QA-43)
