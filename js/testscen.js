@@ -34,7 +34,8 @@
   function inSeason(rate, last, hqTo) {
     const car = preseasonReady(hqTo); C.simFriendlies(); A.startseasonok(); C.ui.closeAll();
     const S = C.sea(), keep = S.teams.map(t => t.rating); rate(S); C.simToMatchday(last(S)); S.teams.forEach((t, k) => { t.rating = keep[k]; });
-    car.squad.forEach(p => { p.energy = 100; p.inj = 0; p.injury = null; p.ban = 0; }); car.guide = {}; C.meta().ms.freshTut = 1; C.autoPick(); C.save(); return car;
+    car.squad.forEach(p => { p.energy = 100; p.inj = 0; p.injury = null; p.ban = 0; }); delete car.guide; C.meta().ms.freshTut = 1;   // 1.05.03 (QA-96): removed, not emptied; the first league match rebuilds it
+    C.autoPick(); C.save(); return car;
   }
   const third = S => { S.teams.forEach((t, k) => { t.rating = k === 0 ? 58 : 40; }); S.teams.map((t, k) => k).filter(k => k && S.fx.some(f => f.md >= 1 && (f.h === k || f.a === k))).slice(0, 2).forEach(k => S.teams[k].rating = 70); };
   const BUILD = {
@@ -51,7 +52,7 @@
     return `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Loading a scenario replaces the game on this device. Your own save is backed up first, and <b>Restore my save</b> brings it back.</div>
       ${LIST.map(([id, name, sub]) => `<button class="lrow" data-act="tscen" data-v="${id}"><span class="li">🧪</span><span class="lt"><b>${name}</b><small>${sub}</small></span><span class="lr">›</span></button>`).join('')}
       ${at ? `<button class="btn full pri" data-act="tscenrestore" style="margin-top:10px">↩ Restore my save</button><p class="note">Backed up ${new Date(at).toLocaleString()}. Loading more scenarios keeps this backup.</p>` : '<p class="note">No backup yet: it\'s made when you load your first scenario.</p>'}
-      <p class="note">The test list for this build is TEST_1.05.02.md.</p>`;
+      <p class="note">The test list for this build is TEST_1.05.03.md.</p>`;
   });
   A.tscen = v => { const it = LIST.find(x => x[0] === v); if (!it) return;
     C.ui.open('Load scenario', () => `<div class="card"><p style="font-weight:800">${it[1]}</p><p class="note">${it[2]}</p></div>
