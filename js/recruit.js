@@ -237,7 +237,8 @@
   };
   const nilCost = () => 1000 * (8 - C.car().tier);
   C.letGo = pid => { const P = C.portalOpen(); if (!P) return; leave(pid); delete P.risk[pid]; C.save(); };
-  function leave(pid) { const car = C.car(); car.squad = car.squad.filter(p => p.id !== pid); car.captains = car.captains.filter(x => x !== pid); car.devq = car.devq.filter(q => q.pid !== pid); }
+  function leave(pid) { const car = C.car(); const lp = C.P(pid); if (lp) (car.leftLog = car.leftLog || []).push({ s: car.season, n: C.sn(lp), pos: lp.pos });   // 1.07 (QA-103)
+    car.squad = car.squad.filter(p => p.id !== pid); car.captains = car.captains.filter(x => x !== pid); car.devq = car.devq.filter(q => q.pid !== pid); }
   function closePortal() {
     const car = C.car(), R = rec(), P = R.portal, r = newRng(), left = [], stayed = [];
     for (const pid in P.risk) { const p = C.P(pid); if (!p) continue; const k = P.risk[pid];

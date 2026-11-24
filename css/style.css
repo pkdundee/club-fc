@@ -1699,3 +1699,18 @@ button.srow.strow .chev{font-style:normal;color:var(--mute);margin-left:4px}
 /* 1.06 (QA-97): Finish Now completed in place */
 .instok{background:#dcfce7;color:#166534;font-weight:900;border-radius:10px;padding:6px 10px;margin:6px 0;animation:instfade 4s forwards}
 @keyframes instfade{0%,75%{opacity:1}100%{opacity:0}}
+
+/* 1.07: the season cycle */
+.cyhero{text-align:center;padding:10px 6px}.cyhero b{display:block;font-size:20px;font-weight:900;margin:8px 0 4px}.cyhero p{font-weight:700;color:var(--mute);margin:0}.cyhero.sm b{font-size:16px}
+.cypost b{display:block;margin-bottom:6px}.cystep{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line)}.cystep:last-of-type{border-bottom:0}.cystep i{font-style:normal;font-weight:900;width:18px;color:var(--mute)}
+.cystep span b{display:block;font-size:13px;margin:0}.cystep span small{color:var(--mute);font-weight:700}.cystep.on i,.cystep.on b{color:#ea580c}.cystep.done i{color:var(--fit5)}
+.cyphase{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:6px 2px;font-size:11px;font-weight:900;color:var(--mute);white-space:nowrap}.cyphase span{padding:3px 8px;border-radius:8px;background:var(--card)}.cyphase span.on{background:#ea580c;color:#fff}.cyphase i{font-style:normal}
+.cydl{background:#fef3c7;color:#92400e}.cydl b{color:#92400e}.cydl p{margin:4px 0 6px;font-weight:700}
+.cybr b{display:block}.cyrnd small{display:block;font-weight:900;color:var(--mute);margin-top:6px}.cytie{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;font-size:12px;font-weight:800;padding:3px 0}.cytie span:last-child{text-align:right}.cytie.me{color:#ea580c}
+.bigm{background:linear-gradient(135deg,#7c2d12,#ea580c);color:#fff;border-radius:14px;padding:10px 12px;margin:8px 0}.bigm b{font-size:15px}.bigm p{margin:4px 0;font-weight:700}.bigfr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-weight:800;font-size:13px}
+.cylast{background:#fee2e2;color:#991b1b;border-radius:10px;padding:6px 8px;font-weight:900;font-size:12.5px;margin-top:6px}
+.awc{display:flex;gap:10px;align-items:center;background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:10px 12px;margin-bottom:8px}.awc span{font-size:26px}.awc small{display:block;color:var(--mute);font-weight:800}.awc b{display:block;font-size:15px}.awc em{font-style:normal;font-size:12px;color:var(--mute);font-weight:700}.awc.me{outline:2px solid #f59e0b;background:#fffbeb}
+.srow.meb span,.srow.meb b{color:#b45309}.nsdots{display:flex;justify-content:center;gap:6px;margin:10px 0}.nsdots i{width:8px;height:8px;border-radius:50%;background:#cbd5e1}.nsdots i.on{background:#ea580c}
+.phon{display:flex;flex-wrap:wrap;gap:6px}.phon span{background:#fef3c7;color:#92400e;border-radius:8px;padding:2px 8px;font-weight:800;font-size:12px}
+.cyout p{font-weight:700}
+.cymd{margin:10px 16px 0}.cymd .card{margin-top:8px}

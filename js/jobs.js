@@ -119,6 +119,7 @@
       ${car.myCol ? '' : `<div class="card jcard"><b>${C.esc(st.title || '')}</b><p>${C.esc(st.text || '')}</p></div>`}
       ${(car.trophies || []).length ? `<h3 class="jh">🏆 Trophy cabinet</h3><div class="card srows">${car.trophies.map(t => `<div class="srow"><span>🏆 ${C.esc(t.title)}</span><b>Season ${t.season} · ${C.esc((C.TIERS[t.tier] || {}).name || 'Tier ' + t.tier)}</b></div>`).join('')}</div>` : ''}
       ${C.adOfficeCard ? C.adOfficeCard() : ''}
+      ${(car.honors || []).length ? `<h3 class="jh">🎖 Honors</h3><div class="card srows">${car.honors.slice().reverse().map(h => `<div class="srow"><span>${C.esc(h.t)}</span><b>${C.esc(h.n)} · Season ${h.s}</b></div>`).join('')}</div>` : ''}
       <h3 class="jh">📜 Your appointment</h3>
       <div class="kgrid">
         <div class="k"><small>Athletic director's goal</small><b>${GOAL[j.stars] || ''}</b></div>

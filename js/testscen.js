@@ -52,7 +52,7 @@
     return `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Loading a scenario replaces the game on this device. Your own save is backed up first, and <b>Restore my save</b> brings it back.</div>
       ${LIST.map(([id, name, sub]) => `<button class="lrow" data-act="tscen" data-v="${id}"><span class="li">🧪</span><span class="lt"><b>${name}</b><small>${sub}</small></span><span class="lr">›</span></button>`).join('')}
       ${at ? `<button class="btn full pri" data-act="tscenrestore" style="margin-top:10px">↩ Restore my save</button><p class="note">Backed up ${new Date(at).toLocaleString()}. Loading more scenarios keeps this backup.</p>` : '<p class="note">No backup yet: it\'s made when you load your first scenario.</p>'}
-      <p class="note">The test list for this build is TEST_1.06.md.</p>`;
+      <p class="note">The test list for this build is TEST_1.07.md.</p>`;
   });
   A.tscen = v => { const it = LIST.find(x => x[0] === v); if (!it) return;
     C.ui.open('Load scenario', () => `<div class="card"><p style="font-weight:800">${it[1]}</p><p class="note">${it[2]}</p></div>

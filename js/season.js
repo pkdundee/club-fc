@@ -135,7 +135,7 @@
     if (keep) keep.forEach(([p, en, inj, injury, ban, reinj]) => { p.energy = Math.round(en - Math.max(0, en - p.energy) * .5); p.inj = inj; p.injury = injury; p.ban = ban; p.reinj = reinj; });   // 1.04.01 (QA-44): half the Freshness, no injuries
     // the rest of the matchday
     const rr = C.rng(S.md * 1013 + S.n);
-    S.fx.filter(x => x.md === S.md && x !== f && x.hs == null).forEach(x => quickResult(x, rr, x.ko));
+    S.fx.filter(x => x.md === S.md && x !== f && x.hs == null).forEach(x => x.upw != null ? upperWins(x, x.upw, rr) : quickResult(x, rr, x.ko));   // 1.07 (QA-98): other ties after yours
     const rep = { md: S.md, h: f.h, a: f.a, hs: f.hs, as: f.as, pens: f.pens, stats: m.st, ev: m.events.filter(e => ['goal', 'red', 'yellow', 'injury', 'penalty'].includes(e.type)).map(e => ({ min: e.min, side: e.side, type: e.type, who: e.who ? e.who.p.fn[0] + '. ' + e.who.p.ln : '' })),
       rated: rated.map(x => ({ side: x.e.side, id: x.e.p.id, n: x.e.p.fn[0] + '. ' + x.e.p.ln, pos: x.e.slot.pos, r: x.r, g: x.e.st.g, a: x.e.st.a, mins: Math.round(x.e.st.mins) })), potm: potm ? { side: potm.e.side, n: potm.e.p.fn + ' ' + potm.e.p.ln } : null,
       gains, gate, bc, repUp, conf: car.adConf - conf0, my, staffUps, flu, injuries: m.ents.filter(e => e.side === my && e.injured).map(e => { const p = C.P(e.p.id); return p && p.injury ? [p.fn[0] + '. ' + p.ln, p.injury.icon, p.injury.name, p.injury.season ? 'season' : p.inj] : null; }).filter(Boolean), cp: f.friendly ? 0 : res > 0 ? 15 : res === 0 ? 8 : 5, friendly: !!f.friendly, bonus: C.bonusLines() };
@@ -149,14 +149,14 @@
     if (S.phase === 'reg' && S.md === R + 1) {
       if (C.isTransition && C.isTransition(car)) { S.regPos = C.myPos(); return finishSeason(); }
       const t = C.table(), top = t.slice(0, 4).map(x => x.i); S.regTable = t.map(x => x.i);
-      S.fx.push({ md: R + 1, h: top[0], a: top[3], ko: 1, wx: 0 }, { md: R + 1, h: top[1], a: top[2], ko: 1, wx: 1 }); S.phase = 'tourn'; S.regPos = C.myPos();
+      S.fx.push({ md: R + 1, h: top[0], a: top[3], ko: 1, wx: 0 }, { md: R + 1, h: top[1], a: top[2], ko: 1, wx: 1 }); S.phase = 'tourn'; S.regPos = C.myPos(); if (C.cycleLeagueEnd) C.cycleLeagueEnd(S);
       if (!top.includes(0)) { simKO(); playoff(); }
     } else if (S.phase === 'tourn' && S.md === R + 2) {
       const semis = S.fx.filter(f => f.md === R + 1 && f.ko), a = winnerOf(semis[0]), b = winnerOf(semis[1]);
       S.fx.push({ md: R + 2, h: a, a: b, ko: 1, wx: 2 });
       if (a !== 0 && b !== 0) { simKO(); playoff(); }
     } else if (S.phase === 'tourn' && S.md === R + 3) playoff();
-    else if (S.phase === 'po' && S.md === R + 4) { const mine = S.fx.find(f => f.po && f.md === R + 3 && (f.h === 0 || f.a === 0));
+    else if (S.phase === 'po' && S.md === R + 4) { const mine = S.fx.find(f => f.po && f.md === R + 3 && (f.h === 0 || f.a === 0)); S.fx.filter(f => f.po && f.md === R + 3 && f.hs == null && f.upw != null).forEach(f => upperWins(f, f.upw, C.rng(S.n * 733 + 1)));
       if (mine && mine.hs != null && winnerOf(mine) === 0) { const other = S.fx.find(f => f.po && f.md === R + 3 && f !== mine); S.fx.push({ md: R + 4, h: winnerOf(other), a: 0, ko: 1, po: 1, pof: 1, n: 1, wx: 2 }); }
       else { S.md = R + 7; finishSeason(); } }
     else if (S.phase === 'po' && S.md >= R + 5) { S.md = R + 7; finishSeason(); }
@@ -180,7 +180,8 @@
     const l3 = S.regTable[2], l4 = S.regTable[3];
     const sA = { md: R + 3, h: ups[0], a: l4, ko: 1, po: 1, n: 1, wx: 3 }, sB = { md: R + 3, h: ups[1], a: l3, ko: 1, po: 1, n: 1, wx: 3 }; S.fx.push(sA, sB); S.poUps = ups;
     const mine = [sA, sB].find(f => f.a === 0), other = [sA, sB].find(f => f !== mine);
-    upperWins(other || sA, (other || sA).h, r); if (!mine) { upperWins(sB, sB.h, r); return nationalsOrEnd(); }
+    if (!mine) { upperWins(sA, sA.h, r); upperWins(sB, sB.h, r); return nationalsOrEnd(); }
+    other.upw = other.h;   // 1.07 (QA-98): played after your semi-final
     if (!C.hqOkFor(car.tier - 1)) { mine.wo = mine.h; mine.hs = 3; mine.as = 0; S.md = R + 7; return finishSeason(); }
     // you play your semi-final; the final follows in advance() if you win it
   }
@@ -190,7 +191,9 @@
   const NREG = () => Object.keys(C.REGIONS);
   function natField() { const car = C.car(), S = car.sea, R = S.R || 14; if (S.nat) return S.nat;
     const r = C.rng(S.n * 9157 + car.tier * 31 + (car.created & 0xffff)), mine = C.regionOf(C.college(car).state), base = C.tierBase(car.tier), tbl = C.table();
-    const champ = S.regTable[0], cp = (tbl.find(t => t.i === champ) || { pts: 0 }).pts, field = [{ ti: champ, pts: cp, rating: S.teams[champ].rating }];
+    const fin0 = S.fx.find(f => f.md === R + 2 && f.ko && !f.po && f.hs != null), tw = fin0 ? winnerOf(fin0) : S.regTable[0], tl = fin0 ? (tw === fin0.h ? fin0.a : fin0.h) : S.regTable[1];
+    const champ = tw === 0 && car.tier > 1 && (S.regPos === 3 || S.regPos === 4) ? tl : tw;   // 1.07 (QA-98): the tournament winner qualifies; never in both the play-off and the National Championship
+    const cp = (tbl.find(t => t.i === champ) || { pts: 0 }).pts, field = [{ ti: champ, pts: cp, rating: S.teams[champ].rating }];
     const taken = new Set(S.teams.map(t => String(t.name).toLowerCase()).concat(C.COLLEGES.map(c => String(c.short).toLowerCase()))), names = (C.genCollegeNames ? C.genCollegeNames(r, 30) : []).filter(nm => !taken.has(String(nm.short).toLowerCase())).slice(0, 7),   /* 1.06 (QA-99): never a name already in the game */ pal = ['#991b1b', '#c2410c', '#15803d', '#0f766e', '#0369a1', '#1e3a8a', '#6d28d9', '#86198f', '#1e293b', '#b45309'];
     NREG().filter(g => g !== mine).slice(0, 7).forEach((g, k) => { const nm = names[k] || { full: g + ' College', short: g }, st = C.REGIONS[g][Math.floor(r() * C.REGIONS[g].length)];
       S.teams.push({ guest: 1, natc: 1, region: g, state: st, name: nm.short, full: nm.full, abbr: nm.full.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3), c1: pal[Math.floor(r() * pal.length)], c2: '#f8fafc',
@@ -201,15 +204,15 @@
   const seedOf = ti => (C.sea().nat.field.find(x => x.ti === ti) || { seed: 9 }).seed;
   const natFix = (md, a, b, final) => { const hs = seedOf(a) <= seedOf(b); return { md, h: hs ? a : b, a: hs ? b : a, ko: 1, nat: 1, natf: final ? 1 : 0, n: final ? 1 : 0, wx: 4 }; };
   function natRound(md, pairs, final) { const S = C.sea(), r = C.rng(S.n * 4111 + md); const fx = pairs.map(([a, b]) => natFix(md, a, b, final)); S.fx.push(...fx);
-    fx.filter(f => f.h !== 0 && f.a !== 0).forEach(f => quickResult(f, r, true)); return fx; }
+    if (!fx.some(f => f.h === 0 || f.a === 0)) fx.forEach(f => quickResult(f, r, true)); return fx; }   // 1.07 (QA-98): with you in the round, the others are played after your match
   function nationalsOrEnd() { const car = C.car(), S = car.sea, R = S.R || 14; const N = natField(), by = k => N.field.find(x => x.seed === k).ti;
     natRound(R + 3, [[by(1), by(8)], [by(4), by(5)], [by(2), by(7)], [by(3), by(6)]]);
-    if (N.mine) { S.phase = 'nat'; S.md = R + 3; return; }
+    if (N.mine) { S.phase = 'nat'; S.md = R + 3; if (C.cycleQueue) C.cycleQueue('natann'); return; }
     simNat(); S.md = R + 7; finishSeason(); }
   function simNat() { const S = C.sea(), R = S.R || 14; let guard = 0; while (guard++ < 3) { const last = Math.max(...S.fx.filter(f => f.nat).map(f => f.md)), round = S.fx.filter(f => f.nat && f.md === last);
       round.filter(f => f.hs == null).forEach(f => quickResult(f, C.rng(S.n + f.md * 7), true)); if (round.length === 1) break;
       const w = round.map(winnerOf); natRound(last + 1, [[w[0], w[1]], [w[2], w[3]]].slice(0, w.length / 2), w.length === 2); } }
-  function natNext() { const S = C.sea(), R = S.R || 14, prev = S.fx.filter(f => f.nat && f.md === S.md - 1), mine = prev.find(f => f.h === 0 || f.a === 0);
+  function natNext() { const S = C.sea(), R = S.R || 14, prev = S.fx.filter(f => f.nat && f.md === S.md - 1), mine = prev.find(f => f.h === 0 || f.a === 0); prev.filter(f => f.hs == null && f !== mine).forEach(f => quickResult(f, C.rng(S.n + f.md * 7), true));
     if (!mine || mine.hs == null || winnerOf(mine) !== 0 || prev.length === 1) { simNat(); S.md = R + 7; return finishSeason(); }
     const w = prev.map(winnerOf); natRound(S.md, w.length === 4 ? [[w[0], w[1]], [w[2], w[3]]] : [[w[0], w[1]]], w.length === 2); }
   C.genNat = () => natField();
@@ -231,17 +234,19 @@
     let aiUp = null; if (car.tier > 1 && !S.legacy && S.regTable) { const c = S.regTable.slice(0, 2).find(i => i !== 0); aiUp = c != null ? c : null; }   // lower-league AI sides never win the play-off (QA-56)
     // 1.05: the National Championship: simulated if you weren't in it; rewards by the round you reached (x the tier step)
     let nat = null; if (!S.legacy && S.regTable) { if (!S.nat) { natField(); natRound(R + 3, (() => { const by = k => S.nat.field.find(x => x.seed === k).ti; return [[by(1), by(8)], [by(4), by(5)], [by(2), by(7)], [by(3), by(6)]]; })()); }
-      if (S.fx.some(f => f.nat && f.hs == null)) simNat();
+      if (S.fx.some(f => f.nat && f.hs == null) || !S.fx.some(f => f.nat && f.natf && f.hs != null)) simNat();   // 1.07: play it out to the final (before, a play-off season stopped after the quarter-finals)
       const fin3 = S.fx.filter(f => f.nat).sort((a, b) => b.md - a.md)[0], nchamp = fin3 && fin3.hs != null ? winnerOf(fin3) : null, myN = S.fx.filter(f => f.nat && (f.h === 0 || f.a === 0));
       const reached = !myN.length ? null : nchamp === 0 ? 'champ' : myN.length === 3 ? 'f' : myN.length === 2 ? 'sf' : 'qf', kk = 6 - car.tier;
       const NP = { qf: [3000, 2], sf: [6000, 4], f: [10000, 6], champ: [20000, 10] }, np = reached ? NP[reached] : null;
       if (np) { car.cash += np[0] * kk; car.rep = C.clamp((car.rep ?? 10) + np[1], 0, 100); }
       if (reached === 'champ') (car.trophies = car.trophies || []).push({ season: S.n, tier: car.tier, title: 'National Champions' });
+      if (st.champ && !(car.trophies || []).some(t => t.season === S.n && t.title === 'Conference tournament champions')) (car.trophies = car.trophies || []).push({ season: S.n, tier: car.tier, title: 'Conference tournament champions' });   // 1.07 (QA-105)
       nat = { reached, prize: np ? np[0] * kk : 0, rep: np ? np[1] : 0, champName: nchamp != null ? S.teams[nchamp].name : '' }; }
     S.end = { pos, met, champ: st.champ, final: st.final, champName: champ != null ? S.teams[champ].name : '', prize, promo, why, nat, aiUp: aiUp != null ? S.teams[aiUp].col : null, aiUpName: aiUp != null ? S.teams[aiUp].name : '', toTier: promo ? car.tier - 1 : null };
     S.phase = 'done'; S.md = R + 8;
     if (!C.portalOpen()) C.openPortalWindow();
     C.careerSeasonEnd();
+    if (C.cycleSeasonEnd) C.cycleSeasonEnd(S);   // 1.07 (QA-105, QA-106): awards night, then the promotion decision
   }
   // 1.04 (SCOPE_1.04 s6): "Simulate the rest" of the Pre-season friendlies: results only
   C.simFriendlies = () => { const S = C.sea(), r = C.rng(S.n * 977 + 5); S.fx.filter(f => f.friendly && f.md < 1 && f.hs == null).forEach(f => quickResult(f, r)); if (S.md < 1) S.md = 1; C.save(); };
@@ -355,7 +360,7 @@
       const top = (k, f, n = 5) => sq.slice().sort((a, b) => f(b) - f(a)).filter(p => f(p) > 0).slice(0, n);
       const list = (title, arr, f, fmt) => `<h3 class="jh">${title}</h3><div class="card">${arr.length ? arr.map((p, i) => `<button class="srow strow ${i ? '' : 'top'}" data-act="player" data-v="${p.id}"><span>${C.esc(p.fn[0] + '. ' + p.ln)} <small class="mutey">${p.pos}</small></span><b>${fmt(f(p))} <i class="chev">›</i></b></button>`).join('') : '<p class="note" style="margin:0">No matches yet.</p>'}</div>`;
       body = list('⚽ Goals', top('g', p => p.ss.g), p => p.ss.g, v => v) + list('🅰️ Assists', top('a', p => p.ss.a), p => p.ss.a, v => v) + list('⭐ Average rating', top('r', p => p.ss.apps >= 2 ? p.ss.rs / p.ss.apps : 0), p => p.ss.rs / p.ss.apps, v => v.toFixed(2)) + list('🏆 Player of the Match', top('p', p => p.ss.potm), p => p.ss.potm, v => v); }
-    const endCard = S.end ? `<div class="card seasonend">${S.end.champ ? `<div class="scenebn" style="margin:-14px -14px 10px">${C.artSlot('trophy', C.sceneTrophy(col.c1, col.c2))}</div>` : ''}<b>${S.end.champ ? '🏆 Conference champions!' : `Season ${S.n} over · finished ${C.ord(S.end.pos)}`}</b><p>${S.end.met ? '✔ Director\'s goal met' : '✖ Director\'s goal missed'}: ${GOALS[car.job.stars][0]}.${S.end.prize ? ` 💵 Prize money: <b>${C.full(S.end.prize)}</b>.` : ''}${S.end.champName && !S.end.champ ? ' Champions: ' + C.esc(S.end.champName) + '.' : ''}</p>
+    const endCard = S.end ? `<div class="card seasonend">${S.end.champ ? `<div class="scenebn" style="margin:-14px -14px 10px">${C.artSlot('trophy', C.sceneTrophy(col.c1, col.c2))}</div>` : ''}<b>${S.end.champ ? `🏆 Conference tournament champions! · finished ${C.ord(S.end.pos)} in the league` : `Season ${S.n} over · finished ${C.ord(S.end.pos)}${S.end.pos === 1 ? ' · conference champions' : ''}`}</b><p>${S.end.met ? '✔ Director\'s goal met' : '✖ Director\'s goal missed'}: ${GOALS[car.job.stars][0]}.${S.end.prize ? ` 💵 Prize money: <b>${C.full(S.end.prize)}</b>.` : ''}${S.end.champName && !S.end.champ ? ' Tournament champions: ' + C.esc(S.end.champName) + '.' : ''}</p>
       <p class="note" style="margin:6px 0">${C.portalOpen() ? '🚪 The transfer window is open. Seniors graduate when the new season starts.' : 'Seniors graduate when the new season starts.'}</p>
       ${S.end.promo ? `<div class="card" style="background:#dcfce7;color:#14532d;font-weight:900;margin:6px 0">🏆 Promoted! Next season: ${C.esc(C.TIERS[car.tier - 1].name)}</div>`
         : S.end.why === 'hq' ? `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;margin:6px 0">A promotion place, but ${C.BUILDINGS.hq.name} Lv ${C.TIER_GATE[car.tier - 1]} is needed. No promotion this season.</div>`
@@ -365,7 +370,7 @@
           : N.champName ? `<p class="note">🇺🇸 National champions: <b>${C.esc(N.champName)}</b>.</p>` : ''; })() : ''}
       ${S.end.aiUpName && !S.end.promo ? `<p class="note">📰 ${C.esc(S.end.aiUpName)} were promoted.</p>` : ''}${C.careerCardHTML()}<button class="btn full pri" data-act="nextseason">Start Season ${S.n + 1}${C.portalOpen() ? ' (closes the window)' : ''}</button></div>` : '';
     return `<div class="view scrolly">${C.topBar(false)}<div class="phdr9 tall"><div class="row1"><div><b>Matchday</b><small>Season ${S.n} · ${C.esc(S.conf)} · ${S.end ? 'Finished' : C.table()[0].p ? 'Pos ' + C.ord(C.myPos()) : 'Preseason'} · ${car.adConf >= 60 ? '😀' : car.adConf >= 40 ? '🙂' : car.adConf >= 25 ? '😐' : '😟'} Director</small></div></div></div>
-      <div class="homebn">${C.gamedayHTML()}</div><button class="mapbn" data-act="collegemap" data-v=""><span>🗺</span><div><b>College Map</b><small>${C.COLLEGES.length} programs across 5 tiers</small></div><em>›</em></button>${C.streakHTML ? `<div style="margin:10px 16px 0">${C.streakHTML()}</div>` : ''}${calStrip()}${formCard()}
+      <div class="homebn">${C.gamedayHTML()}</div>${C.cycleMatchdayHTML ? `<div class="cymd">${C.cycleMatchdayHTML()}</div>` : ''}<button class="mapbn" data-act="collegemap" data-v=""><span>🗺</span><div><b>College Map</b><small>${C.COLLEGES.length} programs across 5 tiers</small></div><em>›</em></button>${C.streakHTML ? `<div style="margin:10px 16px 0">${C.streakHTML()}</div>` : ''}${calStrip()}${formCard()}
       ${endCard}<div class="filters">${[['fix', '📅 Fixtures'], ['table', '📊 Table'], ['stats', '⭐ Stats']].map(([k, n]) => `<button class="f ${view === k ? 'on' : ''}" data-act="seav" data-v="${k}">${n}</button>`).join('')}</div>
       <div style="padding:0 16px 16px">${body}</div></div>`;
   };

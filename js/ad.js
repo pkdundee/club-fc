@@ -3,6 +3,7 @@
   const AD = { name: 'Linda Haynes', title: 'Athletic Director' };
   const GOAL = { 3: 'Top 4 and reach the conference final', 2: 'Finish in the top half', 1: 'Stay out of the bottom 2' };
   C.AD = AD;
+  C.goalText = () => { const car = C.car(); return car ? GOAL[car.job.stars] || '' : ''; };   // 1.07 (QA-103)
   // 1.06 (QA-89): the Director's Office, easy to find: a gold card with today's confidence and the season goal
   C.adOfficeCard = () => { const car = C.car(); if (!car) return ''; const face = ['😟', '🙁', '😐', '🙂', '😀'][Math.min(4, Math.floor((car.adConf ?? 50) / 20))];
     return `<button class="adcard" data-act="ad"><span class="adc1">🏛</span><span class="adc2"><b>Director's Office</b><small>${face} Goal: ${C.esc(GOAL[car.job.stars] || '')}</small></span><em>›</em></button>`; };

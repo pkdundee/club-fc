@@ -168,7 +168,7 @@
     C.save(); };
   const row = (ic, t, sub, act, v) => `<button class="lrow" data-act="${act}" data-v="${v}"><span class="li">${ic}</span><span class="lt"><b>${t}</b><small>${sub}</small></span><span class="lr"><span class="btn sm2 pri">Go</span></span></button>`;
   // 1.05.03 (QA-96): guideShow tolerates a reminder state without its list
-  C.guideShow = () => { const car = C.car(); if (!car || !car.guide || !(car.guide.pend || []).length || C.ui.isOpen()) return false; const k = car.guide.pend.shift(); C.save();
+  C.guideShow = () => { const car = C.car(); if (!car || !car.guide || !(car.guide.pend || []).length || C.ui.isOpen()) return false; if ((car.sea && car.sea.phase !== 'reg') || (car.cyc && car.cyc.q.length)) { car.guide.pend = []; return false; }   // 1.07: season-cycle moments come first; no campus reminders in the postseason const k = car.guide.pend.shift(); C.save();
     const S = C.sea(), need = C.gateNeed(), hq = C.level('hq');
     if (k === 'pace') { const st = C.gateStep();
       C.ui.open('From the Director', () => `<div class="raytake" style="margin-top:0"><span>⏱</span><p><b>The season is moving faster than the campus</b>${S.md > S.R ? S.R : Math.min(S.md, S.R)} of ${S.R} league matches are played and your ${B('hq')} is Lv ${hq}. Promotion needs Lv ${need}, and a builder is free.</p></div>

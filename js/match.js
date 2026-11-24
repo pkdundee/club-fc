@@ -92,7 +92,7 @@
     const home = M.my === 0;
     host().innerHTML = `<div class="pre"><div class="prehd"><small>${label(f)} · ${w[0]} ${w[1]} · 👥 ${M.att.toLocaleString()}</small>
         <div class="vsrow"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'}</small></div><span class="vsx">VS${(k => `<em class="rtcmp ${k.c}">${k.me} v ${oppT.rating}<br>${k.w}</em>`)(C.rateCmp(oppT.rating))}</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
-        <div class="radio">📻 K${col.abbr} campus radio with Duane &amp; Bev</div></div>
+        <div class="radio">${C.radioLine && C.radioLine(f) ? C.radioLine(f) : `📻 K${col.abbr} campus radio with Duane &amp; Bev`}</div></div>${C.bigMatchHTML ? C.bigMatchHTML(f) : ''}
       ${xs.filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${xs.filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
       <div class="lus"><div><h4>${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div><div><h4>${M.opp.form}</h4>${oppRows}</div></div>
       <div class="prebtns"><button class="btn sec2" data-act="mtac"><i class="xoi"></i> Tactics</button><button class="btn sec2" data-act="mquick">⏩ Quick result</button><button class="btn sec2" data-act="mleave">✕</button></div>

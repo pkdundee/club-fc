@@ -120,6 +120,7 @@
         <div style="flex:1"><b style="font-size:15px">Wears No. ${p.num}</b><br><small class="mutey">${p.want ? (p.want === p.num ? 'Their favourite number · 😀' : `Wants No. ${p.want} · morale lower until they get it`) : 'No preference'}</small></div>
         <button class="btn sm2" data-act="numbers" data-v="${id}">Change</button></div>
       ${p.want && p.want !== p.num ? `<button class="btn full sec2" data-act="numpick" data-v="${id}|${p.want}" style="margin-top:8px">Give No. ${p.want} (🎟 1)${car.squad.some(x => x.num === p.want) ? ' · worn by ' + C.esc(C.sn(car.squad.find(x => x.num === p.want))) : ''}</button>` : ''}
+      ${(p.honors || []).length ? `<div class="card phon">${p.honors.map(h => `<span>🏅 ${C.esc(h.t)} <small>S${h.s}</small></span>`).join('')}</div>` : ''}
       <h3 class="jh">Package <button class="hlink" data-act="academic" data-v="">📚</button></h3>
       <div class="card srows"><div class="srow"><span>Scholarship</span><b>${p.acad ? '📚 Academic aid (college pays)' : p.schol ? `🎓 ${C.money(p.schol)}/yr · ${Math.round(p.schol / car.job.coa * 100)}% of costs` : 'Walk-on (no athletic aid)'}</b></div>
         ${p.bonus ? `<div class="srow"><span>🎁 Season bonus</span><b>+${C.money(p.bonus)} · ends when the next season starts</b></div>` : ''}
