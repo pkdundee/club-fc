@@ -111,7 +111,7 @@
     const diff = ROLE_ORDER.indexOf(o.role) - ROLE_ORDER.indexOf(x.want);
     let role = diff >= 0 ? .08 + (o.role === 'starter' ? .1 : 0) : -.15 * -diff, warn = '';
     if (!credible(x, o.role)) { role = Math.min(role, o.role === 'starter' ? .02 : -.05); warn = `${better(x)} better ${x.pos}${better(x) > 1 ? 's' : ''} on your roster: less convincing.`; }
-    const appeal = C.level('dorms') * .008 + C.level('stadium') * .004 + (x.interest - 50) / 400 + C.pbv('pitch') + C.staffF('rec') * .08;
+    const appeal = C.level('dorms') * .01 + C.level('stadium') * .004 + (x.interest - 50) / 400 + C.pbv('pitch') + C.staffF('rec') * .08;
     const happy = Math.min(cover, 1.25) * .85 + role + appeal;
     return { val, schol, askAmt, happy, warn, coa };
   }

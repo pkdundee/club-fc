@@ -42,8 +42,9 @@
   // ---------- everything the Playbook and staff add, in one place ----------
   C.teamBonus = () => {
     const f = C.staffF, tac = f('tac') * .04;
-    return { sho: C.pbv('sho') + tac, def: C.pbv('def') + tac, pas: C.pbv('pas') + tac, gk: f('gk') * .06, oop: Math.min(.6, C.pbv('oop')), set: C.pbv('set'), late: C.pbv('late'),
-      inj: Math.min(.6, C.pbv('inj') + f('snc') * .3), drain: f('snc') * .08 };
+    const an = C.eff('video') * .001;   // 1.09: Analysis Suite, against the opponent it scouted
+    return { sho: C.pbv('sho') + tac + an, def: C.pbv('def') + tac + an, pas: C.pbv('pas') + tac + an, gk: f('gk') * .06, oop: Math.min(.6, C.pbv('oop')), set: C.pbv('set'), late: C.pbv('late'),
+      inj: Math.min(.6, C.pbv('inj') + f('snc') * .3 + C.eff('gym') * .01), drain: f('snc') * .08 };   // 1.09: the Gym's −1% injury chance a level
   };
   C.bonusLines = () => {
     const out = [];

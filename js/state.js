@@ -1,7 +1,7 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc_v108';   // CLUB FC 1.08: its own save; carries over the 1.07 save on first open (never writes 1.05's)
-  const KEY_PREV = 'clubfc_v107';
+  const KEY = 'clubfc_v109';   // CLUB FC 1.09: its own save; carries over the 1.08 save on first open (never writes 1.05's)
+  const KEY_PREV = 'clubfc_v108';
   const KEY_9T = 'clubfc2_p9t'; // phase-9t's save: read only, never written by 1.00
   const FREE_SLOTS = 2;
 

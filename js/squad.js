@@ -13,7 +13,7 @@
     let line = '', issue = null;
     if (st && st.k === 'no') { line = "Coach, I'm not getting the games I was promised."; issue = 'promise'; }
     else if (st && st.k === 'risk') { line = "Coach, you promised me minutes. I need to play more."; issue = 'promise'; }
-    else if (p.want && p.want !== p.num) { line = `Coach, I'd love to wear No. ${p.want}.`; issue = 'num' + p.want; }
+    else if (p.want && p.want !== p.num && !(C.wishOnHold && C.wishOnHold(p))) { line = `Coach, I'd love to wear No. ${p.want}.`; issue = 'num' + p.want; }
     else if (!p.promise && n >= 4 && apps / n < .3 && !p.inj) { line = "I'd like more minutes, Coach."; issue = 'mins'; }
     else if (p.inj) line = "I'm working hard to get back, Coach.";
     else if (p.morale < 45) line = "I'm not enjoying it here right now.";
@@ -117,8 +117,9 @@
       <h3 class="jh">Development ${STARS(p.stars)} <small class="devp">${p.stars >= 5 ? 'all 5 stars' : `${p.dev}/${p.stars + 2} plans to next ★`}</small></h3>${devHTML}${C.gearRowHTML ? C.gearRowHTML(p) : ''}
       <h3 class="jh">Squad number</h3>
       <div class="card numcard"><svg class="jersey" viewBox="0 0 60 60"><path d="M18 6 L24 4 Q30 9 36 4 L42 6 L56 14 L50 26 L44 23 V56 H16 V23 L10 26 L4 14Z" fill="${kitOf(p).k1}" stroke="${kitOf(p).k2}" stroke-width="1.5"/><text x="30" y="44" text-anchor="middle" font-family="Graduate,serif" font-size="20" fill="${kitOf(p).k2}">${p.num}</text></svg>
-        <div style="flex:1"><b style="font-size:15px">Wears No. ${p.num}</b><br><small class="mutey">${p.want ? (p.want === p.num ? 'Their favourite number · 😀' : `Wants No. ${p.want} · morale lower until they get it`) : 'No preference'}</small></div>
+        <div style="flex:1"><b style="font-size:15px">Wears No. ${p.num}</b><br><small class="mutey">${p.want ? (p.want === p.num ? 'Their cherished number · 😀' : C.wishOnHold && C.wishOnHold(p) ? `Would like No. ${p.want} when it's free` : `Wants No. ${p.want} · −2 morale a match until they get it (at most −8)`) : 'No preference'}</small></div>
         <button class="btn sm2" data-act="numbers" data-v="${id}">Change</button></div>
+      ${p.want && p.want !== p.num ? (C.wishOnHold && C.wishOnHold(p) ? `<p class="note" style="margin:8px 0 0">⏸ No. ${p.want} belongs to a better-rated player, so this wish is on hold: no morale hit. They'll ask again when it's free.</p>` : `<button class="btn full sec2" data-act="numother" data-v="${id}" style="margin-top:8px">Ask to choose another number (morale −2 once)</button>`) : ''}
       ${p.want && p.want !== p.num ? `<button class="btn full sec2" data-act="numpick" data-v="${id}|${p.want}" style="margin-top:8px">Give No. ${p.want} (🎟 1)${car.squad.some(x => x.num === p.want) ? ' · worn by ' + C.esc(C.sn(car.squad.find(x => x.num === p.want))) : ''}</button>` : ''}
       ${(p.honors || []).length ? `<div class="card phon">${p.honors.map(h => `<span>🏅 ${C.esc(h.t)} <small>S${h.s}</small></span>`).join('')}</div>` : ''}
       ${p.rs ? `<div class="card mrs">🩹 <b>Medical redshirt</b>: a season-ending injury, so this season doesn't count. ${C.sn(p)} stays a ${['', 'Freshman', 'Sophomore', 'Junior', 'Senior', '5th-year'][p.year]} next season.</div>` : ''}

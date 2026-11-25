@@ -93,7 +93,7 @@
   C.BUILDINGS = {
     hq: { name: "Coaches' Office", icon: '🏛', owner: 'program', start: 0, mult: 1.6,
       desc: 'Your headquarters. Its level caps every other building and unlocks slots. It earns nothing itself.',
-      stats: l => [['🧱', 'Building cap', 'Lv ' + l], ['🧢', 'Staff slots', l >= 5 ? '+1 earned' : 'Lv 5: +1']] },
+      stats: l => [['🧱', 'Building cap', 'Lv ' + l], ['🧢', 'Coach slots', '4, all open']] },
     stadium: { name: 'Stadium', icon: '🏟', owner: 'school', start: 0, mult: 1.3,
       desc: 'Seats, gate income and home advantage. Bigger crowds, louder atmosphere.',
       stats: l => [['seat', 'Seats', seats(l).toLocaleString()], ['💵', 'Gate income / home game', C.money(seats(l) * 3)], ['📣', 'Home advantage', pct(1 + .2 * l)]] },
@@ -104,23 +104,23 @@
       desc: 'Strength and conditioning: faster energy recovery and fewer injuries.',
       stats: l => [['🔋', 'Freshness recovery', '+' + pct(1.5 * l)], ['🩹', 'Injury chance', '−' + pct(l)]] },
     med: { name: 'Sports Medicine', icon: '🩺', owner: 'program', start: 0, mult: 1.1,
-      desc: 'Faster recovery from injuries, and free recovery items each day.',
-      stats: l => [['⏱', 'Injury recovery', '+' + pct(3 * l)], ['💊', 'Recovery items / day', 1 + Math.floor(l / 5)]] },
+      desc: 'Faster recovery from injuries, and physio and team sessions after matches.',
+      stats: l => [['⏱', 'Chance of a faster injury recovery', pct(3 * l)], ['🩺', 'Physio sessions', '+1 every ' + Math.max(1, Math.round(3 - l / 10)) + ' match' + (Math.max(1, Math.round(3 - l / 10)) > 1 ? 'es' : '')], ['👥', 'Team sessions', '+1 every ' + Math.max(1, 3 - Math.floor(l / 10)) + ' match' + (Math.max(1, 3 - Math.floor(l / 10)) > 1 ? 'es' : '')]] },
     lab: { name: 'Performance Lab', icon: '🔬', owner: 'program', start: 0, mult: 1.15,
       desc: 'Sports science and data. Produces Coaching Points for your Playbook.',
       stats: l => [['<i class="cpi"></i>', 'Coaching Points / hour', C.prod.lab(l)], ['🔬', 'Research speed', '+' + pct(l)]] },
     recruit: { name: 'Recruiting Office', icon: '✉️', owner: 'program', start: 0, mult: 1.15,
       desc: 'More applications, sharper scouting and more campus jobs to offer recruits.',
-      stats: l => [['📨', 'Applications / day', 3 + l], ['🔍', 'Rating range', '±' + Math.max(1, 4 - Math.floor(l / 3))], ['💼', 'Campus jobs / season', 2 + Math.floor(l / 3)]] },
+      stats: l => [['📨', 'Applications / day', 3 + l], ['🔍', 'Rating range', '±' + Math.max(1, 4 - Math.floor(l / 3))], ['💼', 'Campus job places', 2 + Math.floor(l / 3)]] },
     video: { name: 'Analysis Suite', icon: '🎞', owner: 'program', start: 0, mult: 1.15,
-      desc: "Coaches' film and opponent analysis. Opponent reports arrive in a later update.",   // 1.03: listed effects weren't applied; the card shows only the truth
-      stats: l => [['📄', 'Opponent reports', 'Coming in a later update']] },
+      desc: "Coaches' film and opponent analysis: a report before every match, and an edge against the side you scouted.",   // 1.03: listed effects weren't applied; the card shows only the truth
+      stats: l => [['📄', 'Opponent report', l ? 'Before every match' : '—'], ['🎯', 'Shooting, defending, passing v the scouted side', '+' + pct(.1 * l)]] },
     media: { name: 'Media Center', icon: '📡', owner: 'school', start: 0, mult: 1.1,
       desc: 'Broadcasts and streams your matches, and gets the program noticed. Earns money after every home match and adds Reputation for every win.',
       stats: l => [['📺', 'Broadcast money / home match', C.money(C.broadcastPay(l, false, C.car ? (C.car() || {}).tier || 5 : 5))], ['🏆', 'After a win', '×1.5'], ['⭐', 'Reputation from wins', '+' + pct(C.mediaRep(l))]] },
     dorms: { name: 'Dorms', icon: '🏠', owner: 'school', start: 0, mult: 1.1,
       desc: 'Campus life: bigger roster and more appeal to recruits.',
-      stats: l => [['👕', 'Roster size', Math.min(28, 24 + Math.ceil(l / 3))], ['💛', 'Recruit appeal', '+' + pct(l)]] },
+      stats: l => [['👕', 'Roster size', Math.min(28, 24 + Math.ceil(l / 3))], ['🏠', 'Housing places', 1 + Math.floor(l / 3)], ['💛', 'Recruit appeal', '+' + pct(l)]] },
     academic: { name: 'Academic Center', icon: '📚', owner: 'school', start: 0, mult: 1.2,
       desc: "Every player's package, grades and wellbeing in one place. Support here keeps players happy and impresses recruits.",
       stats: l => [['📚', 'Academic aid', '+' + pct(l)], ['😀', 'Morale after each match', '+' + (l * .1).toFixed(1)], ['🚪', 'Transfer portal risk', '−' + pct(Math.min(30, l * 1.5))], ['💛', 'Recruit interest', '+' + l]] },
@@ -137,8 +137,8 @@
       desc: 'Team meals and a fueling station. Players grow stronger and faster, and feel better after matches.',
       stats: l => [['💪', 'Pace and Physical growth', '+' + pct(C.physGrowth(l))], ['😀', 'Morale after each match', '+' + C.nutMorale(l).toFixed(2)]] },
     skills: { name: 'Skills Field', icon: '🎯', owner: 'school', start: 0, mult: 1.0,
-      desc: 'Home of the skills mini-games (coming later): more free tries each day.',
-      stats: l => [['🎯', 'Free mini-game tries / day', 3 + Math.floor(l / 3)]] }
+      desc: 'Skills sessions: finished training plans can earn an extra point.',
+      stats: l => [['🎯', 'Chance of an extra point from a training plan', pct(2 * l)]] }
   };
 
   // Unlocks (9q, FEEDBACK 84): a new career starts with blank plots; the Coaches' Office is built first, then 7 more.

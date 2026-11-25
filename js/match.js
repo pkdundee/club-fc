@@ -92,7 +92,7 @@
     const home = M.my === 0;
     host().innerHTML = `<div class="pre"><div class="prehd"><small>${label(f)} · ${w[0]} ${w[1]} · 👥 ${M.att.toLocaleString()}</small>
         <div class="vsrow"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'}</small></div><span class="vsx">VS${(k => `<em class="rtcmp ${k.c}">${k.me} v ${oppT.rating}<br>${k.w}</em>`)(C.rateCmp(oppT.rating))}</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
-        <div class="radio">${C.radioLine && C.radioLine(f) ? C.radioLine(f) : `📻 K${col.abbr} campus radio with Duane &amp; Bev`}</div></div>${C.bigMatchHTML ? C.bigMatchHTML(f) : ''}
+        <div class="radio">${C.radioLine && C.radioLine(f) ? C.radioLine(f) : `📻 K${col.abbr} campus radio with Duane &amp; Bev`}</div></div>${C.bigMatchHTML ? C.bigMatchHTML(f) : ''}${C.scoutHTML ? C.scoutHTML(f) : ''}
       ${xs.filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${xs.filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
       <div class="lus"><div><h4>${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div><div><h4>${M.opp.form}</h4>${oppRows}</div></div>
       <div class="prebtns"><button class="btn sec2" data-act="mtac"><i class="xoi"></i> Tactics</button><button class="btn sec2" data-act="mquick">⏩ Quick result</button><button class="btn sec2" data-act="mleave">✕</button></div>
@@ -121,7 +121,7 @@
     C.simToEnd(M.m); finishUI();
   };
   // the same options for watched and quick matches, so both give the same result; the game profile follows the career (men's or women's)
-  function matchOpts() { return { knockout: !!M.f.ko, managedPens: true, gender: C.car().gender, trace: !!M.debug, med: [C.level('med') * (M.my === 0 ? 1 : 0), C.level('med') * (M.my === 1 ? 1 : 0)], edge: M.my === 1 ? .04 * (1 - C.travelCut(C.eff('transport')) / 100) : .04 }; }
+  function matchOpts() { return { knockout: !!M.f.ko, managedPens: true, gender: C.car().gender, trace: !!M.debug, med: [C.level('med') * (M.my === 0 ? 1 : 0), C.level('med') * (M.my === 1 ? 1 : 0)], edge: M.my === 1 ? .04 * (1 - C.travelCut(C.eff('transport')) / 100) : (1 + .2 * C.eff('stadium')) / 100 }; }   // 1.09: the Stadium's home advantage, by level
   function rate() { const m = M.m, b = m.ball, my = M.my; const near = Math.min(b.y, PL - b.y) < 30 || (b.fl && b.fl.type !== 'pass');
     return M.speed === .25 ? 1 : M.speed === 1 ? (near ? 2.3 : 5.5) : M.speed === 5 ? 17 : 34; }
   function loop(now) {
@@ -182,7 +182,7 @@
   C.redForm = f => { C.reshape(M.m, M.my, f); M.redOff = -1; C.$$('.rcf button').forEach(b => b.classList.toggle('pri', b.dataset.v === f)); const n = C.$('#rpitch'); if (n) n.innerHTML = C.livePitchSVG(M.my, -1); };
   C.redGo = () => { const n = C.$('#redc'); if (n) n.remove(); M.playing = true; };
   function say(t) { if (!t) return; const n = C.$('#tick'); if (n) { n.textContent = t; n.classList.remove('tpop'); void n.offsetWidth; n.classList.add('tpop'); } }
-  function feed(e) { const n = C.$('#mfeed'); if (!n) return; const ic = { goal: '⚽', yellow: '🟨', red: '🟥', injury: '🩹', sub: '🔁', penalty: '🎯' }[e.type];
+  function feed(e) { if (e.type === 'sub') updPend(); const n = C.$('#mfeed'); if (!n) return; const ic = { goal: '⚽', yellow: '🟨', red: '🟥', injury: '🩹', sub: '🔁', penalty: '🎯' }[e.type];
     const who = e.who ? C.sn(e.who.p) : '', mine = e.side === M.my;
     const txt = `${C.esc(who)}${e.type === 'sub' && e.extra && e.extra.off ? ' for ' + C.esc(e.extra.off.p.ln) : ''}`;   // 1.06 (QA-77): home on the left, away on the right (as the score bar)
     n.insertAdjacentHTML('afterbegin', e.side === 1 ? `<div class="r ${mine ? 'me' : ''}">${txt} ${ic} <b>${e.min}'</b></div>` : `<div class="${mine ? 'me' : ''}"><b>${e.min}'</b> ${ic} ${txt}</div>`); }
@@ -207,7 +207,7 @@
       <div class="pitchw"><canvas id="pitch"></canvas></div><div class="tick" id="tick"></div>
       <div class="mkey"><span>${sw(K[M.my])} <b>${C.esc(T[M.my].short)}</b> (you) <span id="mdir">attack ▲</span></span><span>${sw(K[1 - M.my])} ${C.esc(T[1 - M.my].short)}</span></div>
       <div class="spd spd9"><button class="mplay ${M.playing ? '' : 'paused'}" data-act="mpause" id="mpz" aria-label="Play or pause">${M.playing ? '⏸' : '▶'}</button>${[[.25, '1×'], [1, '5×'], [5, '10×'], [10, '20×']].map(([v, n]) => `<button class="${M.speed === v ? 'on' : ''}" data-act="mspeed" data-v="${v}">${n}</button>`).join('')}<button class="anl ${M.debug ? 'on' : ''}" data-act="mdebug" title="Show passes, shots and lines"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 19V5M4 19h16" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M7 15l4-5 3 3 5-6" fill="none" stroke="#22d3ee" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><small>Analysis</small></button><button data-act="mskip" data-v="ht" ${m.half > 1 ? 'disabled' : ''}>⏭ HT</button><button data-act="mskip" data-v="ft">⏭ FT</button></div>
-      <div class="mbtns9"><button class="btn sm2" data-act="msubs">🔁 Subs</button><button class="btn sm2" data-act="mment"><i class="xoi"></i> Plan</button></div><div class="mfeed" id="mfeed"></div><div class="mcd" id="mcd"></div>
+      <div id="subpend">${C.pendingSubsHTML ? C.pendingSubsHTML(M.m) : ''}</div><div class="mbtns9"><button class="btn sm2" data-act="msubs">🔁 Subs</button><button class="btn sm2" data-act="mment"><i class="xoi"></i> Plan</button></div><div class="mfeed" id="mfeed"></div><div class="mcd" id="mcd"></div>
       <div class="pend" id="mpend"></div></div>`;
     sizeCanvas();
   }
@@ -309,6 +309,9 @@
 
   // ---------- substitutions (Q20f) ----------
   C.openSubs = (hurtE) => { if (M.playing && !M.m.ht) M.resumeAfter = true; M.playing = false; M.pickOut = hurtE ? M.m.ents.indexOf(hurtE) : null; C.ui.open('Substitutions', () => subsHTML(hurtE)); };
+  C.matchMySide = () => M ? M.my : 0;
+  const updPend = () => { const n = C.$('#subpend'); if (n && M && M.m) n.innerHTML = C.pendingSubsHTML ? C.pendingSubsHTML(M.m) : ''; };
+  C.subCancel = i => { if (!M || !M.m) return; M.m.pending.splice(i, 1); updPend(); C.ui.refresh(); C.toast('Sub cancelled'); };
   function subsHTML(hurtE) {
     const m = M.m, my = M.my, T = m.teams[my], on = m.ents.filter(e => e.side === my && e.on);
     const pool = T.bench.concat(m.ents.filter(e => e.side === my && !e.on && !e.red && !e.injured).map(e => e.p)).filter((p, i, a) => a.indexOf(p) === i && C.canBringOn(m, my, p) && !m.pending.some(s => s.inP === p));
@@ -319,13 +322,13 @@
     else { const pos = out.slot.pos, ranked = pool.map(p => [p, C.fit(p, pos) * 100 + p.rating + p.energy / 10]).sort((a, b) => b[1] - a[1]);
       body = `<div class="subout"><span>Coming off</span><b>${C.esc(out.p.fn)} ${C.esc(out.p.ln)}</b><span class="pchip" style="background:var(--school)">${pos}</span><button class="btn sm2 sec2" data-act="msout" data-v="">Change</button></div>
         <label class="fld">2. Who comes on at ${pos}?</label>` + (ranked.length ? ranked.map(([p], i) => row(p, 'msin', p.id, `<span class="pchip" style="background:${FIT[C.fit(p, pos)]}">${p.pos}</span> ${C.FITLABEL[C.fit(p, pos)]} at ${pos} · 🔋 ${Math.round(p.energy)}%`, i < 2 && C.fit(p, pos) >= 3)).join('') : '<p class="note">Nobody left on the bench.</p>'); }
-    return `${hurtE ? `<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:800">🩹 ${C.esc(hurtE.p.fn + ' ' + hurtE.p.ln)} is hurt. Choose a replacement.</div>` : ''}
+    return `${C.pendingSubsHTML ? C.pendingSubsHTML(m) : ''}${hurtE ? `<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:800">🩹 ${C.esc(hurtE.p.fn + ' ' + hurtE.p.ln)} is hurt. Choose a replacement.</div>` : ''}
       <p class="note" style="margin-top:6px">College rules: unlimited changes. A player taken off in the first half can come back once in the second.</p>${body}
       <button class="btn full sec2" data-act="back" style="margin-top:10px">Back to the match</button>`;
   }
   C.subOut = idx => { M.pickOut = idx === '' || idx == null ? null : +idx; C.ui.refresh(); };
   C.subIn = id => { const m = M.m, e = m.ents[M.pickOut], T = m.teams[M.my], pool = T.bench.concat(m.ents.filter(x => x.side === M.my && !x.on).map(x => x.p)), p = pool.find(x => x.id === id);
-    if (p && e) { C.queueSub(m, M.my, e, p); C.toast(`🔁 Sub made: ${e.p.ln} off, ${p.ln} on (at the next stoppage)`); }
+    if (p && e) { C.queueSub(m, M.my, e, p); C.toast(`🔁 Sub made: ${e.p.ln} off, ${p.ln} on (at the next stoppage)`); updPend(); }
     M.pickOut = null; C.ui.back(); };
 
   // ================= full time =================

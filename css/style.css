@@ -1717,3 +1717,9 @@ button.srow.strow .chev{font-style:normal;color:var(--mute);margin-left:4px}
 
 /* 1.08 (Phase 3, QA-104) */
 .gradw{background:#eff6ff;color:#1e3a8a;font-size:13px;font-weight:700;margin-top:8px}.mrs{background:#fef2f2;color:#991b1b;font-weight:700;font-size:13px}.rinfo .rv.exp{background:#e2e8f0;color:#334155}
+
+/* 1.09 (QA-111): a sub waiting for a stoppage */
+.subpend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fef3c7;color:#92400e;border-radius:10px;padding:6px 10px;margin:6px 10px;font-size:12.5px;font-weight:700}.subpend .btn{margin-left:auto}
+
+/* 1.09: the Analysis Suite report */
+.scout{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:8px 10px;margin:8px 0;font-size:12.5px}.scout b{display:block;margin-bottom:2px}.scout small{font-weight:700;line-height:1.35;display:block}

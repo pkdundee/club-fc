@@ -131,12 +131,12 @@
   // the Coaches' Office level needed for promotion from this tier (none at T1)
   C.gateNeed = () => { const car = C.car(); return car.tier > 1 ? C.TIER_GATE[car.tier - 1] : 0; };
   // the next step on the path to the gate: the next building the Coaches' Office needs, or the Office itself
-  C.gateStep = () => { const need = C.gateNeed(); if (!need || C.level('hq') >= need) return null;
+  C.gateStep = (to0) => { const need = to0 || C.gateNeed(); if (!need || C.level('hq') >= need) return null;   // 1.09 (QA-108): also used for the Pre-season Lv 5 target
     const hq = C.level('hq'), hqq = C.inQueue('hq'), to = hqq ? hqq.to + 1 : hq + 1; if (to > need) return { wait: 1 };
     for (const [b, l] of C.hqNeeds(to)) if (C.level(b) < l) { const q = C.inQueue(b); if (q) continue; const nx = C.level(b) + 1;
       return { k: b, text: `Upgrade the ${B(b)} to Lv ${nx} (needed for ${B('hq')} Lv ${to})`, ok: C.readyArrow(b) && C.freeSlot() }; }
     if (hqq || C.hqNeeds(to).some(([b, l]) => C.level(b) < l)) return { wait: 1 };
-    return { k: 'hq', text: `${B('hq')} → Lv ${to}: ${to === need ? 'needed for promotion' : 'on the way to Lv ' + need + ' for promotion'}`, ok: C.readyArrow('hq') && C.freeSlot() }; };
+    return { k: 'hq', text: `${B('hq')} → Lv ${to}: ${to === need ? (to0 ? 'a Pre-season task' : 'needed for promotion') : 'on the way to Lv ' + need + (to0 ? '' : ' for promotion')}`, ok: C.readyArrow('hq') && C.freeSlot() }; };
   // once the gate is reached: the lowest useful building (on-pitch first), then research
   C.otherStep = () => { if (!C.freeSlot()) return null;
     const lv = k => C.level(k), can = k => C.BUILDINGS[k] && lv(k) > 0 && C.readyArrow(k) && (k === 'hq' || lv(k) < lv('hq'));

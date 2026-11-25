@@ -54,7 +54,7 @@
     while (p.sec.length < 2 && near.length) p.sec.push(near.shift()); };
 
   // ---------- numbers (Q29) ----------
-  const LIKES = { GK: [1, 12, 23], CB: [4, 5, 3], LB: [3], RB: [2], DM: [6], CM: [8, 14, 16], LM: [11, 7], RM: [7], AM: [10], LW: [11, 7], RW: [7, 11], ST: [9, 10] };
+  const LIKES = C.LIKES = { GK: [1, 12, 23], CB: [4, 5, 3], LB: [3], RB: [2], DM: [6], CM: [8, 14, 16], LM: [11, 7], RM: [7], AM: [10], LW: [11, 7], RW: [7, 11], ST: [9, 10] };
 
   // ---------- generation ----------
   C.genPlayer = (r, { gender, pos, rating, rar = 0, year = 1, pool }) => {
@@ -112,7 +112,7 @@
     for (const p of order) if (!p.num && p.want && !used.has(p.want)) { p.num = p.want; used.add(p.want); }
     // classic numbers first; anyone left over gets 12 upwards, so a defender's number never lands on a striker (round 5)
     for (const p of order) if (!p.num) { const pref = (LIKES[p.pos] || []).find(n => !used.has(n)); let n = pref != null ? pref : 12; while (used.has(n)) n++; p.num = n; used.add(n); }
-    for (const p of sq) if (p.want && p.num !== p.want) p.morale = Math.min(p.morale, 64);
+    // 1.09 (QA-112): an unmet wish now costs 2 morale a match, at most 8 (b109.js), not a fixed cap
   };
 
   // one-off tidy (9g): clear numbers that don't suit the position (a no. 3 up front, a no. 0), unless the player asked for it
@@ -171,7 +171,7 @@
     const done = car.devq.filter(q => q.end <= C.now()), msgs = [];
     for (const q of done) { const p = C.P(q.pid); if (!p) continue;
       if (q.focus.startsWith('pos:')) { const pos = q.focus.slice(4); p.fitB[pos] = Math.min(3, (p.fitB[pos] || 0) + 1); msgs.push(`${p.ln} is more comfortable at ${pos}`); }
-      else { const k = q.focus, g = p.year <= 2 ? 2 : 1; p.a[k] = Math.min(C.attrCap(p, k), p.a[k] + g); const old = p.rating; p.rating = C.calcRating(p); p.up = p.rating - old; msgs.push(`${p.ln}: ${C.attrsOf(p)[k][1]} +${g}${p.rating > old ? ` · rating ${p.rating}` : ''}`); }
+      else { const k = q.focus, g = (p.year <= 2 ? 2 : 1) + (Math.random() < C.eff('skills') * .02 ? 1 : 0); p.a[k] = Math.min(C.attrCap(p, k), p.a[k] + g); const old = p.rating; p.rating = C.calcRating(p); p.up = p.rating - old; msgs.push(`${p.ln}: ${C.attrsOf(p)[k][1]} +${g}${p.rating > old ? ` · rating ${p.rating}` : ''}`); }   // 1.09: Skills Field extra development
       p.dev++; if (p.stars < 5 && p.dev >= p.stars + 2) { p.dev = 0; p.stars++; p.pot = Math.min(95, p.pot + 1); C.KEY[p.pos].forEach(k => p.a[k] = Math.min(99, p.a[k] + 1)); p.rating = C.calcRating(p); msgs.push(`⭐ ${p.ln} earned a Development Star`); }
     }
     if (done.length) { car.devq = car.devq.filter(q => q.end > C.now()); C.save(); }
