@@ -19,7 +19,7 @@
  inventory:`<path d="M9 8V6.5a3 3 0 0 1 6 0V8" ${W}/><rect x="5" y="8" width="14" height="12" rx="2.5" fill="#fff"/><rect x="9" y="12" width="6" height="3.6" rx="1" fill="C"/>`,
  store:`<path d="M3 5h2.6l2 9h9.6l1.8-6.5H6.6" ${W}/><path d="M7 7.5h11.8L17 14H8.4z" fill="#fff"/><circle cx="9" cy="18" r="1.6" fill="#fff"/><circle cx="16" cy="18" r="1.6" fill="#fff"/>`,
 };
-GL.hammer=`<path d="M5 19.5l8.2-8.2" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M11.2 4.5h5.6l3.2 3.2-3 3-2-2-1.6 1.6-3-3 1.6-1.6z" fill="#fff"/>`;
+GL.hammer=`<g transform="translate(12 12) scale(1.55)"><path d="M-4.5 4.5 L1.6 -1.6" stroke="#fff" stroke-width="2.9" stroke-linecap="round"/><path d="M0 -4.6 L4.6 0 L2.1 2.5 L-2.5 -2.1Z" fill="#fff" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></g>`;   // 1.10.01 (QA-150): the map's chunky mallet
 
   const COL = { home: '#2b5ea7', match: '#16a34a', tactics: '#047857', campus: '#b91c1c', squad: '#2563eb', recruit: '#7c3aed', staff: '#0891b2', playbook: '#1d4ed8', medical: '#22c55e', events: '#f59e0b', inbox: '#3b82f6', inventory: '#1e40af', store: '#ea580c' };
   const SH = { '#2b5ea7': '#1e3a8a', '#16a34a': '#14532d', '#047857': '#064e3b', '#b91c1c': '#7f1d1d', '#2563eb': '#1e3a8a', '#7c3aed': '#4c1d95', '#0891b2': '#164e63', '#1d4ed8': '#1e3a8a', '#22c55e': '#15803d', '#f59e0b': '#b45309', '#3b82f6': '#1d4ed8', '#1e40af': '#172554', '#ea580c': '#9a3412' };
@@ -29,7 +29,7 @@ GL.hammer=`<path d="M5 19.5l8.2-8.2" stroke="#fff" stroke-width="4" stroke-linec
   // tab bar: the glyph alone, in the current colour (the college colour when selected)
   C.kGlyph = (k, s = 26) => `<svg class="kg" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${(GL[k] || '').replace(/#fff/g, 'currentColor').replace(/"C"/g, '"#fff"')}</svg>`;
   // campus side buttons
-  C.kQueue = (k, n) => `<svg class="kside" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="2" width="22" height="22" rx="5.5" fill="#94a3b8"/><rect x="1" y="1" width="22" height="22" rx="5.5" fill="#e2e8f0"/><g transform="translate(3.9 .6) scale(.68)">${g(k, '#334155', '#e2e8f0')}</g><text x="12" y="21.4" text-anchor="middle" font-family="Teko" font-weight="600" font-size="7" fill="#334155">${n}</text></svg>`;
+  C.kQueue = (k, n) => `<svg class="kside" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="2" width="22" height="22" rx="5.5" fill="#94a3b8"/><rect x="1" y="1" width="22" height="22" rx="5.5" fill="#e2e8f0"/><g transform="translate(4.6 .4) scale(.62)">${g(k, '#334155', '#e2e8f0')}</g><text x="12" y="22" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="6.6" fill="#0f172a">${n}</text></svg>`;
   C.kTileBtn = (k, bg, dk) => `<svg class="kside" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="2" width="22" height="22" rx="5.5" fill="${dk}"/><rect x="1" y="1" width="22" height="22" rx="5.5" fill="${bg}" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/><g transform="translate(2 2) scale(.84)">${g(k, '#fff', bg)}</g></svg>`;
   C.kListCircle = () => `<svg class="kside" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12.9" r="10.6" fill="#1e293b"/><circle cx="12" cy="12" r="10.6" fill="#475569" stroke="#fff" stroke-width="1.4"/><g transform="translate(3.2 3) scale(.72)">${GL.hammer}</g><g transform="translate(14.5 14.5)"><circle cx="4.6" cy="4.6" r="4.9" fill="#3b82f6" stroke="#fff" stroke-width="1.2"/><path d="M2.4 3h4.6M2.4 4.8h4.6M2.4 6.6h4.6" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/></g></svg>`;
   C.kStoreCircle = (s = 26) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true"><circle cx="12" cy="12.8" r="10.6" fill="#9a3412"/><circle cx="12" cy="12" r="10.6" fill="#f5a524" stroke="#fff" stroke-width="1.2"/><g transform="translate(2.6 2.6) scale(.78)">${g('store', '#fff', '#f5a524')}</g></svg>`;
@@ -113,9 +113,9 @@ const STATUS=[
   // building tap ring glyphs (24-unit, white), from the approved ring
   const RW = 'fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
   C.kRingG = {
-    info: `<circle cx="12" cy="7.5" r="1.5" fill="#fff"/><path d="M12 11v6.5" ${RW} stroke-width="2.8"/>`,
-    up: `<path d="M12 18V7M7 11.5L12 6.5l5 5" ${RW} stroke-width="3"/>`,
-    speed: `<path d="M5.5 7l5.5 5-5.5 5zM12 7l5.5 5-5.5 5z" fill="#fff"/>`,
+    info: `<circle cx="12" cy="6.6" r="2.3" fill="#fff"/><rect x="10.1" y="10" width="3.8" height="9" rx="1.6" fill="#fff"/>`,
+    up: `<path d="M12 3.8l7.2 7.4h-4.4v8.4H9.2v-8.4H4.8z" fill="#fff" stroke="#fff" stroke-width="1" stroke-linejoin="round"/>`,
+    speed: `<path d="M3.6 5.4l8 6.6-8 6.6zM12 5.4l8 6.6-8 6.6z" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>`,
     train: `<path d="M12 5l5 13H7z" fill="#fff"/><path d="M8.6 14h6.8" stroke="#e8772e" stroke-width="1.6"/><path d="M5 18.5h14" ${RW}/>`,
     book: `<path d="M5 6.5c2.5-1.2 4.7-1.2 7 0v11c-2.3-1.2-4.5-1.2-7 0zM12 6.5c2.3-1.2 4.5-1.2 7 0v11c-2.5-1.2-4.7-1.2-7 0z" fill="#fff"/>`,
     recruit: `<circle cx="7" cy="9.2" r="2" fill="#fff" opacity=".8"/><circle cx="17" cy="9.2" r="2" fill="#fff" opacity=".8"/><path d="M3.5 17c.3-2.6 1.6-4 3.5-4s3.2 1.4 3.5 4zM13.5 17c.3-2.6 1.6-4 3.5-4s3.2 1.4 3.5 4z" fill="#fff" opacity=".8"/><circle cx="12" cy="8" r="2.7" fill="#fff"/><path d="M7.4 19c.4-3.5 2.2-5.5 4.6-5.5s4.2 2 4.6 5.5z" fill="#fff"/>`,

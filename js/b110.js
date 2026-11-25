@@ -30,7 +30,7 @@
   C.playerFocusHTML = (p, o = {}) => { const v = C.playerVoice ? C.playerVoice(p) : { line: '', f: [] }, ss = p.ss || {}, avg = ss.apps && ss.rs ? (ss.rs / ss.apps).toFixed(1) : '–';
     const mood = p.morale >= 75 ? 'pfok' : p.morale >= 45 ? 'pfwarn' : 'pfbad', why = (v.f || []).filter(x => x[1] < 0).map(x => x[0])[0] || (v.f || []).filter(x => x[1] > 0).map(x => x[0])[0] || '';
     return `<div class="pfhd"><div class="pff">${C.faceOf(p)}</div><div class="pfn"><b>${C.esc(p.fn)} ${C.esc(p.ln)}</b><small>#${p.num || '–'} · ${p.pos}${o.label ? ` · playing <span class="pfchip" style="background:${o.fitCol || 'var(--school)'}">${o.label}</span>` : ''} · ${yr(p.year)}</small></div><b class="pfr">${o.rate != null ? o.rate : p.rating}</b></div>
-      <div class="pfgrid"><div><small>Freshness</small><b>🔋 ${Math.round(p.energy)}%</b></div><div><small>Health</small>${healthTxt(p)}</div>
+      <div class="pfgrid"><div><small>Freshness</small><b>${C.kDrop ? C.kDrop(15) : ""} ${Math.round(p.energy)}%</b></div><div><small>Health</small>${healthTxt(p)}</div>
         <div><small>Morale</small><b class="${mood}">${Math.round(p.morale)}</b>${why ? `<em>${C.esc(why)}</em>` : ''}</div><div><small>This season</small><b>${ss.apps || 0} apps · ⭐ ${avg}</b><em>${ss.mins || 0} min · ${ss.g || 0} goals · ${ss.a || 0} assists</em></div></div>
       ${v.line ? `<p class="pfv">“${C.esc(v.line)}”</p>` : ''}`; };
   // this match so far (for Substitutions and the Plan)
@@ -38,7 +38,7 @@
   C.matchFocusHTML = (m, e) => { const s = e.st || {}, r = +C.matchRatingOf(m, e) || 6, en = Math.round(e.energy);
     const read = e.injured ? 'Injured: change them now' : en < 45 ? 'Out on their feet: a good one to change' : en < 60 && r < 6.5 ? 'Tiring, quiet game: a good one to change' : r >= 7.2 ? 'Playing well: worth keeping' : en < 60 ? 'Tiring, but playing their part' : 'Doing a job: fine to keep';
     return `<div class="pfhd"><div class="pff">${C.faceOf(e.p)}</div><div class="pfn"><b>${C.esc(e.p.fn)} ${C.esc(e.p.ln)}</b><small>#${e.p.num || '–'} · playing ${e.slot.pos} · ${e.p.rating}</small></div><b class="pfr">${C.matchRatingOf(m, e)}</b></div>
-      <div class="pfgrid"><div><small>Freshness now</small><b class="${en < 45 ? 'pfbad' : en < 60 ? 'pfwarn' : 'pfok'}">🔋 ${en}%</b></div><div><small>Health</small>${e.injured ? '<b class="pfbad">🩹 Injured</b>' : e.knock ? '<b class="pfwarn">🤕 A knock</b>' : '<b class="pfok">✔ Fit</b>'}</div>
+      <div class="pfgrid"><div><small>Freshness now</small><b class="${en < 45 ? 'pfbad' : en < 60 ? 'pfwarn' : 'pfok'}">${C.kDrop ? C.kDrop(15) : ""} ${en}%</b></div><div><small>Health</small>${e.injured ? '<b class="pfbad">🩹 Injured</b>' : e.knock ? '<b class="pfwarn">🤕 A knock</b>' : '<b class="pfok">✔ Fit</b>'}</div>
         <div><small>Morale</small><b>${Math.round(e.p.morale)}</b></div><div><small>This match</small><b>${s.g || 0} G · ${s.a || 0} A · ${s.sh || 0} shots</b><em>${s.pa ? Math.round(s.pc / s.pa * 100) + '% passing · ' : ''}${s.tk || 0} tackles${e.bin || s.yc ? ' · 🟨' : ''}</em></div></div>
       <p class="pfv">📋 ${read}</p>`; };
 
@@ -67,6 +67,60 @@
       <h3 class="jh">List row (your row pinned)</h3><div class="lrow"><span>🏟</span><span class="lt"><b>Row title</b><small>A line under it</small></span><button class="btn sm2 go">Go</button></div>
       <h3 class="jh">Celebration</h3><button class="btn go" data-act="uikitcel">Show it</button></div>`; }); };
   A.uikitcel = () => C.celebrate({ sp5: 2, cash: 1500, gold: 40 }, 'A total of 3 rewards were claimed');
+
+  // ---------- QA-144: the coach's line, with any text (used for the live read in a match) ----------
+  C.adviceLine = line => { const c = C.onStaff().find(x => x.spec === 'tac') || C.onStaff().find(x => x.spec === 'gen') || C.onStaff()[0]; if (!c || !line) return '';
+    return `<div class="advice"><div class="advf">${C.coachFace(c)}</div><p><b>${C.esc(c.fn)} ${C.esc(c.ln)} · ${C.SPECS[c.spec][1]}</b>${C.esc(line)}</p></div>`; };
+
+  // ---------- icon sheet v5 (approved 25 Nov): skills, morale, freshness ----------
+  const SW = 'fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"';
+  const flatB = (c, d, g, ci, s) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true" class="kv5">${ci ? `<circle cx="12" cy="12.9" r="10.5" fill="${d}"/><circle cx="12" cy="12" r="10.5" fill="${c}"/>` : `<rect x="1.5" y="2.4" width="21" height="21" rx="5.5" fill="${d}"/><rect x="1.5" y="1.5" width="21" height="21" rx="5.5" fill="${c}"/>`}${g}</svg>`;
+  const SKG = {
+    pace: ['#f59e0b', '#b45309', `<path d="M13.5 3.5L6 13.5h5l-1.5 7 7.5-10h-5z" fill="#fff"/>`],
+    shooting: ['#ef4444', '#b91c1c', `<circle cx="12" cy="12" r="7" ${SW} stroke-width="2"/><circle cx="12" cy="12" r="3" fill="#fff"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" ${SW} stroke-width="2"/>`],
+    passing: ['#3b82f6', '#1d4ed8', `<path d="M4 9h13M13.5 5.5L17 9l-3.5 3.5M20 15H7M10.5 11.5L7 15l3.5 3.5" ${SW} stroke-width="2.4"/>`],
+    dribbling: ['#8b5cf6', '#5b21b6', `<path d="M5 18c3-1 3-5 6-5s3 4 6 3" ${SW} stroke-width="2" stroke-dasharray="2.5 2.2"/><circle cx="17.5" cy="7.5" r="3.4" fill="#fff"/>`],
+    defending: ['#0ea5e9', '#0369a1', `<path d="M4 5h16" ${SW} stroke-width="2.4"/><path d="M7 8v8M5.2 14.2L7 16l1.8-1.8M12 8v9M10.2 15.2L12 17l1.8-1.8M17 8v8M15.2 14.2L17 16l1.8-1.8" ${SW} stroke-width="1.9"/>`],
+    physical: ['#10b981', '#047857', `<path d="M4.5 12h2M17.5 12h2" ${SW} stroke-width="2.4"/><rect x="6.5" y="7.5" width="2.6" height="9" rx="1" fill="#fff"/><rect x="14.9" y="7.5" width="2.6" height="9" rx="1" fill="#fff"/><path d="M9 12h6" ${SW} stroke-width="2.8"/>`],
+    glove: ['#14b8a6', '#0f766e', `<path d="M7 20v-8.5a1.5 1.5 0 0 1 3 0V7a1.5 1.5 0 0 1 3 0v4.5V6a1.5 1.5 0 0 1 3 0v6.5l1.3-2a1.5 1.5 0 0 1 2.5 1.6L17 18a3 3 0 0 1-2.6 2z" fill="#fff"/>`],
+    hands: ['#6366f1', '#3730a3', `<path d="M7 20V9M17 20V9M4.5 11.5L7 9l2.5 2.5M14.5 11.5L17 9l2.5 2.5" ${SW} stroke-width="2.4"/><circle cx="12" cy="5" r="2.4" fill="#fff"/>`],
+  };
+  C.kSkill = (k, s = 26) => { const d = SKG[k] || SKG.pace; return flatB(d[0], d[1], d[2], false, s); };
+  const SKMAP = { pac: 'pace', sho: 'shooting', pas: 'passing', dri: 'dribbling', def: 'defending', phy: 'physical', stp: 'glove', crs: 'hands', str: 'physical', ref: 'pace', psn: 'shooting', dis: 'passing' };
+  [C.ATTR, C.GKATTR].forEach(A0 => A0 && Object.keys(A0).forEach(k => { if (SKMAP[k]) A0[k][0] = C.kSkill(SKMAP[k]); }));
+  const face = m => `<circle cx="9" cy="10" r="1.4" fill="#fff"/><circle cx="15" cy="10" r="1.4" fill="#fff"/><path d="${m}" ${SW} stroke-width="2"/>`;
+  C.kMorale = (v, s = 20) => v >= 75 ? flatB('#22c55e', '#15803d', face('M8 13.5c1 1.9 2.3 2.8 4 2.8s3-.9 4-2.8'), true, s) : v >= 45 ? flatB('#f59e0b', '#b45309', face('M8.5 15h7'), true, s) : flatB('#ef4444', '#b91c1c', face('M8 16.3c1-1.8 2.3-2.7 4-2.7s3 .9 4 2.7'), true, s);
+  C.kDrop = (s = 20) => flatB('#06b6d4', '#0e7490', `<path d="M12 4.5c3 3.8 5.2 6.6 5.2 9.4a5.2 5.2 0 0 1-10.4 0c0-2.8 2.2-5.6 5.2-9.4z" fill="#fff"/>`, true, s);
+
+  // ---------- QA-148: the approved v3.3 tiles for every reward and cost ----------
+  const RNAME = { gold: 'Coins', cash: 'Booster $', cp: 'Coaching Points', pts: 'Points', manual: 'Coaching manual', credits: 'Clinic Credits', kit: 'Recovery kit', books: 'Trait Book', tokens: 'Number Change', rare: 'Rare recruit', coach: 'Rare coach', badge: 'Coaching Badge', crate: 'Booster crate ($5K)', gear: 'Gear' };
+  C.rewardName = k => (C.XN && C.XN[k] && C.XN[k][1]) || RNAME[k] || k;
+  const star = () => `<path d="M50 14l10.6 22 24 3-17.6 16.4 4.6 23.8L50 67.6 28.4 79.2 33 55.4 15.4 39l24-3z" fill="#fde047" stroke="#b45309" stroke-width="4" stroke-linejoin="round"/>`;
+  const coachArt = () => `<circle cx="50" cy="38" r="15" fill="#fde68a" stroke="#92400e" stroke-width="3"/><path d="M24 82c2-17 12-26 26-26s24 9 26 26z" fill="#60a5fa" stroke="#1e3a8a" stroke-width="3"/><path d="M33 30c4-10 30-10 34 0" fill="#2563eb" stroke="#1e3a8a" stroke-width="3"/>`;
+  const rTile = (k, v) => { const A2 = C.kArt;
+    if (k === 'gold') return C.kTile('gold', A2.coins, '', C.short ? C.short(v) : v);
+    if (k === 'cash') return C.kTile(v >= 100000 ? 'purple' : v >= 10000 ? 'blue' : 'green', A2.cash, '$' + (C.short ? C.short(v) : v), null);
+    if (k === 'cp') return C.kTile('blue', A2.cp, '', v);
+    if (k === 'pts') return C.kTile('blue', star, '', v);
+    if (k === 'coach') return C.kTile('gold', coachArt, '', v > 1 ? v : null);
+    if (C.invTileHTML) return C.invTileHTML({ k, n: v, tier: 2, icon: '🎁' });
+    return C.kTile('grey', () => '', '', v); };
+  const oTiles = C.itemTiles;
+  C.itemTiles = r => { if (!r) return ''; const keys = Object.keys(r).filter(k => k !== 'gear'), g = r.gear ? oTiles({ gear: r.gear }) : '';
+    return `<span class="itiles ktiles">${keys.map(k => `<span class="itk" data-act="itemdet" data-v="${k}|${r[k]}" title="${C.esc(C.rewardName(k))}">${rTile(k, r[k])}</span>`).join('')}${g}</span>`; };
+
+  // ---------- QA-151: chests: a drop-down list under the chest (preview); shake, open and celebrate (claim) ----------
+  const closeDrop = () => document.querySelectorAll('.chdrop').forEach(x => x.remove());
+  const chestDrop = (r, btn, label) => { closeDrop(); const app = document.getElementById('app') || document.body; if (!btn) return;
+    const a = app.getBoundingClientRect(), b = btn.getBoundingClientRect(), el = document.createElement('div'); el.className = 'chdrop';
+    el.innerHTML = `<i class="chdt"></i>${label ? `<small>${label}</small>` : ''}${Object.keys(r).map(k => `<div class="chdr">${rTile(k, r[k])}<b>${C.esc(C.rewardName(k))}</b><em>${k === 'cash' ? C.money(r[k]) : r[k]}</em></div>`).join('')}`;
+    app.appendChild(el); const w = el.offsetWidth, cx = b.left + b.width / 2 - a.left, x = Math.max(8, Math.min(a.width - w - 8, cx - w / 2));
+    el.style.left = x + 'px'; el.style.top = (b.bottom - a.top + 8) + 'px'; el.querySelector('.chdt').style.left = Math.max(14, Math.min(w - 14, cx - x)) + 'px';
+    setTimeout(() => document.addEventListener('click', closeDrop, { once: true }), 0); };
+  A.chestopen = (v, el) => { const i = +v, row = C.CHESTS[i]; if (!row) return; closeDrop();
+    const btn = document.querySelector(`.pchest[data-v="${i}"]`), r = C.chestOpen(i);
+    if (r) { if (btn) btn.classList.add('opening'); setTimeout(() => { C.ui.refresh(); C.render(); if (C.celebrate) C.celebrate(r, `Chest at ${row[0]} ★ opened`); }, 420); return; }
+    chestDrop(row[1], btn, `Rewards at ${row[0]} ★`); };
 
   // ---------- SCOPE_1.10 D: the Inventory's square tiles ----------
   const RARS = ['grey', 'grey', 'green', 'blue', 'purple', 'gold'];

@@ -63,6 +63,7 @@
     return Math.round((.6 * km + .4 * am) * [0, .72, .84, .93, .98, 1][C.fit(p, pos)]); };   // 1.06 (QA-71): the match engine's fit factors, so the number is what plays
   // 1.06 (QA-71): the 3 best ratings, shown in fit order (Natural first), ties by rating, so colors step down left to right
   C.topPositions = p => p.pos === 'GK' ? [['GK', C.posRating(p, 'GK')]] : ALLPOS.filter(x => x !== 'GK').map(x => [x, C.posRating(p, x)]).sort((a, b) => b[1] - a[1]).slice(0, 3).sort((a, b) => C.fit(p, b[0]) - C.fit(p, a[0]) || b[1] - a[1]);
+  C.PILL = PILL;
   const ring = (f, sz = 14) => { const r = sz / 2 - 2, c = 2 * Math.PI * r, col = f >= 70 ? '#4ade80' : f >= 50 ? '#facc15' : f >= 30 ? '#fb923c' : '#f87171';
     return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="none" stroke="rgba(148,163,184,.35)" stroke-width="2.4"/><circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="none" stroke="${col}" stroke-width="2.4" stroke-dasharray="${c * Math.max(0, Math.min(1, f / 100))} ${c}" transform="rotate(-90 ${sz / 2} ${sz / 2})"/></svg>`; };
   const fcol = f => f >= 70 ? '#4ade80' : f >= 50 ? '#facc15' : f >= 30 ? '#fb923c' : '#f87171';
@@ -80,11 +81,12 @@
   C.setTacView = v => { tview = v; C.ui.refresh(); };
   // 1.06 (QA-83): Tactics fits one screen: no default-setup line (it's in the Handbook), formations on one scrolling row,
   // mentality buttons carry their word, a small Board/List switch, a shorter pitch and a one-line key
+  C.tacRing = (f, sz) => ring(f, sz);
   C.openTactics = (fromMatch) => C.ui.open('Tactics', () => `<div class="tac2">${boardHTML(fromMatch)}</div>`);
   const MENT_SHORT = ['Ultra def', 'Defend', 'Balanced', 'Attack', 'Ultra att'];
   function boardHTML(fromMatch) {
     const car = C.car(), t = C.tac(), F = C.FORMATIONS[t.form], L = C.slotLabels(t.form);
-    const tokens = F.map((s, i) => { const p = C.P(t.xi[i]), left = s[1] * 100, top = 91 - s[2] * 83;
+    const tokens = F.map((s, i) => { const p = C.P(t.xi[i]), left = s[1] * 100, top = 93 - s[2] * 86;   // 1.10.01 (QA-153)
       if (!p) return `<div class="tk" style="left:${left}%;top:${top}%" data-act="pick" data-v="${i}"><button class="tkf empty" data-act="pick" data-v="${i}">+</button><button class="tkn" style="background:${PILL[0]}" data-act="pick" data-v="${i}"><span>Empty</span><i>▾</i></button><div class="tkm"><span class="tp">${L[i]}</span></div></div>`;
       const fit = C.fit(p, s[0]), ins = t.instr[p.id] ?? 2;
       return `<div class="tk" style="left:${left}%;top:${top}%" data-act="pick" data-v="${i}"><div class="tkb">${C.badges(p)}${ins !== 2 ? `<i class="bdg ins">${INSTR[ins][0]}</i>` : ''}</div>
@@ -106,7 +108,7 @@
         ${(cap => `<button class="caprow" data-act="capopen"><span class="cap">C</span><span>Captain: <b>${cap ? C.esc(C.sn(cap)) : 'none'}</b>${cap ? ` · Leadership ${cap.lead}` : ''}</span><i>▾</i></button>`)(C.P((car.captains || [])[0]))}
         <h3 class="jh">Subs <small class="devp">${t.bench.length}/9</small></h3><div class="bench">${bench}</div>`
       : `<div class="tlist">${list}</div>`}
-      <div class="jbtns"><button class="btn sec2" data-act="autopick">✨ Auto pick</button><button class="btn ${t.auto ? 'pri' : 'sec2'}" data-act="automan">${t.auto ? '✔ Auto-manage' : 'Auto-manage: off'}</button></div>
+      <div class="jbtns"><button class="btn go" data-act="autopick">✨ Auto pick</button><button class="btn ${t.auto ? 'go' : 'sec2'}" data-act="automan">${t.auto ? '✔ Auto-manage' : 'Auto-manage: off'}</button></div>
       ${fromMatch ? '<button class="btn full pri" data-act="back">Done</button>' : ''}`;
   }
 
@@ -135,9 +137,12 @@
       .sort((a, b) => (C.available(b) - C.available(a)) || (rate(b) * (.6 + .4 * b.energy / 100)) - (rate(a) * (.6 + .4 * a.energy / 100)));
     const ins = cur && !isB ? t.instr[cur.id] ?? 2 : null;
     // 1.10 (QA-123): the player comes first: who they are, how they are, their instruction; the alternatives are one tap away
-    if (cur && !pkAlt && !isB && C.playerFocusHTML) return `<div class="altp pfocus">${C.playerFocusHTML(cur, { pos, label, fitCol: colOf(cur), rate: rate(cur) })}
-      <label class="fld">Instruction</label><div class="instr pfi">${INSTR.map((x, k) => `<button class="${ins === k ? 'on' : ''}" data-act="instr" data-v="${cur.id}|${k}"><span>${x[0]}</span>${x[1]}</button>`).join('')}</div><p class="note pfin">${C.INSTR_TXT[ins]}</p>
-      <div class="jbtns" style="grid-template-columns:1fr 1fr;margin-top:10px"><button class="btn go" data-act="pkalt" data-v="1">🔁 Swap for…</button><button class="btn danger" data-act="unpick" data-v="${slot}">Remove from line-up</button></div></div>`;
+    // 1.10.01 (QA-139): ONE popup: the player on top, the alternatives under it (scrolling), Back to Player at the bottom. No Remove: you swap, never remove
+    return `<div class="altp pfocus pk1">${cur ? C.playerFocusHTML(cur, { pos, label, fitCol: colOf(cur), rate: rate(cur) }) : `<div class="arow"><span class="lchip" style="background:${PILL[0]}">${label}</span><span class="anm">Empty: pick a player</span></div>`}
+      ${ins != null ? `<label class="fld">Instruction</label><div class="instr pfi">${INSTR.map((x, k) => `<button class="${ins === k ? 'on' : ''}" data-act="instr" data-v="${cur.id}|${k}"><span>${x[0]}</span>${x[1]}</button>`).join('')}</div><p class="note pfin">${C.INSTR_TXT[ins]}</p>` : ''}
+      <div class="ahd2"><small class="ahd">Best alternatives</small><button class="chk ${pkXI ? 'on' : ''}" data-act="pktog" data-v="xi">Show XI</button><button class="chk ${pkSubs ? 'on' : ''}" data-act="pktog" data-v="subs">Show subs</button></div>
+      <div class="alist pkscroll">${cands.map(p => line(p, true)).join('') || '<p class="note">Nobody else available.</p>'}</div>
+      <button class="btn full go pkback" data-act="back">Back to Player</button></div>`;
     return `<div class="altp">${cur && pkAlt ? '<button class="btn sm2 sec2" data-act="pkalt" data-v="0" style="margin-bottom:8px">‹ Back to the player</button>' : ''}<small class="ahd">Currently selected</small>${cur ? line(cur, false) : `<div class="arow"><span class="lchip" style="background:${PILL[0]}">${label}</span><span class="anm">Empty</span></div>`}
       ${ins != null ? `<div class="instr" style="margin-top:8px">${INSTR.map((x, k) => `<button class="${ins === k ? 'on' : ''}" data-act="instr" data-v="${cur.id}|${k}"><span>${x[0]}</span>${x[1]}</button>`).join('')}</div>` : ''}
       <div class="ahd2"><small class="ahd">Best alternatives</small><button class="chk ${pkXI ? 'on' : ''}" data-act="pktog" data-v="xi">Show XI</button><button class="chk ${pkSubs ? 'on' : ''}" data-act="pktog" data-v="subs">Show subs</button></div>

@@ -51,7 +51,7 @@
   C.homeHTML = () => {
     const car = C.car(), col = C.college(), a = C.acct(), deal = C.todayDeal(), ev = C.event(), d = daily(), inj = car.squad.filter(p => p.inj).length;
     // Footium-style grid (round 5): white, icons floating, 3 × 4 with no widow. Settings lives in the header.
-    const tile = (icon, name, act, v, badge) => `<button class="htile" data-act="${act}" data-v="${v}"><span class="hi">${icon}</span><b>${name}</b>${badge ? `<em>${badge}</em>` : ''}</button>`;
+    const tile = (icon, name, act, v, badge) => `<button class="htile" data-act="${act}" data-v="${v}"><span class="hi">${icon}${badge ? `<em>${badge}</em>` : ''}</span><b>${name}</b></button>`;   // 1.10.01 (QA-146): the dot on the icon
     const S = car.staff || {};
     return `<div class="view scrolly home">
       ${C.topBar(true)}

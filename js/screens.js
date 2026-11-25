@@ -126,7 +126,7 @@
   C.topBar = (spend, cls = 'tbstatic') => { const car = C.car(), col = C.college(), a = C.acct();
     return `<div class="${cls} tb9">
         <button class="pf" data-act="profile" aria-label="Profile">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<span class="pflv">${car.b.hq || 0}</span></button>
-        <div class="tbm"><div class="tbpow kpwr" data-act="proginfo" title="Program Power">${C.kPow(20)}${C.programPower().toLocaleString()}</div>${spend ? `<div class="res">${C.resBar()}</div>` : `<b class="tbname">${C.esc(col.short)} ${C.esc(col.mascot)}</b>`}</div>
+        <div class="tbm">${spend ? `<div class="res">${C.resBar()}</div>` : `<b class="tbname">${C.esc(col.short)} ${C.esc(col.mascot)}</b>`}<div class="tbpow kpwr" data-act="proginfo" title="Program Power">${C.kPow(20)}${C.programPower().toLocaleString()}</div></div>
         <button class="storeb" data-act="store">${C.kStoreCircle(24)}<span>${C.kCoin(15)}<b id="r-gold2">${C.full(a.gold)}</b></span></button>
       </div>`; };
   // ---------- builders drawer (FEEDBACK 87): every building as a card, by type, in a scrolling strip along the bottom ----------

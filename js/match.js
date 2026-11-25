@@ -88,17 +88,17 @@
     const car = C.car(), f = M.f, t = C.tac(), S = C.sea(), oppT = S.teams[M.my === 0 ? f.a : f.h], col = C.college(), w = C.WEATHER[f.wx];
     const xs = t.xi.map(C.P).filter(Boolean), avgE = Math.round(xs.reduce((s, p) => s + p.energy, 0) / (xs.length || 1));   // 1.05.01 (QA-75): an empty slot never crashes
     const mineRows = t.xi.map(C.P).map((p, i) => p ? `<div class="lu"><span class="lun">${p.num}</span><div class="luf">${C.faceOf(p)}</div><b>${C.esc(C.sn(p))}</b><small>${C.FORMATIONS[t.form][i][0]}</small></div>` : `<div class="lu"><span class="lun">–</span><div class="luf"></div><b>Empty</b><small>${C.FORMATIONS[t.form][i][0]}</small></div>`).join('');
-    const oppRows = M.opp.xi.map((p, i) => `<div class="lu r"><small>${C.FORMATIONS[M.opp.form][i][0]}</small><b>${C.esc(p.ln)}</b><span class="lun">${p.num}</span></div>`).join('');
+    const oppRows = M.opp.xi.map((p, i) => `<div class="lu r"><small>${C.FORMATIONS[M.opp.form][i][0]}</small><b>${C.esc(p.ln)}</b><div class="luf">${C.faceOf(p)}</div><span class="lun">${p.num}</span></div>`).join('');   // 1.10.01 (QA-141): faces for both sides
     const home = M.my === 0;
-    host().innerHTML = `<div class="pre"><div class="prehd"><small>${label(f)} · ${w[0]} ${w[1]} · 👥 ${M.att.toLocaleString()}</small>
-        <div class="vsrow"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'}</small></div><span class="vsx">VS${(k => `<em class="rtcmp ${k.c}">${k.me} v ${oppT.rating}<br>${k.w}</em>`)(C.rateCmp(oppT.rating))}</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
+    host().innerHTML = `<div class="pre kpre"><div class="prehd"><small>${label(f)} · ${w[0]} ${w[1]} · 👥 ${M.att.toLocaleString()}</small>
+        <div class="vsrow ${home ? '' : 'awayrow'}"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'} · you</small></div><span class="vsx">VS${(k => `<em class="rtcmp ${k.c}">${k.me} v ${oppT.rating}<br>${k.w}</em>`)(C.rateCmp(oppT.rating))}</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
         <div class="radio">${C.radioLine && C.radioLine(f) ? C.radioLine(f) : `📻 K${col.abbr} campus radio with Duane &amp; Bev`}</div></div>${C.bigMatchHTML ? C.bigMatchHTML(f) : ''}${C.scoutHTML ? C.scoutHTML(f) : ''}
       ${xs.filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${xs.filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
-      <div class="lus"><div><h4>${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div><div><h4>${M.opp.form}</h4>${oppRows}</div></div>
-      <div class="prebtns"><button class="btn sec2" data-act="mtac"><i class="xoi"></i> Tactics</button><button class="btn sec2" data-act="mquick">⏩ Quick result</button><button class="btn sec2" data-act="mleave">✕</button></div>
+      ${(mine => { const opp = `<div><h4>${C.esc(oppT.name)} · ${M.opp.form}</h4>${oppRows}</div>`; return `<div class="lus">${home ? mine + opp : opp + mine}</div>`; })(`<div><h4>${C.esc(col.short)} · ${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div>`)}
+      <div class="prebtns"><button class="btn go" data-act="mtac"><i class="xoi"></i> Tactics</button><button class="btn go" data-act="mquick">⏩ Quick result</button></div>
       <p class="note resnote">Matches resume if the game closes. Abandoning one forfeits it 0–9.</p>
       <button class="btn full pri kick" data-act="mkick">▶ Kick off <span id="cdn">${M.cd ? '· ' + M.cd : ''}</span></button>
-      ${M.cd ? '<button class="cdpause" data-act="mcdstop">Tap to stop the countdown</button>' : ''}</div>`;
+      ${M.cd ? '<button class="cdpause" data-act="mcdstop">Tap to stop the countdown</button>' : ''}</div><div class="pgft kpreft"><button class="backarrow" data-act="mleave" aria-label="Back"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M11 4 3 12l8 8v-5h10V9H11z" fill="#fff"/></svg></button></div>`;
   }
   function countdown() { clearInterval(M.cdT); M.cdT = setInterval(() => { if (!M || M.m) return clearInterval(M && M.cdT); if (C.ui.isOpen()) return; M.cd--; const n = C.$('#cdn'); if (n) n.textContent = M.cd > 0 ? '· ' + M.cd : ''; if (M.cd <= 0) { clearInterval(M.cdT); C.kickOff(); } }, 1000); }
   C.preRefresh = () => { if (M && !M.m && host() && host().innerHTML) drawPre(); };   // 1.05.01 (QA-75): back from Tactics, the line-up shown is the current one
@@ -209,7 +209,7 @@
       <div class="pitchw"><canvas id="pitch"></canvas></div><div class="tick" id="tick"></div>
       <div class="mkey">${[0, 1].map(i => i === M.my ? `<span>${sw(K[i])} <b>${C.esc(T[i].short)}</b> (you) <span id="mdir">attack ▲</span></span>` : `<span>${sw(K[i])} ${C.esc(T[i].short)}</span>`).join('')}</div>
       <div class="spd spd9"><button class="mplay ${M.playing ? '' : 'paused'}" data-act="mpause" id="mpz" aria-label="Play or pause">${M.playing ? '⏸' : '▶'}</button>${[[.25, '1×'], [1, '5×'], [5, '10×'], [10, '20×']].map(([v, n]) => `<button class="${M.speed === v ? 'on' : ''}" data-act="mspeed" data-v="${v}">${n}</button>`).join('')}<button class="anl ${M.debug ? 'on' : ''}" data-act="mdebug" title="Show passes, shots and lines"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 19V5M4 19h16" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M7 15l4-5 3 3 5-6" fill="none" stroke="#22d3ee" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><small>Analysis</small></button><button data-act="mskip" data-v="ht" ${m.half > 1 ? 'disabled' : ''}>⏭ HT</button><button data-act="mskip" data-v="ft">⏭ FT</button></div>
-      <div id="subpend">${C.pendingSubsHTML ? C.pendingSubsHTML(M.m) : ''}</div><div class="mbtns9"><button class="btn sm2" data-act="msubs">🔁 Subs</button><button class="btn sm2" data-act="mment"><i class="xoi"></i> Plan</button></div><div class="mfeed" id="mfeed"></div><div class="mcd" id="mcd"></div>
+      <div id="subpend">${C.pendingSubsHTML ? C.pendingSubsHTML(M.m) : ''}</div><div class="mbtns9 one"><button class="btn go" data-act="msubs">🔁 Team Changes</button></div><div class="mfeed" id="mfeed"></div><div class="mcd" id="mcd"></div>
       <div class="pend" id="mpend"></div></div>`;
     sizeCanvas();
   }
@@ -284,7 +284,10 @@
       if (left <= 0) { M.cdUntil = 0; if (el) el.textContent = ''; M.playing = true; M.last = performance.now(); playBtn(); return; }
       if (el) { el.textContent = left; el.classList.remove('tpop'); void el.offsetWidth; el.classList.add('tpop'); } setTimeout(tick, 1000 - ((M.cdUntil - performance.now()) % 1000) + 5); };
     tick(); }
-  C.matchSkip = v => { const m = M.m; if (v === 'ht' && m.half === 1) { C.simToHT(m); events(); M.playing = false; halfTime(); } else if (v === 'ft') { if (m.ht) m.ht = false; C.simToEnd(m); M.ev = m.events.length; finishUI(); } };
+  // 1.10.01 (QA-138): skips step through the same saving path as play, so Resume picks up after a skip
+  C.matchSkip = v => { const m = M.m; let g = 0;
+    if (v === 'ht' && m.half === 1) { while (m.half === 1 && !m.ht && !m.done && g++ < 20000) liveStep(); liveSave(); events(); M.playing = false; halfTime(); }
+    else if (v === 'ft') { if (m.ht) C.resumeHT(m); while (!m.done && g++ < 40000) { liveStep(); if (m.ht) C.resumeHT(m); } liveSave(); M.ev = m.events.length; finishUI(); } };
   C.toggleSound = () => { const a = C.acct(); a.sound = !a.sound; C.save(); if (a.sound) { crowdOn(Math.min(1, (M && M.att || 500) / 3000)); } else crowdOff(); const b = C.$('.mic'); if (b) b.textContent = a.sound ? '🔊' : '🔇'; };
   function halfTime() {
     const m = M.m, S = m.st, my = M.my;
@@ -408,6 +411,58 @@
     const [A, B] = teamPair(); M.m = C.createMatch(A, B, L.seed, matchOpts()); const m = M.m; m.score = M.my === 0 ? [0, 9] : [9, 0]; m.done = true; m.forfeit = true;
     m.events.push({ type: 'ft', side: -1, min: 90 }); cancelAnimationFrame(M.raf); const rep = C.applyResult(m, M.f); liveEnd(); host().innerHTML = ''; M = null; C.render();
     C.mail('director', '🏳️', 'Match abandoned: forfeited 0–9', 'The match was abandoned, so it counts as a 0–9 forfeit loss.', null); C.openReport(rep.md, true); };
+
+  // ================= 1.10.01 (QA-142 to QA-145): ONE journey for team changes =================
+  // The match uses the Tactics page: the coach's live read, formations, Mentality arrows, the board (Freshness ring and
+  // ⭐ match rating per player), the bench, Auto-manage and Return to match. Tapping a player opens ONE popup: the player
+  // and their instruction on top, ranked replacements under it; a replacement becomes a sub at the next stoppage.
+  const MSHORT = ['Ultra def', 'Defend', 'Balanced', 'Attack', 'Ultra att'];
+  function liveRead(m, my) { const T = m.teams[my], on = m.ents.filter(e => e.side === my && e.on), mn = (m.events.length ? m.events[m.events.length - 1].min : 1) || 1;
+    const d = m.score[my] - m.score[1 - my], tired = on.filter(e => e.energy < 50).sort((a, b) => a.energy - b.energy), down = on.length < 11, oppDown = m.ents.filter(e => e.side !== my && e.on).length < 11;
+    if (down) return `Down to ${on.length}: tighten up. A Defensive shape will help.`;
+    if (m.ht) return d < 0 ? `Half-time and we're behind. Let's be braver: try Attacking.` : d > 0 ? `Good half. Keep the shape and see it through.` : `Level at the break. A change or two could swing it.`;
+    if (d < 0 && mn >= 60 && T.ment < 3) return `We need more going forward: try Attacking.`;
+    if (d > 0 && mn >= 75 && T.ment > 1) return `Let's see this out: Defensive would do it.`;
+    if (tired.length) return `${tired[0].p.ln}'s legs are going (${Math.round(tired[0].energy)}%): think about a change.`;
+    if (oppDown) return `They're down to ten. Push on: Attacking.`;
+    return d > 0 ? `We're on top. Stay patient.` : d < 0 ? `Keep going: one chance changes it.` : `It's tight. Stay in shape.`; }
+  function benchPool(m, my) { const T = m.teams[my]; return T.bench.concat(m.ents.filter(e => e.side === my && !e.on && !e.red && !e.injured).map(e => e.p)).filter((p, i, a) => a.indexOf(p) === i && C.canBringOn(m, my, p)); }
+  function teamHTML() { const m = M.m, my = M.my, T = m.teams[my], F = C.FORMATIONS[T.form] || [], L = C.slotLabels ? C.slotLabels(T.form) : F.map(s => s[0]), on = m.ents.filter(e => e.side === my && e.on), PILL = C.PILL || [];
+    const pendOut = e => m.pending.find(s => s.side === my && s.outE === e), pendIn = p => m.pending.find(s => s.side === my && s.inP === p);
+    const tokens = F.map((s, i) => { const e = on.find(z => z.i === i), left = s[1] * 100, top = 93 - s[2] * 86;
+      if (!e) return `<div class="tk" style="left:${left}%;top:${top}%"><div class="tkf empty">✖</div><div class="tkn" style="background:#f87171"><span>${L[i]}</span></div></div>`;
+      const fit = C.fit(e.p, s[0]), en = Math.round(e.energy), po = pendOut(e);
+      return `<div class="tk" style="left:${left}%;top:${top}%" data-act="mpick" data-v="${m.ents.indexOf(e)}"><div class="tkb">${e.instr !== 2 ? `<i class="bdg ins">${MARROW[e.instr]}</i>` : ''}${po ? '<i class="bdg subm">🔁</i>' : ''}${e.bin ? '<i class="bdg yc"></i>' : ''}</div>
+        <button class="tkf" data-act="mpick" data-v="${m.ents.indexOf(e)}">${C.faceOf(e.p)}</button>
+        <button class="tkn" style="background:${PILL[fit] || '#cbd5e1'}" data-act="mpick" data-v="${m.ents.indexOf(e)}"><span>${C.esc(C.sn(e.p))}</span><i>▾</i></button>
+        <div class="tkm">${C.tacRing ? C.tacRing(e.energy) : ''}<span class="tfr">${en}</span><span class="tr tmr">⭐ ${C.matchRatingOf(m, e)}</span></div></div>`; }).join('');
+    const bench = benchPool(m, my).map(p => { const pi = pendIn(p); return `<div class="btok ${pi ? 'sel' : ''}"><span class="bf">${C.faceOf(p)}</span><b>${C.esc(C.sn(p))}</b><small>${C.tacRing ? C.tacRing(p.energy, 12) : ''} ${p.pos} · ${p.rating}</small>${pi ? `<em class="subm2">On for ${C.esc(pi.outE.p.ln)}</em>` : ''}</div>`; }).join('');
+    return `<div class="tac2 tmatch"><div class="slimadv">${C.adviceLine ? C.adviceLine(liveRead(m, my)) : ''}</div>
+      <div class="forms">${Object.keys(C.FORMATIONS).map(f => `<button class="${T.form === f ? 'on' : ''}" data-act="mform" data-v="${f}">${f}</button>`).join('')}</div>
+      <div class="ments">${C.MENTALITY.map((x, i) => `<button class="${T.ment === i ? 'on' : ''}" data-act="mmset" data-v="${i}"><span>${MARROW[i]}</span><small>${MSHORT[i]}</small></button>`).join('')}</div>
+      <div class="tview2"><span>${T.form} · ${C.MENTALITY[T.ment]} · ${m.score[0]}–${m.score[1]}</span></div>
+      <div id="subpend">${C.pendingSubsHTML ? C.pendingSubsHTML(m) : ''}</div>
+      <div class="board tall"><div class="bpitch"><i class="half"></i><i class="circ"></i><i class="box1"></i><i class="box2"></i></div>${tokens}</div>
+      <p class="note" style="margin:4px 0 0;text-align:center">Tap a player to see how they're doing, change their instruction or bring someone on.</p>
+      <h3 class="jh">Subs <small class="devp">${C.esc('College rules: unlimited changes; a player taken off in the first half can come back once in the second.')}</small></h3><div class="bench">${bench || '<p class="note">Nobody left on the bench.</p>'}</div>
+      <div class="jbtns"><button class="btn ${T.auto ? 'go' : 'sec2'}" data-act="mauto">${T.auto ? '✔ Auto-manage' : 'Auto-manage: off'}</button><button class="btn pri" data-act="back">▶ Return to match</button></div></div>`; }
+  function pickHTML(idx) { const m = M.m, my = M.my, e = m.ents[idx]; if (!e || !e.on) return '<p class="note">That player is no longer on the pitch.</p><button class="btn full go" data-act="back">Back</button>';
+    const pos = e.slot.pos, FIT = ['', '#dc2626', '#f97316', '#eab308', '#84cc16', '#16a34a'], pendIn = p => m.pending.find(s => s.side === my && s.inP === p), po = m.pending.find(s => s.side === my && s.outE === e);
+    const ranked = benchPool(m, my).map(p => [p, C.fit(p, pos) * 100 + p.rating + p.energy / 10]).sort((a, b) => b[1] - a[1]);
+    const rows = ranked.map(([p], i) => { const pi = pendIn(p); return `<button class="pkrow ${i < 2 && C.fit(p, pos) >= 3 ? 'best' : ''}" data-act="msin2" data-v="${idx}|${p.id}"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn)} ${C.esc(p.ln)}</b><small><span class="pchip" style="background:${FIT[C.fit(p, pos)]}">${p.pos}</span> ${C.FITLABEL[C.fit(p, pos)]} at ${pos} · 🔋 ${Math.round(p.energy)}%</small>${pi ? `<em class="submark">🔁 Coming on for ${C.esc(pi.outE.p.ln)}</em>` : ''}</div><b class="pkr">${p.rating}</b>${i < 2 && C.fit(p, pos) >= 3 ? '<em class="bestt">Best</em>' : ''}</button>`; }).join('');
+    return `<div class="altp pfocus pk1">${C.matchFocusHTML(m, e)}${po ? `<p class="submark" style="margin:6px 0 0">🔁 Coming off for ${C.esc(po.inP.ln)} at the ${m.ht ? 'restart' : 'next stoppage'} <button class="btn sm2 sec2" data-act="subcancel" data-v="${m.pending.indexOf(po)}">Cancel</button></p>` : ''}${instrRow(e)}
+      <div class="ahd2"><small class="ahd">Bring on at ${pos}</small></div><div class="alist pkscroll">${rows || '<p class="note">Nobody available to come on.</p>'}</div>
+      <button class="btn full go pkback" data-act="back">Back to Player</button></div>`; }
+  C.openTeam = hurtE => { if (!M || !M.m) return; if ((M.playing || hurtE) && !M.m.ht) M.resumeAfter = true; M.playing = false;
+    C.ui.open('Team Changes', teamHTML);
+    if (hurtE) setTimeout(() => C.openTeamPick(M.m.ents.indexOf(hurtE)), 0); };
+  C.openTeamPick = idx => { C.ui.asPopup = true; C.ui.open('Choose player', () => pickHTML(+idx)); };
+  C.openSubs = hurtE => C.openTeam(hurtE);
+  C.openMatchPlan = () => C.openTeam();
+  C.ACTS.mpick = v => C.openTeamPick(v);
+  C.ACTS.msin2 = v => { const [i, id] = String(v).split('|'), m = M.m, e = m.ents[+i], p = benchPool(m, M.my).find(x => x.id === id); if (!e || !p) return;
+    const was = C.queueSub(m, M.my, e, p, true); liveLog({ k: 'sub', out: e.p.id, in: p.id });
+    C.toast(`🔁 ${e.p.ln} off, ${p.ln} on ${m.ht ? 'at the restart' : 'at the next stoppage'}${was && was.length ? ` · replaces ${was.map(s => s.inP.ln + ' for ' + s.outE.p.ln).join(', ')}` : ''}`); updPend(); C.ui.back(); C.ui.refresh(); };
 
   // ================= 1.06 (QA-100): the penalty shootout =================
   let SO = null;

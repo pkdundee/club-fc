@@ -45,6 +45,7 @@
     host.className = keep ? 'noanim' : '';   // only animate on first open: a refresh must not flash
     host.innerHTML = (page ? pageHTML(page) : '') + (pop ? popHTML(pop) : '');
     host._pg = page; host._pop = pop;
+    if (pop && page) { const pgEl = host.querySelector('.page'); if (pgEl) pgEl.classList.add('under'); }   // 1.10.01 (QA-153): the page under a popup is locked
     const pg = host.querySelector('.pgbody'), pp = host.querySelector('.popbody,.uc');
     if (pg && page) pg.scrollTop = page.sc || 0; if (pp && pop) pp.scrollTop = pop.sc || 0;
   }
