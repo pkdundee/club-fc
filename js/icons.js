@@ -22,7 +22,8 @@
   // the same present on the campus map (SVG): a soft halo so it reads on any ground, then the 🎁 itself
   C.giftSVG = (r = 12) => `<circle r="${r}" fill="#fff" fill-opacity=".9" stroke="#0f172a" stroke-width="2"/><text y="${(r * .38).toFixed(1)}" text-anchor="middle" font-size="${(r * 1.35).toFixed(1)}">🎁</text>`;
   // 1.02 (FEEDBACK 150): points-track chests. Not reached: grey and closed. Ready: colored and closed. Claimed: open, empty, with a tick.
-  C.chestSVG = (state, s = 30) => { const g = state === 'idle', wood = g ? '#94a3b8' : '#b45309', band = g ? '#cbd5e1' : '#fbbf24', O = 'stroke="#0f172a" stroke-width="1.5" stroke-linejoin="round"';
+  C.chestSVG = (state, s = 30) => { const g = state === 'idle', wood = g ? '#c98a8a' : '#dc2626', band = g ? '#e8c7c7' : '#fbbf24',   // 1.10 (QA-119): red; muted red until reached
+    O = 'stroke="#0f172a" stroke-width="1.5" stroke-linejoin="round"';
     const body = `<rect x="4" y="13" width="24" height="13" rx="2" fill="${wood}" ${O}/><rect x="4" y="17" width="24" height="3" fill="${band}" ${O}/>`;
     if (state !== 'open') return `<svg viewBox="0 0 32 30" width="${s}" height="${s * 30 / 32}" aria-hidden="true">${body}<g class="lid"><path d="M4 13v-3a5 5 0 0 1 5-5h14a5 5 0 0 1 5 5v3z" fill="${wood}" ${O}/><rect x="13.5" y="10" width="5" height="6" rx="1" fill="${band}" ${O}/></g></svg>`;
     return `<svg viewBox="0 0 32 30" width="${s}" height="${s * 30 / 32}" aria-hidden="true"><path d="M5 13h22v3H5z" fill="#3f2a14"/>${body}<g class="lid"><path d="M5 12l2-9a4 4 0 0 1 4-3h10a4 4 0 0 1 4 3l2 9z" fill="${wood}" ${O}/></g><circle cx="25" cy="23" r="5.5" fill="#16a34a" stroke="#fff" stroke-width="1.5"/><path d="M22.6 23l1.7 1.7 3.2-3.4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`; };

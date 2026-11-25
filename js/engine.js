@@ -348,7 +348,8 @@
   function hurt(m, e) { if (!e.on || e.injured) return; if (m.rng() < .7) { e.knock = 1; say(m, e.side, 'knock', e); } else { e.injured = true; e.knock = 1; say(m, e.side, 'injury', e); m.teams[e.side].needSub = e; } }
 
   // ---------- substitutions (Q20f): made at the next stoppage ----------
-  C.queueSub = (m, side, outE, inP) => { if (!m.pending.some(s => s.outE === outE || s.inP === inP)) m.pending.push({ side, outE, inP }); };
+  C.queueSub = (m, side, outE, inP, replace) => { const clash = m.pending.filter(s => s.outE === outE || s.inP === inP);
+    if (clash.length && !replace) return null; m.pending = m.pending.filter(s => !clash.includes(s)); m.pending.push({ side, outE, inP }); return clash; };   // 1.10 (QA-116): your re-pick replaces
   C.canBringOn = (m, side, p) => { const o = m.offAt[p.id]; if (m.ents.some(e => e.p === p && e.on)) return false; if (o == null) return true; return o.half === 1 && m.half === 2 && !o.back; };
   function applySubs(m) {
     for (const s of m.pending.splice(0)) {
@@ -452,7 +453,7 @@
     }
     say(m, -1, 'ft', '');
   }
-  C.resumeHT = m => { m.ht = false; };
+  C.resumeHT = m => { if (C.resumeHTWrap) C.resumeHTWrap(m); applySubs(m); m.ht = false; };   // 1.10 (QA-116): half-time subs take effect at the restart
   // 1.06 (QA-100): the shootout, one kick at a time. Takers: the outfield players on the pitch, best shooters first (as before)
   C.penTakers = (m, side) => active(m, side).filter(e => e.slot.pos !== 'GK').sort((a, b) => shotSkill(m, b) - shotSkill(m, a));
   C.penShotSkill = (m, e) => shotSkill(m, e);

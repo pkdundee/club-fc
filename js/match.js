@@ -79,9 +79,9 @@
     const rot = C.autoRotate(); if (rot) C.toast(`🔄 Auto-manage rested ${rot} tired player${rot > 1 ? 's' : ''}`);
     const car = C.car(), my = f.h === 0 ? 0 : 1, opp = C.oppTeam(my === 0 ? f.a : f.h), t = C.tac();
     if (t.xi.filter(Boolean).length < 11) { C.toast(t.empty && t.empty.some(Boolean) ? 'Fill every position in Tactics first' : 'Not enough fit players for an XI'); return C.openTactics(); }
-    M = { f, my, opp, cd: 5, speed: 1, playing: false, ev: 0 };
+    M = { f, my, opp, cd: 0, speed: 1, playing: false, ev: 0 };   // 1.10 (QA-118): no countdown before kick-off; the match waits for Kick off or Quick result
     M.att = C.attendance(f); M.locals = t.xi.map(C.P).filter(p => p && C.isLocal(p)).length;
-    C.ui.closeAll(); drawPre(); countdown();
+    C.ui.closeAll(); drawPre();
   };
   function teamPair() { const me = C.myTeam(M.my === 0), A = M.my === 0 ? me : M.opp, B = M.my === 0 ? M.opp : me; A.home = !(M.f && M.f.n); B.home = false; return [A, B]; }   // 1.04: the play-off is on neutral ground
   function drawPre() {
@@ -96,6 +96,7 @@
       ${xs.filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${xs.filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
       <div class="lus"><div><h4>${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div><div><h4>${M.opp.form}</h4>${oppRows}</div></div>
       <div class="prebtns"><button class="btn sec2" data-act="mtac"><i class="xoi"></i> Tactics</button><button class="btn sec2" data-act="mquick">⏩ Quick result</button><button class="btn sec2" data-act="mleave">✕</button></div>
+      <p class="note resnote">Matches resume if the game closes. Abandoning one forfeits it 0–9.</p>
       <button class="btn full pri kick" data-act="mkick">▶ Kick off <span id="cdn">${M.cd ? '· ' + M.cd : ''}</span></button>
       ${M.cd ? '<button class="cdpause" data-act="mcdstop">Tap to stop the countdown</button>' : ''}</div>`;
   }
@@ -110,6 +111,7 @@
   C.kickOff = () => {
     if (needXI()) return; clearInterval(M.cdT); const [A, B] = teamPair(), S = C.sea();
     M.m = C.createMatch(A, B, (C.car().created & 0xffff) * 131 + S.n * 977 + M.f.md * 7, matchOpts());
+    liveStart();
     M.playing = true; M.last = performance.now(); M.acc = 0; M.lineT = 0; M.fillT = 0; M.kits = kitsFor(M.m.teams);
     drawLive(); say(line('ko')); setTimeout(() => M && M.m && say(line('ko').replace(/^.*$/, L.ko[1])), 2500);
     crowdOn(Math.min(1, M.att / 3000)); whistle(1);
@@ -131,7 +133,7 @@
     if (!M.playing && !M.cdUntil && !C.ui.isOpen()) playBtn();
     if (M.playing && !C.ui.isOpen()) {
       M.acc += dt * rate(); let n = 0;
-      while (M.acc >= C.PITCH.DT && n++ < 60) { M.acc -= C.PITCH.DT; C.stepMatch(M.m); events(); if (M.m.ht || M.m.done || !M.playing) { M.acc = 0; break; } }
+      while (M.acc >= C.PITCH.DT && n++ < 60) { M.acc -= C.PITCH.DT; liveStep(); events(); if (M.m.ht || M.m.done || !M.playing) { M.acc = 0; break; } }
       if (M.m.ht && M.playing) { M.playing = false; halfTime(); }
       if (M.m.done) return finishUI();
       M.fillT += dt; if (M.fillT > 9 / Math.sqrt(M.speed)) { M.fillT = 0; if (M.m.t - (M.lastEvT || 0) > 25) say(line('fill')); }
@@ -179,7 +181,7 @@
       if (i === offI) return `<g><circle cx="${x}" cy="${y}" r="9" fill="#dc2626" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${y + 4}" font-size="11" font-weight="900" fill="#fff" text-anchor="middle">✖</text><text x="${x}" y="${y + 18}" font-size="7" font-weight="800" fill="#fecaca" text-anchor="middle">${sl[0]}</text></g>`;
       return `<g><circle cx="${x}" cy="${y}" r="9" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="3 2" opacity=".8"/><text x="${x}" y="${y + 18}" font-size="7" font-weight="800" fill="#e2e8f0" text-anchor="middle">${sl[0]} · empty</text></g>`; }).join('');
     return `<svg class="lpitch" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect x="2" y="2" width="${W - 4}" height="${H - 4}" rx="8" fill="#15803d" stroke="#fff" stroke-opacity=".6"/><line x1="2" y1="${H / 2}" x2="${W - 2}" y2="${H / 2}" stroke="#fff" stroke-opacity=".35"/><circle cx="${W / 2}" cy="${H / 2}" r="16" fill="none" stroke="#fff" stroke-opacity=".35"/>${dots}</svg>`; };
-  C.redForm = f => { C.reshape(M.m, M.my, f); M.redOff = -1; C.$$('.rcf button').forEach(b => b.classList.toggle('pri', b.dataset.v === f)); const n = C.$('#rpitch'); if (n) n.innerHTML = C.livePitchSVG(M.my, -1); };
+  C.redForm = f => { C.reshape(M.m, M.my, f); liveLog({ k: 'form', f }); M.redOff = -1; C.$$('.rcf button').forEach(b => b.classList.toggle('pri', b.dataset.v === f)); const n = C.$('#rpitch'); if (n) n.innerHTML = C.livePitchSVG(M.my, -1); };
   C.redGo = () => { const n = C.$('#redc'); if (n) n.remove(); M.playing = true; };
   function say(t) { if (!t) return; const n = C.$('#tick'); if (n) { n.textContent = t; n.classList.remove('tpop'); void n.offsetWidth; n.classList.add('tpop'); } }
   function feed(e) { if (e.type === 'sub') updPend(); const n = C.$('#mfeed'); if (!n) return; const ic = { goal: '⚽', yellow: '🟨', red: '🟥', injury: '🩹', sub: '🔁', penalty: '🎯' }[e.type];
@@ -205,7 +207,7 @@
     host().innerHTML = `<div class="live"><div class="sbar">${C.crestSVG(T[0].c1, T[0].c2, T[0].abbr.slice(0, 2), 30)}<b class="tn ${M.my === 0 ? 'me' : ''}">${sw(K[0])}${C.esc(T[0].abbr)}<small>H</small>${you(0)}</b><b class="sc" id="msc">0 – 0</b><b class="tn ${M.my === 1 ? 'me' : ''}">${sw(K[1])}${C.esc(T[1].abbr)}<small>A</small>${you(1)}</b>${C.crestSVG(T[1].c1, T[1].c2, T[1].abbr.slice(0, 2), 30)}
         <span class="mn" id="mmin">1'</span><button class="mic" data-act="msound">${C.acct().sound ? '🔊' : '🔇'}</button></div>
       <div class="pitchw"><canvas id="pitch"></canvas></div><div class="tick" id="tick"></div>
-      <div class="mkey"><span>${sw(K[M.my])} <b>${C.esc(T[M.my].short)}</b> (you) <span id="mdir">attack ▲</span></span><span>${sw(K[1 - M.my])} ${C.esc(T[1 - M.my].short)}</span></div>
+      <div class="mkey">${[0, 1].map(i => i === M.my ? `<span>${sw(K[i])} <b>${C.esc(T[i].short)}</b> (you) <span id="mdir">attack ▲</span></span>` : `<span>${sw(K[i])} ${C.esc(T[i].short)}</span>`).join('')}</div>
       <div class="spd spd9"><button class="mplay ${M.playing ? '' : 'paused'}" data-act="mpause" id="mpz" aria-label="Play or pause">${M.playing ? '⏸' : '▶'}</button>${[[.25, '1×'], [1, '5×'], [5, '10×'], [10, '20×']].map(([v, n]) => `<button class="${M.speed === v ? 'on' : ''}" data-act="mspeed" data-v="${v}">${n}</button>`).join('')}<button class="anl ${M.debug ? 'on' : ''}" data-act="mdebug" title="Show passes, shots and lines"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 19V5M4 19h16" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M7 15l4-5 3 3 5-6" fill="none" stroke="#22d3ee" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><small>Analysis</small></button><button data-act="mskip" data-v="ht" ${m.half > 1 ? 'disabled' : ''}>⏭ HT</button><button data-act="mskip" data-v="ft">⏭ FT</button></div>
       <div id="subpend">${C.pendingSubsHTML ? C.pendingSubsHTML(M.m) : ''}</div><div class="mbtns9"><button class="btn sm2" data-act="msubs">🔁 Subs</button><button class="btn sm2" data-act="mment"><i class="xoi"></i> Plan</button></div><div class="mfeed" id="mfeed"></div><div class="mcd" id="mcd"></div>
       <div class="pend" id="mpend"></div></div>`;
@@ -297,47 +299,116 @@
   }
 
   // ---------- in-match plan: mentality and auto-manage ----------
-  C.openMatchPlan = () => { if (M.playing && !M.m.ht) M.resumeAfter = true; M.playing = false; C.ui.open('Match plan', () => { const T = M.m.teams[M.my];
+  // 1.10 (QA-124, QA-125): an in-match instruction for one player (journalled for resume)
+  const MARROW = ['⬇⬇', '⬇', '•', '⬆', '⬆⬆'];
+  function instrRow(e) { return `<label class="fld">Instruction</label><div class="instr pfi">${MARROW.map((x, k) => `<button class="${e.instr === k ? 'on' : ''}" data-act="minstr" data-v="${e.p.id}|${k}"><span>${x}</span>${['Ultra def', 'Defend', 'Balanced', 'Attack', 'Ultra att'][k]}</button>`).join('')}</div><p class="note pfin">${C.INSTR_TXT ? C.INSTR_TXT[e.instr] : ''}</p>`; }
+  C.ACTS.minstr = v => { if (!M || !M.m) return; const [id, k] = String(v).split('|'), e = M.m.ents.find(x => x.side === M.my && x.on && x.p.id === id); if (!e) return; e.instr = +k; const T = M.m.teams[M.my]; T.instr = Object.assign({}, T.instr || {}, { [id]: +k }); liveLog({ k: 'instr', id, v: +k }); C.ui.refresh(); };
+  let planSel = null;
+  C.ACTS.mplansel = v => { planSel = v === '' ? null : +v; C.ui.refresh(); };
+  C.ACTS.mplansub = v => { const idx = +v; planSel = null; C.ui.closeAll(); setTimeout(() => { C.openSubs(); C.subOut(idx); }, 0); };
+  function planBoard() { const m = M.m, T = m.teams[M.my], F = C.FORMATIONS[T.form] || [], on = m.ents.filter(e => e.side === M.my && e.on);
+    return `<div class="board tall mplanb">${F.map((sl, i) => { const e = on.find(z => z.i === i), left = 8 + sl[1] * 84, top = 88 - sl[2] * 80;
+      if (!e) return `<div class="tk mpe" style="left:${left}%;top:${top}%"><small>${sl[0]}</small></div>`;
+      const en = Math.round(e.energy);
+      return `<button class="tk mptk ${planSel === m.ents.indexOf(e) ? 'sel' : ''}" style="left:${left}%;top:${top}%" data-act="mplansel" data-v="${m.ents.indexOf(e)}"><div class="tkf">${C.faceOf(e.p)}</div><div class="tkn">${C.esc(e.p.ln)}</div><div class="mpst"><span style="color:${en < 45 ? '#f87171' : en < 60 ? '#fbbf24' : '#86efac'}">🔋${en}</span> ⭐${C.matchRatingOf ? C.matchRatingOf(m, e) : ''}</div>${e.instr !== 2 ? `<i class="bdg ins">${MARROW[e.instr]}</i>` : ''}</button>`; }).join('')}</div>`; }
+  C.openMatchPlan = () => { if (M.playing && !M.m.ht) M.resumeAfter = true; M.playing = false; planSel = null; C.ui.open('Match plan', () => { const m = M.m, T = m.teams[M.my];
+    const sel = planSel != null ? m.ents[planSel] : null;
+    return `<p class="note" style="margin-top:0">Tap a player for their instruction, or to take them off.</p>${planBoard()}
+      ${sel ? `<div class="card pfocus">${C.matchFocusHTML(m, sel)}${instrRow(sel)}<div class="jbtns" style="grid-template-columns:1fr 1fr;margin-top:8px"><button class="btn sec2" data-act="mplansel" data-v="">Close</button><button class="btn go" data-act="mplansub" data-v="${planSel}">🔁 Sub off…</button></div></div>` : ''}
+      <label class="fld">Formation</label><div class="forms mforms2">${Object.keys(C.FORMATIONS).map(f => `<button class="${T.form === f ? 'on' : ''}" data-act="mform" data-v="${f}">${f}</button>`).join('')}</div>
+      <label class="fld">Mentality</label><div class="ments mments">${C.MENTALITY.map((x, i) => `<button class="${T.ment === i ? 'on' : ''}" data-act="mmset" data-v="${i}"><span>${MARROW[i]}</span><small>${['Ultra def', 'Defend', 'Balanced', 'Attack', 'Ultra att'][i]}</small></button>`).join('')}</div>
+      <button class="btn full ${T.auto ? 'pri' : 'sec2'}" data-act="mauto" style="margin-top:12px">${T.auto ? '✔ Auto-manage is on' : 'Turn on auto-manage'}</button>
+      <p class="note">Your staff sub injured and tired players, protects or chases a lead late on, and keeps your playing-time promises.</p><button class="btn full go" data-act="back">▶ Return to match</button>`; }); };
+  C.openMatchPlanOld = () => { if (M.playing && !M.m.ht) M.resumeAfter = true; M.playing = false; C.ui.open('Match plan', () => { const T = M.m.teams[M.my];
     const nOn = M.m.ents.filter(e => e.side === M.my && e.on).length;
     return `${nOn < 11 ? `<div class="card" style="text-align:center;padding:8px"><b>Playing with ${nOn}</b><div class="rpitch">${C.livePitchSVG(M.my, M.redOff == null ? -1 : M.redOff)}</div><small class="mutey">✖ sent off · dashed = an empty position</small></div>` : `<div class="rpitch">${C.livePitchSVG(M.my, -1)}</div>`}<label class="fld">Formation</label><div class="instr mforms">${Object.keys(C.FORMATIONS).map(f => `<button class="${T.form === f ? 'on' : ''}" data-act="mform" data-v="${f}">${f}</button>`).join('')}</div>
       <label class="fld">Mentality</label><div class="instr">${C.MENTALITY.map((x, i) => `<button class="${T.ment === i ? 'on' : ''}" data-act="mmset" data-v="${i}">${x}</button>`).join('')}</div>
       <button class="btn full ${T.auto ? 'pri' : 'sec2'}" data-act="mauto" style="margin-top:12px">${T.auto ? '✔ Auto-manage is on' : 'Turn on auto-manage'}</button>
       <p class="note">Your staff sub injured and tired players, protects or chases a lead late on, and keeps your playing-time promises.</p><button class="btn full sec2" data-act="back">Back to the match</button>`; }); };
-  C.ACTS.mform = f => { C.reshape(M.m, M.my, f); M.redOff = -1; C.ui.refresh(); };   // 1.04.01 (QA-47): change the formation during a match
-  C.matchMent = v => { const T = M.m.teams[M.my]; T.ment = +v; T.ment0 = +v; C.ui.refresh(); };
-  C.matchAuto = () => { const T = M.m.teams[M.my]; T.auto = !T.auto; C.ui.refresh(); };
+  C.ACTS.mform = f => { C.reshape(M.m, M.my, f); liveLog({ k: 'form', f }); M.redOff = -1; C.ui.refresh(); };   // 1.04.01 (QA-47): change the formation during a match
+  C.matchMent = v => { const T = M.m.teams[M.my]; T.ment = +v; T.ment0 = +v; liveLog({ k: 'ment', v: +v }); C.ui.refresh(); };
+  C.matchAuto = () => { const T = M.m.teams[M.my]; T.auto = !T.auto; liveLog({ k: 'auto', v: T.auto }); C.ui.refresh(); };
 
   // ---------- substitutions (Q20f) ----------
   C.openSubs = (hurtE) => { if (M.playing && !M.m.ht) M.resumeAfter = true; M.playing = false; M.pickOut = hurtE ? M.m.ents.indexOf(hurtE) : null; C.ui.open('Substitutions', () => subsHTML(hurtE)); };
   C.matchMySide = () => M ? M.my : 0;
   const updPend = () => { const n = C.$('#subpend'); if (n && M && M.m) n.innerHTML = C.pendingSubsHTML ? C.pendingSubsHTML(M.m) : ''; };
-  C.subCancel = i => { if (!M || !M.m) return; M.m.pending.splice(i, 1); updPend(); C.ui.refresh(); C.toast('Sub cancelled'); };
+  C.subCancel = i => { if (!M || !M.m) return; const s0 = M.m.pending[i]; if (s0) liveLog({ k: 'unsub', out: s0.outE.p.id, in: s0.inP.id }); M.m.pending.splice(i, 1); updPend(); C.ui.refresh(); C.toast('Sub cancelled'); };
   function subsHTML(hurtE) {
     const m = M.m, my = M.my, T = m.teams[my], on = m.ents.filter(e => e.side === my && e.on);
-    const pool = T.bench.concat(m.ents.filter(e => e.side === my && !e.on && !e.red && !e.injured).map(e => e.p)).filter((p, i, a) => a.indexOf(p) === i && C.canBringOn(m, my, p) && !m.pending.some(s => s.inP === p));
+    const pool = T.bench.concat(m.ents.filter(e => e.side === my && !e.on && !e.red && !e.injured).map(e => e.p)).filter((p, i, a) => a.indexOf(p) === i && C.canBringOn(m, my, p));
     const out = M.pickOut != null ? m.ents[M.pickOut] : null, FIT = ['', '#dc2626', '#f97316', '#eab308', '#84cc16', '#16a34a'];
-    const row = (p, act, v, extra = '', best = false) => `<button class="pkrow ${best ? 'best' : ''}" data-act="${act}" data-v="${v}"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn)} ${C.esc(p.ln)}</b><small>${extra}</small></div><b class="pkr">${p.rating}</b>${best ? '<em class="bestt">Best</em>' : ''}</button>`;
+    const row = (p, act, v, extra = '', best = false, mk = '') => `<button class="pkrow ${best ? 'best' : ''}" data-act="${act}" data-v="${v}"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn)} ${C.esc(p.ln)}</b><small>${extra}</small>${mk}</div><b class="pkr">${p.rating}</b>${best ? '<em class="bestt">Best</em>' : ''}</button>`;
+    const pendOut = e => m.pending.find(s => s.side === my && s.outE === e), pendIn = p => m.pending.find(s => s.side === my && s.inP === p);
+    const mark = t => `<em class="submark">🔁 ${t}</em>`;
     let body;
-    if (!out) body = `<label class="fld">1. Who comes off?</label>` + on.map(e => row(e.p, 'msout', m.ents.indexOf(e), `<span class="pchip" style="background:var(--school)">${e.slot.pos}</span> 🔋 ${Math.round(e.energy)}% ${e.injured ? '🩹' : e.knock ? '🤕' : ''}${e.bin ? '🟨' : ''}`)).join('');
+    if (!out) body = `<label class="fld">1. Who comes off?</label>` + on.map(e => row(e.p, 'msout', m.ents.indexOf(e), `<span class="pchip" style="background:var(--school)">${e.slot.pos}</span> 🔋 ${Math.round(e.energy)}% ${C.matchRatingOf ? '· ⭐ ' + C.matchRatingOf(m, e) : ''} ${e.injured ? '🩹' : e.knock ? '🤕' : ''}${e.bin ? '🟨' : ''}${pendOut(e) ? mark('Coming off for ' + C.esc(pendOut(e).inP.ln)) : ''}`)).join('');
     else { const pos = out.slot.pos, ranked = pool.map(p => [p, C.fit(p, pos) * 100 + p.rating + p.energy / 10]).sort((a, b) => b[1] - a[1]);
-      body = `<div class="subout"><span>Coming off</span><b>${C.esc(out.p.fn)} ${C.esc(out.p.ln)}</b><span class="pchip" style="background:var(--school)">${pos}</span><button class="btn sm2 sec2" data-act="msout" data-v="">Change</button></div>
-        <label class="fld">2. Who comes on at ${pos}?</label>` + (ranked.length ? ranked.map(([p], i) => row(p, 'msin', p.id, `<span class="pchip" style="background:${FIT[C.fit(p, pos)]}">${p.pos}</span> ${C.FITLABEL[C.fit(p, pos)]} at ${pos} · 🔋 ${Math.round(p.energy)}%`, i < 2 && C.fit(p, pos) >= 3)).join('') : '<p class="note">Nobody left on the bench.</p>'); }
+      body = `<div class="card pfocus">${C.matchFocusHTML ? C.matchFocusHTML(m, out) : ''}${instrRow(out)}<button class="btn sm2 sec2" data-act="msout" data-v="" style="margin-top:8px">Pick a different player</button></div>
+        <label class="fld">2. Who comes on at ${pos}?</label>` + (ranked.length ? ranked.map(([p], i) => row(p, 'msin', p.id, `<span class="pchip" style="background:${FIT[C.fit(p, pos)]}">${p.pos}</span> ${C.FITLABEL[C.fit(p, pos)]} at ${pos} · 🔋 ${Math.round(p.energy)}%`, i < 2 && C.fit(p, pos) >= 3, pendIn(p) ? mark('Coming on for ' + C.esc(pendIn(p).outE.p.ln)) : '')).join('') : '<p class="note">Nobody left on the bench.</p>'); }
     return `${C.pendingSubsHTML ? C.pendingSubsHTML(m) : ''}${hurtE ? `<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:800">🩹 ${C.esc(hurtE.p.fn + ' ' + hurtE.p.ln)} is hurt. Choose a replacement.</div>` : ''}
       <p class="note" style="margin-top:6px">College rules: unlimited changes. A player taken off in the first half can come back once in the second.</p>${body}
-      <button class="btn full sec2" data-act="back" style="margin-top:10px">Back to the match</button>`;
+      <button class="btn full go" data-act="back" style="margin-top:10px">▶ Return to match</button>`;
   }
   C.subOut = idx => { M.pickOut = idx === '' || idx == null ? null : +idx; C.ui.refresh(); };
   C.subIn = id => { const m = M.m, e = m.ents[M.pickOut], T = m.teams[M.my], pool = T.bench.concat(m.ents.filter(x => x.side === M.my && !x.on).map(x => x.p)), p = pool.find(x => x.id === id);
-    if (p && e) { C.queueSub(m, M.my, e, p); C.toast(`🔁 Sub made: ${e.p.ln} off, ${p.ln} on (at the next stoppage)`); updPend(); }
-    M.pickOut = null; C.ui.back(); };
+    if (p && e) { const was = C.queueSub(m, M.my, e, p, true); liveLog({ k: 'sub', out: e.p.id, in: p.id }); C.toast(`🔁 ${e.p.ln} off, ${p.ln} on ${m.ht ? 'at the restart' : 'at the next stoppage'}${was && was.length ? ` · replaces ${was.map(s => s.inP.ln + ' for ' + s.outE.p.ln).join(', ')}` : ''}`); updPend(); }
+    M.pickOut = null; C.ui.refresh(); };   // 1.10 (QA-117): stay on Substitutions for the next change
 
   // ================= full time =================
   function finishUI() {
     if (M.m.needPens && !M.m.pens) return shootout();   // 1.06 (QA-100): level after a knockout match: penalties on screen
-    cancelAnimationFrame(M.raf); crowdOff(); const rep = C.applyResult(M.m, M.f); const S = C.sea();
+    cancelAnimationFrame(M.raf); crowdOff(); const rep = C.applyResult(M.m, M.f); liveEnd(); const S = C.sea();
     host().innerHTML = ''; M = null; C.render();
     C.openReport(rep.md, true);
   }
+  // ================= 1.10 (QA-127): matches resume; every key event is saved at once; Abandon = a 0–9 forfeit =================
+  // The engine is deterministic from its seed, so a match is saved as: the fixture, the seed, the step count and your decisions
+  // (subs, cancels, formation, Mentality, auto-manage, instructions, half-time restart) with the step they were made at.
+  // Reopening replays it to the saved step, exactly as it was, and carries on.
+  const KEYEV = new Set(['goal', 'yellow', 'red', 'injury', 'sub', 'penalty', 'ht', 'ft']);
+  function liveStart() { const car = C.car(), S = C.sea(); M.m.stepN = 0; M.lastSave = performance.now();
+    car.live = { v: 1, sn: S.n, md: M.f.md, seed: (car.created & 0xffff) * 131 + S.n * 977 + M.f.md * 7, n: 0, log: [], score: [0, 0], min: 1, opp: M.opp && (M.opp.short || M.opp.name), at: Date.now() }; C.save(); }
+  function liveLog(d) { const car = C.car(); if (!car || !car.live || !M || !M.m || M.replaying) return; car.live.log.push(Object.assign({ s: M.m.stepN || 0 }, d)); liveSave(); }
+  function liveSave(extra) { const car = C.car(); if (!car || !car.live || !M || !M.m || M.replaying) return; const L = car.live; L.n = M.m.stepN || 0; L.score = M.m.score.slice(); L.min = M.m.events.length ? (M.m.events[M.m.events.length - 1].min || L.min) : L.min; if (extra) Object.assign(L, extra); C.save(); M.lastSave = performance.now(); }
+  function liveStep() { const m = M.m, e0 = m.events.length; C.stepMatch(m); m.stepN = (m.stepN || 0) + 1;
+    let key = false; for (let i = e0; i < m.events.length; i++) if (KEYEV.has(m.events[i].type)) { key = true; break; }
+    if (key || performance.now() - (M.lastSave || 0) > 4000) liveSave(); }
+  function liveEnd() { const car = C.car(); if (car && car.live) { delete car.live; C.save(); } }
+  C.resumeHTWrap = m => { liveLog({ k: 'ht' }); };
+  // apply one logged decision while replaying
+  function applyLog(d) { const m = M.m, T = m.teams[M.my], ent = id => m.ents.find(e => e.side === M.my && e.p.id === id && e.on), pl = id => T.bench.concat(m.ents.filter(x => x.side === M.my).map(x => x.p)).find(p => p.id === id);
+    if (d.k === 'sub') { const e = ent(d.out), p = pl(d.in); if (e && p) C.queueSub(m, M.my, e, p, true); }
+    else if (d.k === 'unsub') { const i = m.pending.findIndex(s => s.outE.p.id === d.out && s.inP.id === d.in); if (i >= 0) m.pending.splice(i, 1); }
+    else if (d.k === 'form') C.reshape(m, M.my, d.f);
+    else if (d.k === 'ment') { T.ment = d.v; T.ment0 = d.v; }
+    else if (d.k === 'auto') T.auto = d.v;
+    else if (d.k === 'instr') { const e = m.ents.find(x => x.side === M.my && x.p.id === d.id); if (e) e.instr = d.v; }
+    else if (d.k === 'ht') { if (m.ht) C.resumeHT(m); } }
+  C._liveM = () => M && M.m;   // for checks
+  C.matchLive = () => { const car = C.car(); return car && car.live && car.live.v ? car.live : null; };
+  // on opening the game: a match in progress always offers Resume (nothing else opens until you choose)
+  C.matchResumeCheck = () => { const L = C.matchLive(); if (!L || M) return; const S = C.sea(), f = C.myFixture && C.myFixture();
+    if (!S || S.n !== L.sn || !f || f.md !== L.md) { liveEnd(); return; }
+    C.ui.open('Match in progress', () => `<div class="card" style="text-align:center"><b style="font-size:17px">vs ${C.esc(L.opp || 'your opponent')}</b><div style="font:600 34px/1.1 Teko,sans-serif;margin:6px 0">${L.score[f.h === 0 ? 0 : 1]} – ${L.score[f.h === 0 ? 1 : 0]}</div><small class="mutey">${L.so ? 'In the penalty shootout' : 'At ' + L.min + "'"}</small></div>
+      <p class="note">The game closed during this match. Resume from where it stopped, or abandon it (a 0–9 forfeit loss).</p>
+      <button class="btn full pri" data-act="mresume">▶ Resume the match</button><button class="btn full danger" style="margin-top:8px" data-act="mabandon">Abandon (forfeit 0–9)</button>`, { modal: false, popup: true }); };
+  C.ACTS.mresume = () => { const L = C.matchLive(); if (!L) return C.ui.closeAll(); C.ui.closeAll(); C.openPreMatch(); if (!M) return;
+    const [A, B] = teamPair(); M.m = C.createMatch(A, B, L.seed, matchOpts()); M.m.stepN = 0; M.replaying = true;
+    const log = (L.log || []).slice().sort((a, b) => a.s - b.s); let li = 0, g = 0;
+    while ((M.m.stepN || 0) < L.n && !M.m.done && g++ < 40000) { while (li < log.length && log[li].s <= M.m.stepN) applyLog(log[li++]); if (M.m.ht && !log.slice(li).some(d => d.k === 'ht')) C.resumeHT(M.m); C.stepMatch(M.m); M.m.stepN++; }
+    while (li < log.length) applyLog(log[li++]);
+    M.replaying = false; M.ev = M.m.events.length; M.playing = false; M.last = performance.now(); M.acc = 0; M.lineT = 0; M.fillT = 0; M.kits = kitsFor(M.m.teams);
+    if (L.so && M.m.needPens) { shootout(); SO.order = L.so.order.slice(); SO.started = true; SO.silent = true; for (let i = 0; i < L.so.n && !SO.done; i++) soKick(); SO.silent = false; drawShootout(); return; }
+    drawLive(); const sc = C.$('#msc'); if (sc) sc.textContent = M.m.score[0] + ' – ' + M.m.score[1];
+    M.m.events.filter(e => ['goal', 'yellow', 'red', 'injury', 'sub', 'penalty'].includes(e.type)).forEach(e => feed(e));
+    say('▶ Resumed. Tap play when you are ready.'); if (M.m.ht) halfTime(); M.raf = requestAnimationFrame(loop); };
+  C.ACTS.mabandon = () => C.confirm('Abandon the match?', '<p>This match counts as a <b>0–9 forfeit loss</b>: the table, results, form and Director confidence take it like any loss. This can\'t be undone.</p>', 'Abandon (forfeit)', 'mabandonok', '');
+  C.ACTS.mabandonok = () => { const L = C.matchLive(); C.ui.closeAll(); if (!L) return; C.openPreMatch(); if (!M) return;
+    const [A, B] = teamPair(); M.m = C.createMatch(A, B, L.seed, matchOpts()); const m = M.m; m.score = M.my === 0 ? [0, 9] : [9, 0]; m.done = true; m.forfeit = true;
+    m.events.push({ type: 'ft', side: -1, min: 90 }); cancelAnimationFrame(M.raf); const rep = C.applyResult(m, M.f); liveEnd(); host().innerHTML = ''; M = null; C.render();
+    C.mail('director', '🏳️', 'Match abandoned: forfeited 0–9', 'The match was abandoned, so it counts as a 0–9 forfeit loss.', null); C.openReport(rep.md, true); };
+
   // ================= 1.06 (QA-100): the penalty shootout =================
   let SO = null;
   function shootout() {
@@ -355,7 +426,8 @@
     SO.line = `${ok ? '⚽' : '🧤'} ${tk ? C.esc(tk.p.fn[0] + '. ' + tk.p.ln) : 'Taker'} (${C.esc(T.short || T.name)}): ${ok ? (k % 2 ? 'Smashed home!' : 'Scores, low into the corner.') : (k % 2 ? 'Saved! The keeper guessed right.' : 'Wide! Dragged past the post.')}`;
     SO.side = 1 - side; if (SO.side === 0) SO.i++;
     if (soOver()) { m.pens = SO.p.slice(); SO.done = true; }
-    drawShootout(); }
+    liveSave({ so: { order: SO.order.slice(), n: SO.kicks[0].length + SO.kicks[1].length } });
+    if (!SO.silent) drawShootout(); }
   function soRun() { clearTimeout(SO.t); if (SO.done) return; SO.started = true; soKick(); if (!SO.done) SO.t = setTimeout(soRun, SO.fast ? 450 : 1500); }
   C.soStart = () => { if (!SO) return; soRun(); };
   C.soFast = () => { if (!SO) return; SO.fast = !SO.fast; drawShootout(); };

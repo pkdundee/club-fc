@@ -290,7 +290,7 @@
     const empty = route !== 'portal' || P ? `<p class="note" style="padding:0 16px;text-align:center">${{ inbox: 'No applications right now. New ones arrive through the day.', camp: 'Run a camp to see new players.', jc: 'No transfers listed.', agency: 'Hire a scout to find an international player.', portal: 'Nobody left in the portal.' }[route]}</p>` : '';
     return `<div class="view scrolly">
       ${C.topBar(true)}<div class="phdr9 tall"><div class="row1"><div><b>Recruiting</b><small>👕 ${car.squad.length}/${C.rosterCap()} roster · 💼 ${C.jobsLeft()} campus jobs</small></div><button class="hlink" style="margin-left:auto" data-act="help" data-v="offers">?</button></div>
-        <div class="res hres">${C.resBar()}</div><div class="chips">${C.schChip()}</div></div>
+        <div class="chips">${C.schChip()}</div></div>
       <div style="padding:0 16px">${C.advice('rec')}${(() => { const car = C.car(), g = car.squad.filter(p => p.year >= 5 && !p.rs).length, after = car.squad.length - g, need = Math.max(0, C.PRE_MIN - after); return g ? `<div class="card gradw">🎓 <b>${g} 5th-year${g > 1 ? 's' : ''} graduate${g > 1 ? '' : 's'}</b> when the next season starts${need ? `: you'll need <b>${need} signing${need > 1 ? 's' : ''}</b> to stay at ${C.PRE_MIN}` : ''}. No walk-ons are added for you.</div>` : ''; })()}</div><div class="rtiles">${tiles}</div>${body}${cards || empty}</div>`;   // 1.08 (QA-104)
   };
 

@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.09 · 25 Nov 2026';
+  C.BUILD = 'CLUB FC 1.10 · 25 Nov 2026';
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -310,7 +310,7 @@
   const ready = C.loadArtManifest ? C.loadArtManifest() : Promise.resolve();
   // 1.02.05 (QA-14): start loading and decoding the campus art during the title screen, so the map's first draw is complete
   ready.then(() => { try { if (C.car() && C.campusLayers) C.campusLayers(C.car()); } catch (e) { } });
-  C.fitScreen(); Promise.all([ready, new Promise(r => setTimeout(r, C.TITLE_MS))]).then(() => { C.booting = false; C.fitScreen(); C.render(); if (C.testScenLoaded) C.testScenLoaded(); if (C.staffRefund) C.staffRefund(); });
+  C.fitScreen(); Promise.all([ready, new Promise(r => setTimeout(r, C.TITLE_MS))]).then(() => { C.booting = false; C.fitScreen(); C.render(); if (C.testScenLoaded) C.testScenLoaded(); if (C.fixRayMail) C.fixRayMail(); if (C.matchResumeCheck) C.matchResumeCheck(); if (C.staffRefund) C.staffRefund(); });
   const cs = C.$('#calstrip .next'); if (cs) cs.scrollIntoView({ inline: 'center', block: 'nearest' });
   // offline support; when a new upload takes over, reload once so the new version shows straight away
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

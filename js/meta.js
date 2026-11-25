@@ -83,26 +83,26 @@
     ['crp1', 'crp2', 'crp3', 'crp4'].forEach(k => add('res', k, XN[k][0], XN[k][1], inv[k], TIER[k], `${CRH[k]} hours of Performance Lab output at your level, worked out when you open it. Now: ${C.full(C.crateAmount(k, 'cp'))} Coaching Points each.`, 'crate'));
     ['crb1', 'crb2', 'crb3', 'crb4'].forEach(k => add('res', k, XN[k][0], XN[k][1], inv[k], TIER[k], `${CRH[k]} hours of Clubhouse output at your level, worked out when you open it. Now: ${C.money(C.crateAmount(k, 'cash'))} each. Storage limits don't apply.`, 'crate'));
     if (inv.crate) add('res', 'crate', '📦', 'Booster crate ($5K)', inv.crate, 2, 'Opens for $5,000 Booster $.', 'crate');
-    add('res', 'badge', '🏅', 'Coaching Badge', inv.badge, 3, "Raises a coach's stars. Used on the coach's page (Staff).");
-    add('res', 'manual', '📗', 'Coaching manual', S.items.manual, 1, 'Gives a coach 100 XP. Used on the coach\'s page (Staff).');
-    add('res', 'books', '📕', 'Trait Book', S.items.books, 3, "Upgrades a coach's trait. Used on the coach's page (Staff).");
-    add('res', 'credits', '🎫', 'Clinic Credits', S.items.credits, 1, "Pay for coach licences. Used on the coach's page (Staff).");
+    add('coach', 'badge', '🏅', 'Coaching Badge', inv.badge, 3, "Raises a coach's stars. Used on the coach's page (Staff).");
+    add('coach', 'manual', '📗', 'Coaching manual', S.items.manual, 1, 'Gives a coach 100 XP. Used on the coach\'s page (Staff).');
+    add('coach', 'books', '📕', 'Trait Book', S.items.books, 3, "Upgrades a coach's trait. Used on the coach's page (Staff).");
+    add('coach', 'credits', '🎫', 'Clinic Credits', S.items.credits, 1, "Pay for coach licences. Used on the coach's page (Staff).");
     Object.keys(XN).filter(k => XN[k][3]).sort((a, b) => XN[a][2] - XN[b][2]).forEach(k => add('speed', k, XN[k][0], XN[k][1], inv[k], TIER[k], `Takes ${XN[k][2] >= 60 ? XN[k][2] / 60 + ' h' : XN[k][2] + ' min'} off ${typeTxt[XN[k][3]]}.`, 'speed'));
     return L; };
   const invQty = () => { const e = document.getElementById('invq'); return Math.max(1, +(e && e.value) || 1); };
   C.openInventory = () => { invTab = 'special'; invSel = null; C.ui.open('Inventory', () => {
-    const tabs = [['special', 'Special'], ['res', 'Resources'], ['speed', 'Speed-ups'], ['gear', 'Gear']];
+    const tabs = [['special', 'Special'], ['res', 'Resources'], ['speed', 'Speed-ups'], ['coach', 'Coach'], ['gear', 'Gear']];   // 1.10: a Coach tab
     const tabsHTML = `<div class="bigtabs invtabs">${tabs.map(([k, n]) => `<button class="${invTab === k ? 'on' : ''}" data-act="invtab" data-v="${k}">${n}</button>`).join('')}</div>`;
-    if (invTab === 'gear') return `<div class="res hres inv">${C.resBar()}</div>${tabsHTML}${C.kitRoomHTML ? C.kitRoomHTML() : ''}<p class="note">Equip gear from a player's card. It returns here when a player leaves.</p>`;
-    const L = invItems().filter(x => x.tab === invTab && (x.n > 0 || invTab === 'speed' || invTab === 'res'));
+    if (invTab === 'gear') return `${tabsHTML}${C.kitRoomHTML ? C.kitRoomHTML() : ''}<p class="note">Equip gear from a player's card. It returns here when a player leaves.</p>`;
+    const L = invItems().filter(x => x.tab === invTab && (x.n > 0 || invTab === 'speed' || invTab === 'res' || invTab === 'coach'));
     if (invSel && !L.find(x => x.k === invSel)) invSel = null;
     const sel = L.find(x => x.k === invSel);
-    const grid = L.map(x => `<button class="invc t${x.tier} ${x.n ? '' : 'none'} ${x.k === invSel ? 'sel' : ''}" data-act="invsel" data-v="${x.k}"><span>${x.icon}</span><b>${x.n}</b><small>${C.esc(x.name.replace(' speed-up', '').replace(' Crate', ''))}</small></button>`).join('');
+    const grid = L.map(x => C.invTileHTML ? `<button class="invk ${x.n ? '' : 'none'} ${x.k === invSel ? 'sel' : ''}" data-act="invsel" data-v="${x.k}">${C.invTileHTML(x)}</button>` : `<button class="invc t${x.tier} ${x.n ? '' : 'none'} ${x.k === invSel ? 'sel' : ''}" data-act="invsel" data-v="${x.k}"><span>${x.icon}</span><b>${x.n}</b><small>${C.esc(x.name.replace(' speed-up', '').replace(' Crate', ''))}</small></button>`).join('');
     const det = sel ? `<div class="invdet"><b>${sel.icon} ${C.esc(sel.name)}</b><small>Owned: ${sel.n}</small><p>${sel.desc}</p>
       ${sel.use && sel.n > 1 ? `<div class="invslide"><input type="range" id="invq" min="1" max="${sel.n}" value="${sel.use === 'speed' ? 1 : sel.n}" oninput="document.getElementById('invqv').textContent=this.value"><span id="invqv">${sel.use === 'speed' ? 1 : sel.n}</span></div>` : ''}</div>`
       : `<div class="invdet empty"><p>Tap an item to see what it does.</p></div>`;
-    return `<div class="invwrap"><div class="res hres inv">${C.resBar()}</div>${tabsHTML}<div class="invg">${grid || '<p class="note">Nothing here yet.</p>'}</div>${det}</div>`;
-  }, { foot: () => { const sel = invItems().find(x => x.k === invSel); return sel && sel.use && sel.n > 0 && invTab !== 'gear' ? `<button class="btn pri invuse" data-act="invuse">Use</button>` : ''; } }); };
+    return `<div class="invwrap">${tabsHTML}<div class="invg">${grid || '<p class="note">Nothing here yet.</p>'}</div>${det}</div>`;
+  }, { foot: () => { const sel = invItems().find(x => x.k === invSel); return sel && sel.use && sel.n > 0 && invTab !== 'gear' ? `<button class="btn go invuse" data-act="invuse">Use</button>` : ''; } }); };
   A.invtab = v => { invTab = v; invSel = null; C.ui.refresh(); };
   A.invsel = v => { invSel = v; C.ui.refresh(); };
   A.invuse = () => { const sel = invItems().find(x => x.k === invSel); if (!sel || !sel.n) return; const n = Math.min(sel.n, sel.n > 1 ? invQty() : 1), inv = meta().inv;
@@ -265,7 +265,7 @@
     const track = `<div class="ptrack"><div class="pstar"><i>★</i><b>${M.pts}</b></div><div class="pline"><div class="pfill" style="width:${Math.min(100, M.pts / max * 100)}%"></div>${CHESTS.map(([p], i) => `<button class="pchest ${M.chests.includes(i) ? 'got' : M.pts >= p ? 'ready' : ''}" style="left:${p / max * 100}%" data-act="chestopen" data-v="${i}">${C.chestSVG(M.chests.includes(i) ? 'open' : M.pts >= p ? 'ready' : 'idle', 30)}<small>${p}</small></button>`).join('')}</div></div>`;
     const rows = list.map((t, i) => [t, i]).sort((a, b) => ((b[0].n >= b[0].goal && !b[0].claimed) - (a[0].n >= a[0].goal && !a[0].claimed)) || (a[0].claimed - b[0].claimed)).map(([t, i]) => `<div class="mrow2 ${t.claimed ? 'done' : ''} ${t.id === 'login' && !t.claimed ? 'alert' : ''}"><div class="mh"><span>${t.def[1]}</span><b>${C.esc(t.def[2])}${t.id === 'login' ? '' : ` <small>(${t.n}/${t.goal})</small>`}</b>${t.id === 'login' && !t.claimed ? '<i class="ldot"></i>' : ''}</div><div class="mb">${C.itemTiles(Object.assign({ pts: 20 }, DREW[t.id]))}
       ${t.claimed ? '<span class="donechk">✔</span>' : t.n >= t.goal ? `<button class="btn sm2 claim" data-act="dailyclaim" data-v="${i}">Claim</button>` : `<button class="btn sm2 go" data-act="${t.def[4]}" data-v="${t.def[5]}">Go</button>`}</div></div>`).join('');
-    return sub + `<div class="nextref">⏱ New tasks in ${C.dur((new Date().setHours(24, 0, 0, 0) - Date.now()) / 1000)}</div>${track}${rows}`;
+    return sub + `<div class="nextref">⏱ New tasks in ${C.dur((new Date().setHours(24, 0, 0, 0) - Date.now()) / 1000)}</div><div class="chbox" id="chbox" aria-live="polite"></div>${track}${rows}`;   // 1.10 (QA-119): the rewards box
   }
   ICON.pts = '<i class="ptsi">★</i>'; TIER.pts = 2; NAME.pts = 'Mission points';
   // the current themed event
@@ -293,7 +293,7 @@
   // an unearned chest shows one preview, straight away, just above the chest that was tapped (FEEDBACK 78, 95)
   A.chestopen = (v, el) => { const r = C.chestOpen(+v); if (r) { C.toast('🧰 ' + C.rwText(r)); C.ui.refresh(); C.render(); const n = document.querySelector(`.pchest[data-v="${+v}"]`); if (n) n.classList.add('justopen'); return; } C.rewardPreview(CHESTS[+v][1], el); };
   A.evclaim = v => { const [t, i] = v.split('|'), r = C.evClaim(t, +i); if (r) { C.toast('✔ ' + C.rwText(r)); C.ui.refresh(); C.render(); } };
-  A.evall = () => { const r = C.evClaimAll(); C.toast(r ? '✔ ' + C.rwText(r) : 'Nothing to claim yet'); C.ui.refresh(); C.render(); };
+  A.evall = () => { const r = C.evClaimAll(); if (r && C.celebrate) C.celebrate(r, 'Event rewards claimed'); else C.toast(r ? '✔ ' + C.rwText(r) : 'Nothing to claim yet'); C.ui.refresh(); C.render(); };
   A.evbuy = (v, el) => { const n = +v, X = C.evx(); if (n === 2 && !X.has1) return C.toast('Buy the $4.99 pack first');
     if (!(el && el.dataset.ok)) return C.confirm('Confirm purchase', `<div class="card" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:13px">🧪 Test store: nothing is charged.</div><p class="note">${C.curEvent().th.name} · Pack ${n} · ${n === 1 ? '$4.99' : '$9.99'}: opens this track, with everything up to today ready to redeem.</p>`, 'Buy ' + (n === 1 ? '$4.99' : '$9.99'), 'evbuy', v);
     if (C.evBuy(n) === true) { C.toast('✅ Test purchase complete'); C.ui.refresh(); C.render(); } };
@@ -348,7 +348,7 @@
   function sysMail() { C.syncADMail && C.syncADMail(C.car()); const M = meta();
     // 1.03 (FEEDBACK 170, 212): research is capped at 2 slots, so a bought research slot is refunded once in Coins; build slots are now Builder Packs
     { const a = C.acct(); if (a.pslot3Refund === 'due') { a.pslot3Refund = 'done'; C.mail('system', '📋', 'Research slots: two for everyone', 'Research now runs in 2 slots: the free one and the one you earn at Performance Lab Lv 10. Your extra research slot has been withdrawn, and here is a refund. Anything already researching finishes as normal.', { gold: 360 }); } }
-    if (!M.seenSys.includes('103q')) { M.seenSys.push('103q'); C.mail('system', '🔨', 'Builders: one free, three to buy', `You have one free builder. Builder Packs I, II and III each add a permanent builder, in that order, with speed-ups and Booster Crates to get it working.${C.acct().bq1 ? ' Your extra build slot is now your 2nd builder.' : ''} The Coach's Club and Coaches' Office Lv 10 no longer add a builder; any build already running in those slots finishes as normal. Free finishes are now earned: the Coaches' Office and Performance Lab give a longer free window as they level up. Here are some 1-minute speed-ups to start with.`, { sp1: 10 }); } if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `Ray here. A few changes around the office:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
+    if (!M.seenSys.includes('103q')) { M.seenSys.push('103q'); C.mail('system', '🔨', 'Builders: one free, three to buy', `You have one free builder. Builder Packs I, II and III each add a permanent builder, in that order, with speed-ups and Booster Crates to get it working.${C.acct().bq1 ? ' Your extra build slot is now your 2nd builder.' : ''} The Coach's Club and Coaches' Office Lv 10 no longer add a builder; any build already running in those slots finishes as normal. Free finishes are now earned: the Coaches' Office and Performance Lab give a longer free window as they level up. Here are some 1-minute speed-ups to start with.`, { sp1: 10 }); } if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `A few changes around the office, Coach:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
   // 1.02 (FEEDBACK 157): Inbox menu → folder page (headlines) → message page. Back goes up one level each time.
   const folderName = k => (FOLDERS.find(f => f[0] === k) || [0, '', 'Inbox'])[2];
   const inFolder = k => meta().inbox.filter(x => k === 'fav' ? x.fav : x.f === k);
@@ -395,7 +395,7 @@
   const claimOne = x => { x.claimed = true; x.read = true; C.giveReward(x.r); };
   A.mclaim = v => { const x = meta().inbox.find(m => m.id === v); if (x && x.r && !x.claimed) { claimOne(x); C.toast('🎁 ' + C.rwText(x.r)); C.ui.refresh(); C.render(); } };
   A.mclaimall = k => { const list = inFolder(k).filter(x => x.r && !x.claimed); if (!list.length) return; const tot = {};
-    list.forEach(x => { claimOne(x); for (const r in x.r) tot[r] = (tot[r] || 0) + x.r[r]; }); C.toast('🎁 ' + C.rwText(tot)); C.ui.refresh(); C.render(); };
+    list.forEach(x => { claimOne(x); for (const r in x.r) tot[r] = (tot[r] || 0) + x.r[r]; }); if (C.celebrate) C.celebrate(tot, `A total of ${list.length} reward${list.length > 1 ? 's were' : ' was'} claimed`); else C.toast('🎁 ' + C.rwText(tot)); C.ui.refresh(); C.render(); };
   A.mdel = v => { const M = meta(), x = M.inbox.find(m => m.id === v); if (!x) return; if (x.r && !x.claimed) return C.toast('Claim the reward first');
     M.inbox = M.inbox.filter(m => m !== x); C.save(); C.ui.back(); C.render(); };
   A.mdelall = k => { const del = inFolder(k).filter(x => x.read && !C.mailKeep(x)), kept = inFolder(k).length - del.length; if (!del.length) return;
@@ -451,7 +451,7 @@
       <h3 class="jh">Permanent slots</h3>${row('buy', 'tslot3', '🏋️', 'Extra training slot', 'A permanent 3rd training-plan slot', '$2.99', a.tslot3)}
       ${row('buy', 'tokens', '🎟', '3 Number Changes', 'Give players the number they want', '$0.99')}
       <h3 class="jh">Kits (cosmetic)</h3>${Object.keys(C.KITS).map(k => row('kit', k, C.KITS[k][0], C.KITS[k][1], C.kit() === k ? 'Wearing now' : L.cos.includes('kit_' + k) || k === 'classic' ? 'Owned: tap to wear' : 'Changes how your team looks, nothing else', C.KITS[k][2] || 'Free', false)).join('')}`;
-    return `<div class="res hres inv">${C.resBar()}</div>${tabs}${test}${body}<div class="card fair"><b>⚖️ Fair play promise</b><p>Money buys time and convenience, never results. No paid match wins, no attribute points past a player's potential, no buying players directly.</p></div>`;
+    return `${tabs}${test}${body}<div class="card fair"><b>⚖️ Fair play promise</b><p>Money buys time and convenience, never results. No paid match wins, no attribute points past a player's potential, no buying players directly.</p></div>`;
   });
   const oDeal = C.buyDeal; C.buyDeal = () => { const r = oDeal(); if (r === true) receipt(C.todayDeal().name, C.todayDeal().r); return r; };
 

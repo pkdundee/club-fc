@@ -2,7 +2,7 @@
 (function (C) {
   const FITC = ['', '#dc2626', '#f97316', '#eab308', '#84cc16', '#16a34a'], FITS = ['', '!', '!', '~', '✓', '✓'];
   const INSTR = [['⬇⬇', 'Ultra defensive'], ['⬇', 'Defensive'], ['•', 'Balanced'], ['⬆', 'Attacking'], ['⬆⬆', 'Ultra attacking']];
-  const MENT_ICON = ['🧱', '🛡', '⚖️', '⚔️', '🔥'];
+  const MENT_ICON = ['⬇⬇', '⬇', '•', '⬆', '⬆⬆'];   // 1.10 (QA-120): the same arrows as the player instructions
   C.available = p => p && !p.inj && !p.ban;
 
   // ---------- the saved line-up, always kept valid ----------
@@ -118,8 +118,9 @@
   C.ACTS.capopen = () => C.openCaptainPick();
   C.ACTS.capset = id => { C.setCaptain(id); C.ui.back(); C.ui.refresh(); C.toast('🅲 Captain chosen'); };
   // ================= alternatives panel (ranked for the slot being filled) =================
-  let pkXI = false, pkSubs = true;
-  C.openPicker = slot => C.ui.open('Choose player', () => pickerHTML(slot));
+  let pkXI = false, pkSubs = true, pkAlt = false;
+  C.openPicker = slot => { pkAlt = false; C.ui.open('Choose player', () => pickerHTML(slot)); };
+  C.ACTS.pkalt = v => { pkAlt = v === '1'; C.ui.refresh(); };   // 1.10 (QA-123): Swap for… shows the alternatives
   C.pickerToggle = k => { if (k === 'xi') pkXI = !pkXI; else pkSubs = !pkSubs; C.ui.refresh(); };
   C.pickerFilter = () => {};
   function pickerHTML(slot) {
@@ -133,7 +134,11 @@
     const cands = car.squad.filter(p => p !== cur && (pkXI || !inXI(p.id)) && (pkSubs || !onB(p.id)))
       .sort((a, b) => (C.available(b) - C.available(a)) || (rate(b) * (.6 + .4 * b.energy / 100)) - (rate(a) * (.6 + .4 * a.energy / 100)));
     const ins = cur && !isB ? t.instr[cur.id] ?? 2 : null;
-    return `<div class="altp"><small class="ahd">Currently selected</small>${cur ? line(cur, false) : `<div class="arow"><span class="lchip" style="background:${PILL[0]}">${label}</span><span class="anm">Empty</span></div>`}
+    // 1.10 (QA-123): the player comes first: who they are, how they are, their instruction; the alternatives are one tap away
+    if (cur && !pkAlt && !isB && C.playerFocusHTML) return `<div class="altp pfocus">${C.playerFocusHTML(cur, { pos, label, fitCol: colOf(cur), rate: rate(cur) })}
+      <label class="fld">Instruction</label><div class="instr pfi">${INSTR.map((x, k) => `<button class="${ins === k ? 'on' : ''}" data-act="instr" data-v="${cur.id}|${k}"><span>${x[0]}</span>${x[1]}</button>`).join('')}</div><p class="note pfin">${C.INSTR_TXT[ins]}</p>
+      <div class="jbtns" style="grid-template-columns:1fr 1fr;margin-top:10px"><button class="btn go" data-act="pkalt" data-v="1">🔁 Swap for…</button><button class="btn danger" data-act="unpick" data-v="${slot}">Remove from line-up</button></div></div>`;
+    return `<div class="altp">${cur && pkAlt ? '<button class="btn sm2 sec2" data-act="pkalt" data-v="0" style="margin-bottom:8px">‹ Back to the player</button>' : ''}<small class="ahd">Currently selected</small>${cur ? line(cur, false) : `<div class="arow"><span class="lchip" style="background:${PILL[0]}">${label}</span><span class="anm">Empty</span></div>`}
       ${ins != null ? `<div class="instr" style="margin-top:8px">${INSTR.map((x, k) => `<button class="${ins === k ? 'on' : ''}" data-act="instr" data-v="${cur.id}|${k}"><span>${x[0]}</span>${x[1]}</button>`).join('')}</div>` : ''}
       <div class="ahd2"><small class="ahd">Best alternatives</small><button class="chk ${pkXI ? 'on' : ''}" data-act="pktog" data-v="xi">Show XI</button><button class="chk ${pkSubs ? 'on' : ''}" data-act="pktog" data-v="subs">Show subs</button></div>
       <div class="alist">${cands.map(p => line(p, true)).join('') || '<p class="note">Nobody else available.</p>'}</div>

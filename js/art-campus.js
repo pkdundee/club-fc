@@ -174,12 +174,16 @@ const SEEN={};
 // 1.02.05 (QA-14): every campus image is kept, decoded, for the whole session, so returning to the map never waits on it again
 const KEEP=[];
 function probe(h){if(SEEN[h])return SEEN[h];SEEN[h]='wait';const im=new Image();KEEP.push(im);im.decoding='async';im.onload=()=>{SEEN[h]='ok';if(im.decode)im.decode().catch(()=>{})};im.onerror=()=>{SEEN[h]='bad';window.CFC.redrawMap&&window.CFC.redrawMap()};im.src=h;return 'wait'}
+// 1.10 (QA-114): a repaint only counts if the canvas actually has pixels; otherwise the original art is used
+function notBlank(cv){try{const t=document.createElement('canvas');t.width=t.height=24;const x=t.getContext('2d');x.drawImage(cv,0,0,24,24);const d=x.getImageData(0,0,24,24).data;let a=0;for(let i=3;i<d.length;i+=4)a+=d[i];return a>2000}catch(e){return false}}
+function paintWhenReady(im,paint,done,fail){const go=()=>{try{const cv=paint();if(cv&&notBlank(cv)){done(cv.toDataURL('image/png'))}else fail()}catch(e){fail()}};
+ if(im.decode)im.decode().then(go,go);else go()}
 const STAD={};   // the Stadium recolored to the school's main color, cached as a data URL
 function stadiumHref(n){const C=window.CFC,key=n+C1,base=`img/campus/b_stadium_${n}.webp`;if(STAD[key])return STAD[key]==='busy'?base:STAD[key];
- if(!window.paintStadium)return base;STAD[key]='busy';const im=new Image();im.onload=()=>{try{const u=window.paintStadium(im,C1).toDataURL('image/png');STAD[key]=u&&u.length>100?u:base;C.redrawMap&&C.redrawMap()}catch(e){STAD[key]=base}};im.onerror=()=>STAD[key]=base;im.src=base;return base}
+ if(!window.paintStadium)return base;STAD[key]='busy';const im=new Image();im.onload=()=>paintWhenReady(im,()=>window.paintStadium(im,C1),u=>{STAD[key]=u;C.redrawMap&&C.redrawMap()},()=>{STAD[key]=base;C.redrawMap&&C.redrawMap()});im.onerror=()=>STAD[key]=base;im.src=base;return base}
 const TOWER={};  // the water tower painted in school colors with the initials, cached as a data URL
 function towerHref(n,abbr){const C=window.CFC,key=n+C1+C2+abbr,base=`img/campus/tower_${n}.png`,m=SCEN()['tower_'+n];if(TOWER[key])return TOWER[key]==='busy'?base:TOWER[key];
- if(!window.paintTower||!m)return base;TOWER[key]='busy';const im=new Image();im.onload=()=>{try{TOWER[key]=window.paintTower(im,n,C1,C2,abbr,{k:m.k,ox:m.ox,oy:m.oy}).toDataURL('image/png');C.redrawMap&&C.redrawMap()}catch(e){TOWER[key]=base}};im.onerror=()=>TOWER[key]=base;im.src=base;return base}
+ if(!window.paintTower||!m)return base;TOWER[key]='busy';const im=new Image();im.onload=()=>paintWhenReady(im,()=>window.paintTower(im,n,C1,C2,abbr,{k:m.k,ox:m.ox,oy:m.oy}),u=>{TOWER[key]=u;C.redrawMap&&C.redrawMap()},()=>{TOWER[key]=base;C.redrawMap&&C.redrawMap()});im.onerror=()=>TOWER[key]=base;im.src=base;return base}
 function drawn(I,k,x,y,sz,lvl){if(k==='hq')return hq(I,x,y,sz,lvl);if(k==='stadium')return stadium(I,x,y,sz,lvl);if(k==='training')return training(I,x,y,sz,lvl);if(k==='skills')return skills(I,x,y,sz,lvl);
  const o=Object.assign({},ART[k]||{wall:'brick'});if(k==='med')o.extra=medCross(I);return brick(I,x,y,sz,lvl,o)}
 // test mode (Settings, 9q): show every building at one render (1-10) to check the art
@@ -245,7 +249,7 @@ function renderBase(I,car,opts){const C=window.CFC;const col=C.college(car);C1=c
  for(const o of plots){const {p,x,y,sz}=o;
   if(!p.b){
    if(p.k==='land')items.push([o.depth-999,envTile(I,x,y,S,'plot_locked',()=>plotTile(I,x,y,S,'plot_locked',()=>lockedPlot(I,x,y,S,'')))]);
-   else if(p.k==='lake')items.push([o.depth-999,plotTile(I,x,y,S,'plot_pond_4',()=>decor(I,x,y,S,'lake'))]);
+   else if(p.k==='lake'){const pn=hqR<=2?5:hqR<=4?4:hqR<=6?3:hqR<=8?2:1;items.push([o.depth-999,plotTile(I,x,y,S,'plot_pond_'+pn,()=>decor(I,x,y,S,'lake'))])}   // 1.10 (QA-115)
    else if(p.k==='water'){const tn=hqR<=2?5:hqR<=4?4:hqR<=6?3:hqR<=8?2:1,m=SCEN()['tower_'+tn];
     items.push([o.depth-999,envTile(I,x,y,S,'plot_empty',()=>plotTile(I,x,y,S,'plot_empty',()=>''))]);
     if(m&&probe(`img/campus/tower_${tn}.png`)!=='bad'){const f=110/m.h,cx=x+S/2,cy=y+S/2;
@@ -293,9 +297,9 @@ function renderOver(I,car,opts){const C=window.CFC;if(opts.preview)return '';con
    add(`<g pointer-events="none" transform="translate(${tcx.toFixed(1)},${(top[1]-4).toFixed(1)})" font-family="Nunito" font-weight="900" text-anchor="middle" ${out()}>
     <text y="0" font-size="10" fill="#fff">${C.esc(def.name)}</text><text y="11" font-size="9" fill="#fde047">${lvl?'Lv.'+lvl:'Ready to build'}</text></g>`);
    const acts=C.buildingActions(k),nn=acts.length,R=19,G=48;
-   const LAY={1:[[0,0]],2:[[-G/2,0],[G/2,0]],3:[[-G,-22],[0,0],[G,-22]],4:[[-G*1.5,-22],[-G/2,0],[G/2,0],[G*1.5,-22]]}[nn]||[[0,0]];
+   const LAY={1:[[0,0]],2:[[-G/2,0],[G/2,0]],3:[[-G,-22],[0,0],[G,-22]],4:[[-G*1.5,-22],[-G/2,0],[G/2,0],[G*1.5,-22]],5:[[-G*2,-34],[-G,-8],[0,0],[G,-8],[G*2,-34]]}[nn]||[[0,0]];
    add(`<g class="fixz" data-x="${front[0].toFixed(1)}" data-y="${front[1].toFixed(1)}" transform="translate(${front[0].toFixed(1)},${front[1].toFixed(1)})">`+acts.map((a,i)=>{const [dx,dy]=LAY[i];
-    return `<g data-act="${a.act}" data-v="${a.v}" transform="translate(${dx},${dy+6})"><circle r="${R}" fill="${a.col||'#2563eb'}" stroke="#0f172a" stroke-width="2.5"/><circle r="${R-2.5}" fill="none" stroke="#fff" stroke-width="1.5" opacity=".7"/>${a.icon==='up'?`<path d="M0 ${-R*.6} L${R*.55} 0 H${R*.2} V${R*.55} H${-R*.2} V0 H${-R*.55}Z" fill="#fff" stroke="#0f172a" stroke-width="1.2"/>`:a.icon==='i'?`<text y="${R*.35}" text-anchor="middle" font-size="${R}" font-weight="900" fill="#fff" font-family="Nunito">i</text>`:`<text y="${R*.32}" text-anchor="middle" font-size="${R*.9}">${a.icon}</text>`}<text y="${R+12}" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" font-family="Nunito" ${out()}>${C.esc(a.label)}</text></g>`}).join('')+`</g>`);
+    return `<g data-act="${a.act}" data-v="${a.v}" transform="translate(${dx},${dy+6})"><circle r="${R}" cy="2" fill="#0f172a" opacity=".35"/><circle r="${R}" fill="${a.col||'#2563eb'}" stroke="#fff" stroke-width="2.2"/>${a.g&&C.kRingG?`<g transform="translate(${-R*.62},${-R*.62}) scale(${(R*1.24/24).toFixed(3)})">${C.kRingG[a.g]}</g>`:a.icon==='up'?`<path d="M0 ${-R*.6} L${R*.55} 0 H${R*.2} V${R*.55} H${-R*.2} V0 H${-R*.55}Z" fill="#fff" stroke="#0f172a" stroke-width="1.2"/>`:a.icon==='i'?`<text y="${R*.35}" text-anchor="middle" font-size="${R}" font-weight="900" fill="#fff" font-family="Nunito">i</text>`:`<text y="${R*.32}" text-anchor="middle" font-size="${R*.9}">${a.icon}</text>`}<text y="${R+12}" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" font-family="Nunito" ${out()}>${C.esc(a.label)}</text></g>`}).join('')+`</g>`);
   }
   if(k==='lab'&&!sel){const rq=(car.pbq||[]).filter(z=>z.end<=C.now()).length; // 1.01 (FEEDBACK 140): finished research waits here for a tap
    if(rq)add(`<g data-act="pbready" transform="translate(${(tcx-(q?16:0)).toFixed(1)},${(tcy+(q?0:12)).toFixed(1)})"><g class="bnc">${window.CFC.giftSVG(13)}${rq>1?`<circle cx="9" cy="-8" r="5.5" fill="#ef4444" stroke="#0f172a" stroke-width="1.5"/><text x="9" y="-5.2" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="7.5" fill="#fff">${rq}</text>`:''}</g><text y="22" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="9" fill="#fff" ${out()}>Research done</text></g>`)}

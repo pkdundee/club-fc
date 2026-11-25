@@ -60,10 +60,10 @@
       ${C.loginClaimed() ? '' : `<button class="gift" data-act="dailytasks"><span>🎁</span><div><b>Login reward</b><small>${C.rwText(C.GIFT)} · waiting in your Daily tasks</small></div><em>Go</em><i class="ldot"></i></button>`}
       <div class="homebn">${C.gamedayHTML()}</div>
       <div class="htiles">
-        ${tile('🏟', 'Matchday', 'tab', 'season')}${tile('<i class="xoi big"></i>', 'Tactics', 'tactics', '')}${tile('🏫', 'Campus', 'tab', 'campus', C.idleBuilders() && C.readyCount() ? '!' : '')}
-        ${tile('👕', 'Squad', 'tab', 'squad')}${tile('📝', 'Recruit', 'tab', 'recruit', C.portalOpen() ? '🚪' : '')}${tile('🧢', 'Staff', 'tab', 'staff', S.mNew ? 'NEW' : '')}
-        ${tile('📋', 'Playbook', 'playbook', '', C.pbRunning() ? C.pbRunning() : '')}${tile('🩺', 'Medical', 'medical', '', inj || '')}${tile('🎁', 'Events', 'events', '', C.evOnlyClaimable() || '')}
-        ${tile('✉️', 'Inbox', 'inbox', '', C.inboxUnread() || '')}${tile('🗃️', 'Inventory', 'inventory', '')}${tile('🛒', 'Store', 'store', '')}
+        ${tile(C.kBadge('match'), 'Matchday', 'tab', 'season')}${tile(C.kBadge('tactics'), 'Tactics', 'tactics', '')}${tile(C.kBadge('campus'), 'Campus', 'tab', 'campus', C.idleBuilders() && C.readyCount() ? '!' : '')}
+        ${tile(C.kBadge('squad'), 'Squad', 'tab', 'squad')}${tile(C.kBadge('recruit'), 'Recruit', 'tab', 'recruit', C.portalOpen() ? '!' : '')}${tile(C.kBadge('staff'), 'Staff', 'tab', 'staff', S.mNew ? 'NEW' : '')}
+        ${tile(C.kBadge('playbook'), 'Playbook', 'playbook', '', C.pbRunning() ? C.pbRunning() : '')}${tile(C.kBadge('medical'), 'Medical', 'medical', '', inj || '')}${tile(C.kBadge('events'), 'Events', 'events', '', C.evOnlyClaimable() || '')}
+        ${tile(C.kBadge('inbox'), 'Inbox', 'inbox', '', C.inboxUnread() || '')}${tile(C.kBadge('inventory'), 'Inventory', 'inventory', '')}${tile(C.kBadge('store'), 'Store', 'store', '')}
       </div>
       <div class="deal ${d.deal ? 'done' : ''}"><div class="dl"><small>Today's deal</small><b>${deal.icon} ${C.esc(deal.name)}</b><p>${C.rwText(deal.r)}</p></div>
         ${d.deal ? '<span class="dbought">✔ Bought today</span>' : `<button class="dbuy" data-act="buydeal" data-v="${deal.id}"><s>${deal.was}</s>${deal.price}</button>`}</div>
@@ -73,5 +73,5 @@
   // the one resource bar used on every tab (round 4, item 13): Booster $, Coaching Points, Coins (+ opens the Store)
   C.schChip = () => `<span class="schip" title="Scholarship money left this year"><i class="schi"></i>$${C.short(C.poolLeft())} of $${C.short(C.car().job.pool)} left</span>`;   // 1.06 (QA-64)
   C.resBar = () => { const car = C.car(), a = C.acct();
-    return `<span><i>💵</i><b id="r-cash">$${C.full(car.cash)}</b></span><span><i class="cpi"></i><b id="r-cp">${C.full(car.cp)}</b></span><span data-act="store"><i class="coin"></i><b id="r-gold">${C.full(a.gold)}</b><em class="plus">+</em></span>`; };
+    return `<span>${C.kCash(17)}<b id="r-cash">$${C.full(car.cash)}</b></span><span>${C.kCP(17)}<b id="r-cp">${C.full(car.cp)}</b></span><span data-act="store">${C.kCoin(17)}<b id="r-gold">${C.full(a.gold)}</b><em class="plus">+</em></span>`; };
 })(window.CFC);

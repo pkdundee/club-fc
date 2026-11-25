@@ -38,7 +38,7 @@
   };
 
   function tabsHTML() {
-    const t = [['home', '🏠', 'Home'], ['season', '🏟', 'Matchday'], ['campus', '🏫', 'Campus'], ['squad', '👕', 'Squad'], ['recruit', '✉️', 'Recruit']];
+    const t = [['home', C.kGlyph('home'), 'Home'], ['season', C.kGlyph('match'), 'Matchday'], ['campus', C.kGlyph('campus'), 'Campus'], ['squad', C.kGlyph('squad'), 'Squad'], ['recruit', C.kGlyph('recruit'), 'Recruit']];   // 1.10: the approved flat glyphs
     const dot = k => k === 'home' && C.car() && ((C.car().staff && C.car().staff.mNew) || C.loClaimable() || !C.giftClaimed()) ? '<i class="tabdot"></i>' : '';
     return `<nav class="tabs">${t.map(([k, i, n]) => `<button class="tab ${C.tab === k ? 'on' : ''}" data-act="tab" data-v="${k}"><span class="ti">${i}${dot(k)}</span>${n}</button>`).join('')}</nav>`;
   }
@@ -51,29 +51,31 @@
     const busy = car.queue.length, open = C.openSlots(), rc = C.readyCount();
     const sq = (act, icon, label, badge, bg) => `<button class="sqb" data-act="${act}"><span class="sqc" style="background:${bg}">${C.ico(icon, 26)}</span>${label ? `<b>${label}</b>` : ''}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
     const rnd = (act, icon, badge) => `<button class="rnd" data-act="${act}">${C.ico(icon, 24)}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
+    // 1.10: a complete icon tile (no extra background), with its label and red dot
+    const kq = (act, icon, badge, label) => `<button class="sqb ksq" data-act="${act}">${icon}${label ? `<b>${label}</b>` : ''}${badge ? `<i class="rd">${badge === true ? '' : badge}</i>` : ''}</button>`;
     const st = C.stripTask(), claim = st && st.claim, task = st ? st.text : '';
     const newB = Object.keys(C.BUILDINGS).filter(C.buildable).length, readyB = car.queue.some(q => C.buildReady(q.key));
     return `<div class="view">
       <div class="map" id="map"><div id="mapin"></div></div>
       ${C.topBar(true, 'hud top')}
       <div class="side tl9">
-        ${sq('queue', 'hammer', busy + '/' + open, readyB ? true : 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
-        ${sq('rqueue', 'book', C.pbRunning() + '/' + C.pbSlots(), (car.pbq || []).some(q => q.end <= C.now()) ? true : 0, 'linear-gradient(160deg,#94a3b8,#475569)')}
+        ${kq('queue', C.kQueue('hammer', busy + '/' + open), readyB ? true : 0)}
+        ${kq('rqueue', C.kQueue('playbook', C.pbRunning() + '/' + C.pbSlots()), (car.pbq || []).some(q => q.end <= C.now()) ? true : 0)}
       </div>
       <div class="side tr9">
-        ${sq('events', 'gift', 'Events', C.evOnlyClaimable(), 'linear-gradient(160deg,#fbbf24,#d97706)')}
+        ${kq('events', C.kTileBtn('events', '#f5a524', '#b45309'), C.evOnlyClaimable(), 'Events')}
         ${car.pre ? sq('preseason', 'list', 'Pre-season', C.preTasksLeft ? C.preTasksLeft() : 0, 'linear-gradient(160deg,#4ade80,#15803d)') : ''}
         ${C.fwActive() ? sq('firstweek', 'cal', 'Week 1', C.fwClaimable(), 'linear-gradient(160deg,#fb923c,#c2410c)') : ''}
         ${C.portalOpen() ? sq('portalgo', 'door', 'Portal', true, 'linear-gradient(160deg,#c084fc,#7e22ce)') : ''}
       </div>
       <div class="side bl9">
-        ${rnd('drawer', 'hammer', newB)}
+        <button class="rnd krnd" data-act="drawer" aria-label="Buildings">${C.kListCircle()}${newB ? `<i class="rd">${newB}</i>` : ''}</button>
       </div>
       <div class="side br9">
-        <div class="mailrow">${C.adWaiting && C.adWaiting() && !C.drawerOpen ? `<button class="adport" data-act="inboxdir" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${sq('inbox', 'mail', 'Inbox', C.inboxUnread(), 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}</div>
-        ${sq('inventory', 'bag', 'Inventory', 0, 'linear-gradient(160deg,#60a5fa,#1d4ed8)')}
+        <div class="mailrow">${C.adWaiting && C.adWaiting() && !C.drawerOpen ? `<button class="adport" data-act="inboxdir" aria-label="Message from the athletic director">${C.adFace()}<i></i></button>` : ''}${kq('inbox', C.kTileBtn('inbox', '#3b82f6', '#1d4ed8'), C.inboxUnread(), 'Inbox')}</div>
+        ${kq('inventory', C.kTileBtn('inventory', '#3b82f6', '#1d4ed8'), 0, 'Inventory')}
       </div>
-      <div class="tstrip9"><button class="tsradio" data-act="nexttask" aria-label="Missions">${C.ico('clip', 34)}${C.msClaimable() ? `<i class="rd">${C.msClaimable()}</i>` : ''}</button>
+      <div class="tstrip9"><button class="tsradio ktsr" data-act="nexttask" aria-label="Missions">${C.kClip()}${C.msClaimable() ? `<i class="rd">${C.msClaimable()}</i>` : ''}</button>
         ${task ? `<button class="taskstrip ${claim ? 'claim' : ''}" data-act="taskgo"><span class="tst">${C.esc(task)}</span>${claim ? `<span class="tsr">${C.giftIco(17)}</span>` : '<span class="tsg">›</span>'}</button>` : ''}</div>
       ${C.drawerOpen ? drawerHTML() : ''}
     </div>`;
@@ -124,8 +126,8 @@
   C.topBar = (spend, cls = 'tbstatic') => { const car = C.car(), col = C.college(), a = C.acct();
     return `<div class="${cls} tb9">
         <button class="pf" data-act="profile" aria-label="Profile">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<span class="pflv">${car.b.hq || 0}</span></button>
-        <div class="tbm">${spend ? `<div class="res">${C.resBar()}</div>` : `<b class="tbname">${C.esc(col.short)} ${C.esc(col.mascot)}</b>`}<div class="tbpow" data-act="proginfo"><i class="ppi"></i>${C.programPower().toLocaleString()}</div></div>
-        <button class="storeb" data-act="store">${C.ico('cart', 22)}<span><i class="coin"></i><b id="r-gold2">${C.full(a.gold)}</b></span></button>
+        <div class="tbm"><div class="tbpow kpwr" data-act="proginfo" title="Program Power">${C.kPow(20)}${C.programPower().toLocaleString()}</div>${spend ? `<div class="res">${C.resBar()}</div>` : `<b class="tbname">${C.esc(col.short)} ${C.esc(col.mascot)}</b>`}</div>
+        <button class="storeb" data-act="store">${C.kStoreCircle(24)}<span>${C.kCoin(15)}<b id="r-gold2">${C.full(a.gold)}</b></span></button>
       </div>`; };
   // ---------- builders drawer (FEEDBACK 87): every building as a card, by type, in a scrolling strip along the bottom ----------
   C.drawerTab = 'economy';
@@ -256,14 +258,16 @@
   // ================= building actions when selected on the map (Last War style) =================
   // only shortcuts that aren't already a tap away elsewhere (tabs, campus buttons, collect bubbles)
   // every action button opens a popup: it never leaves the map (round 6)
-  const SHORTCUTS = { hq: [['📊', 'Program', 'bpop', 'proginfo'], ['🧢', 'Staff', 'bpop', 'hqstaff']], lab: [['📋', 'Playbook', 'bpop', 'playbook']], med: [['🩺', 'Medical Room', 'bpop', 'medical']], kitroom: [['🎒', 'Kit Room', 'bpop', 'kitroom']], academic: [['📚', 'Academics', 'bpop', 'academic']] };
+  // 1.10 (SCOPE_1.10 C): the building tap ring: blue Info, orange for the building's own screens, green Upgrade, light green Speed up
+  const SHORTCUTS = { hq: [['staff', 'Staff', 'bpop', 'hqstaff'], ['report', 'Program', 'bpop', 'proginfo']], lab: [['book', 'Playbook', 'bpop', 'playbook']], med: [['med', 'Medical', 'bpop', 'medical']], kitroom: [['kit', 'Kit Room', 'bpop', 'kitroom']], academic: [['book', 'Academics', 'bpop', 'academic']], training: [['train', 'Training', 'tab', 'squad']], recruit: [['recruit', 'Recruit', 'tab', 'recruit']] };
   C.buildingActions = k => {
     const lvl = C.level(k), q = C.inQueue(k), ready = C.readyArrow(k), out = [];
-    if (lvl) (SHORTCUTS[k] || []).forEach(([icon, label, act, v]) => out.push({ icon, label, act, v }));
+    if (lvl) out.push({ g: 'info', label: 'Info', act: 'bldopen', v: k, col: C.kRingCol.blue });
+    if (lvl) (SHORTCUTS[k] || []).forEach(([g, label, act, v]) => out.push({ g, label, act, v, col: C.kRingCol.orange }));
     // the upgrade button is always last (right-most) and stays active until the building's maximum level; only then is it an orange "i"
-    out.push(q ? { icon: '⏩', label: 'Speed up', act: 'bldopen', v: k, main: true }
-      : lvl >= C.topLevel(k) ? { icon: 'i', label: 'Details', act: 'bldopen', v: k, main: true, col: '#f97316' }
-      : { icon: 'up', label: lvl ? 'Upgrade' : 'Build', act: 'bldopen', v: k, main: true });
+    if (q) out.push({ g: 'speed', label: C.buildReady(k) ? 'Complete' : 'Speed up', act: 'bldopen', v: k, main: true, col: C.buildReady(k) ? C.kRingCol.green : C.kRingCol.lgreen });
+    else if (lvl < C.topLevel(k)) out.push({ g: 'up', label: lvl ? 'Upgrade' : 'Build', act: 'bldopen', v: k, main: true, col: C.kRingCol.green });
+    if (!out.length) out.push({ g: 'info', label: 'Info', act: 'bldopen', v: k, col: C.kRingCol.blue });
     return out;
   };
   // ---------- Building Queue (item 38): every builder, what they're doing, and how to get more ----------
