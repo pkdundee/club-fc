@@ -95,7 +95,7 @@
         <div class="radio">${C.radioLine && C.radioLine(f) ? C.radioLine(f) : `📻 K${col.abbr} campus radio with Duane &amp; Bev`}</div></div>${C.bigMatchHTML ? C.bigMatchHTML(f) : ''}${C.scoutHTML ? C.scoutHTML(f) : ''}
       ${xs.filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${xs.filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
       ${(mine => { const opp = `<div><h4>${C.esc(oppT.name)} · ${M.opp.form}</h4>${oppRows}</div>`; return `<div class="lus">${home ? mine + opp : opp + mine}</div>`; })(`<div><h4>${C.esc(col.short)} · ${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div>`)}
-      <div class="prebtns"><button class="btn go" data-act="mtac"><i class="xoi"></i> Tactics</button><button class="btn go" data-act="mquick">⏩ Quick result</button></div>
+      <div class="prebtns"><button class="btn go" data-act="mtac">${C.kGlyph ? C.kGlyph('tactics', 18) : ''} Tactics</button><button class="btn go" data-act="mquick"><svg viewBox="0 0 24 24" width="18" height="18">${C.kRingG ? C.kRingG.speed : ''}</svg> Quick result</button></div>
       <p class="note resnote">Matches resume if the game closes. Abandoning one forfeits it 0–9.</p>
       <button class="btn full pri kick" data-act="mkick">▶ Kick off <span id="cdn">${M.cd ? '· ' + M.cd : ''}</span></button>
       ${M.cd ? '<button class="cdpause" data-act="mcdstop">Tap to stop the countdown</button>' : ''}</div><div class="pgft kpreft"><button class="backarrow" data-act="mleave" aria-label="Back"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M11 4 3 12l8 8v-5h10V9H11z" fill="#fff"/></svg></button></div>`;
@@ -451,8 +451,7 @@
     const ranked = benchPool(m, my).map(p => [p, C.fit(p, pos) * 100 + p.rating + p.energy / 10]).sort((a, b) => b[1] - a[1]);
     const rows = ranked.map(([p], i) => { const pi = pendIn(p); return `<button class="pkrow ${i < 2 && C.fit(p, pos) >= 3 ? 'best' : ''}" data-act="msin2" data-v="${idx}|${p.id}"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn)} ${C.esc(p.ln)}</b><small><span class="pchip" style="background:${FIT[C.fit(p, pos)]}">${p.pos}</span> ${C.FITLABEL[C.fit(p, pos)]} at ${pos} · 🔋 ${Math.round(p.energy)}%</small>${pi ? `<em class="submark">🔁 Coming on for ${C.esc(pi.outE.p.ln)}</em>` : ''}</div><b class="pkr">${p.rating}</b>${i < 2 && C.fit(p, pos) >= 3 ? '<em class="bestt">Best</em>' : ''}</button>`; }).join('');
     return `<div class="altp pfocus pk1">${C.matchFocusHTML(m, e)}${po ? `<p class="submark" style="margin:6px 0 0">🔁 Coming off for ${C.esc(po.inP.ln)} at the ${m.ht ? 'restart' : 'next stoppage'} <button class="btn sm2 sec2" data-act="subcancel" data-v="${m.pending.indexOf(po)}">Cancel</button></p>` : ''}${instrRow(e)}
-      <div class="ahd2"><small class="ahd">Bring on at ${pos}</small></div><div class="alist pkscroll">${rows || '<p class="note">Nobody available to come on.</p>'}</div>
-      <button class="btn full go pkback" data-act="back">Back to Player</button></div>`; }
+      <div class="ahd2"><small class="ahd">Bring on at ${pos}</small></div><div class="alist pkscroll">${rows || '<p class="note">Nobody available to come on.</p>'}</div></div>`; }
   C.openTeam = hurtE => { if (!M || !M.m) return; if ((M.playing || hurtE) && !M.m.ht) M.resumeAfter = true; M.playing = false;
     C.ui.open('Team Changes', teamHTML);
     if (hurtE) setTimeout(() => C.openTeamPick(M.m.ents.indexOf(hurtE)), 0); };

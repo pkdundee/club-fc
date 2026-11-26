@@ -25,7 +25,7 @@
   const isChoice = k => /^crc/.test(k), isCP = k => /^crp/.test(k); C.isChoiceCrate = isChoice;
   C.XN = XN;
   C.speedKeys = type => Object.keys(XN).filter(k => XN[k][3] && (XN[k][3] === 'g' || XN[k][3] === type));
-  const ICON = { gold: '<i class="coin"></i>', cash: '💵', cp: '<i class="cpi"></i>', manual: '📗', credits: '🎫', kit: '🧴', books: '📕', tokens: '🎟', rare: '🎁', coach: '🧑‍🏫' };
+  const ICON = { gold: '<i class="coin"></i>', cash: '<i class="cashi"></i>', cp: '<i class="cpi"></i>', manual: '📗', credits: '🎫', kit: '🧴', books: '📕', tokens: '🎟', rare: '🎁', coach: '🧑‍🏫' };
   const NAME = { gold: 'Coins', cash: 'Booster $', cp: 'Coaching Points', manual: 'Coaching manual', credits: 'Clinic Credits', kit: 'Recovery kit', books: 'Trait Book', tokens: 'Number Change', rare: 'Rare recruit', coach: 'Rare coach' };
   const TIER = { sp1: 1, sp480: 4, sp1440: 4, spb180: 3, spb480: 4, spr180: 3, spr480: 4, crb1: 1, crb2: 2, crb3: 3, crb4: 4, crc2: 3, crp1: 1, crp2: 2, crp3: 3, crp4: 4, crc4: 4, spb15: 2, spb60: 3, spt15: 2, spt60: 3, spr15: 2, spr60: 3, badge: 3, gold: 3, coach: 4, rare: 4, books: 3, sp60: 3, sp180: 4, crate: 2, sp15: 2, cash: 1, cp: 1, manual: 1, credits: 1, kit: 1, tokens: 2, sp5: 1 };
   const oText = C.rwText, oGive = C.giveReward;

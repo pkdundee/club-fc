@@ -123,7 +123,7 @@
 
 /* ================= 1.10.01 ================= */
 /* QA-153: no sideways scrolling; the page under a popup is locked */
-html,body,#app{max-width:100%;overflow-x:hidden}
+html,body{overflow-x:hidden}#app{overflow-x:hidden}   /* 1.10.02 (QA-154): #app keeps its 480px phone column */
 .page,.pgbody,.popbody{overflow-x:hidden;overscroll-behavior:contain}
 .page.under{pointer-events:none}.page.under .pgbody{overflow:hidden!important;touch-action:none}
 .pop-bg{overscroll-behavior:contain;touch-action:pan-y}
@@ -180,3 +180,37 @@ html,body,#app{max-width:100%;overflow-x:hidden}
 .attr .ai svg,.lrow .li svg{width:26px;height:26px;display:block}
 .sqb.ksq{text-shadow:none!important}.sqb.ksq b{text-shadow:0 1px 0 #0f172a,0 -1px 0 #0f172a,1px 0 0 #0f172a,-1px 0 0 #0f172a!important}
 .pfgrid b svg.kv5{vertical-align:-3px}
+
+/* ================= 1.10.02 ================= */
+/* QA-161: the approved currency icons in text (rewards, costs, toasts, cards) */
+i.coin,.coin{background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22a%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff1a6%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f2a20c%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2242%22%20fill%3D%22url%28%23a%29%22%20stroke%3D%22%2392400e%22%20stroke-width%3D%227%22/%3E%3Ctext%20x%3D%2250%22%20y%3D%2266%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%22%20font-weight%3D%22900%22%20font-size%3D%2246%22%20fill%3D%22%23b45309%22%3EC%3C/text%3E%3C/svg%3E") center/contain no-repeat!important;box-shadow:none!important;border-radius:0!important}
+i.coin::after,.coin::after{display:none!important}
+i.cpi,.cpi{background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2242%22%20fill%3D%22%2314b8a6%22%20stroke%3D%22%23115e59%22%20stroke-width%3D%227%22/%3E%3Cpath%20d%3D%22M50%2022l8.4%2017.8%2019.6%202.2-14.6%2013.4%204%2019.4L50%2065l-17.4%209.8%204-19.4L22%2042l19.6-2.2z%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E") center/contain no-repeat!important;box-shadow:none!important;border-radius:0!important}
+i.cpi::after,.cpi::after{display:none!important}
+i.cashi{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.22em;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20x%3D%224%22%20y%3D%2222%22%20width%3D%2292%22%20height%3D%2256%22%20rx%3D%229%22%20fill%3D%22%2322a35a%22%20stroke%3D%22%2314532d%22%20stroke-width%3D%226%22/%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2216%22%20fill%3D%22%23ecfdf5%22/%3E%3Ctext%20x%3D%2250%22%20y%3D%2260%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%22%20font-weight%3D%22900%22%20font-size%3D%2226%22%20fill%3D%22%23166534%22%3E%24%3C/text%3E%3C/svg%3E") center/contain no-repeat;font-style:normal}
+/* QA-156: the page under a popup is dimmed; the shared player header */
+.page.under{filter:brightness(.5)}
+.pfhd .pfnum{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:#fff;color:#0f172a;font:900 12px Nunito;border:2px solid #0f172a;margin-right:4px}
+.pftops{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}.pftops i{font-style:normal;font:900 10.5px/16px Nunito;color:#0f172a;border-radius:5px;padding:0 5px}
+.pfbig{font:600 22px/1 Teko,sans-serif!important;color:#fde047}
+.pfocus .pfgrid>div{min-width:0;overflow:hidden}
+/* QA-155: the popup never runs wider than the screen */
+.pk1,.pfocus{max-width:100%;overflow:hidden}
+.instr.pfi{grid-template-columns:repeat(5,minmax(0,1fr))!important}.instr.pfi button{min-width:0;font-size:10.5px!important;line-height:1.15;padding:5px 1px!important;word-break:break-word}
+/* QA-157: pre-match line-ups fit the width; no dark strip */
+#matchv:has(.kpre){background:var(--bg);overflow-x:hidden}
+#matchv .kpre .lus>div{min-width:0}#matchv .kpre .lu{min-width:0;gap:4px}#matchv .kpre .lu b{min-width:0}
+#matchv .kpre .lu .luf{width:24px;height:24px}#matchv .kpre .lus h4{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* QA-158: pre-match buttons: one style, compact; the bottom bar as on every page */
+#matchv .kpre .prebtns .btn{padding:10px 8px;font-size:15px;white-space:nowrap;gap:6px;border:0}
+#matchv .kpre .kick{border:0!important;padding:13px!important;font-size:18px!important;margin-top:10px}
+.kpreft{padding:7px 12px calc(7px + var(--sab))!important}#matchv .kpre{padding-bottom:calc(76px + var(--sab))!important}
+/* QA-160: thick dark outline on white text on colour; green tick badges; compact buttons */
+:root{--kout:2px 0 0 #0f172a,-2px 0 0 #0f172a,0 2px 0 #0f172a,0 -2px 0 #0f172a,1.4px 1.4px 0 #0f172a,-1.4px -1.4px 0 #0f172a,1.4px -1.4px 0 #0f172a,-1.4px 1.4px 0 #0f172a}
+.btn.pri,.btn.go,.btn.claim,.btn.main,.btn.danger,.uc .bt button,.trainbtn{text-shadow:var(--kout)!important}
+.btn.gold,.btn.buyg,.btn.fin2,.dbuy,[data-act="buy"].btn,[data-act="buypack"].btn,[data-act="buydeal"].btn,[data-act="buyweekly"].btn{color:#fff!important;text-shadow:var(--kout)!important}
+.btn{padding-top:11px;padding-bottom:11px}
+.uc .bt button{padding:5px 4px 6px!important;font-size:17px!important;line-height:1.05}
+.uc .bt .fin em{color:#fff!important;text-shadow:var(--kout)!important}
+.uc .cr .ok,.uc .crc .ok{font-size:0!important;width:22px;height:22px;border-radius:50%;background:#22c55e;border:2px solid #14532d;box-shadow:0 2px 0 rgba(15,23,42,.6);position:relative;display:inline-block;flex:none}
+.uc .cr .ok::after,.uc .crc .ok::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg)}

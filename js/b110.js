@@ -27,19 +27,24 @@
   C.INSTR_TXT = ['Ultra defensive: stays back and defends first.', 'Defensive: leans back, takes fewer risks going forward.', 'Balanced: plays to the team shape and Mentality.', 'Attacking: gets forward more and shoots more often.', 'Ultra attacking: joins every attack; leaves space behind.'];
   const yr = y => ['', 'Freshman', 'Sophomore', 'Junior', 'Senior', '5th year'][y] || '';
   const healthTxt = p => p.inj ? `<b class="pfbad">🩹 Injured: out ${p.inj > 50 ? 'for the season' : p.inj + ' more match' + (p.inj > 1 ? 'es' : '')}</b>` : p.knock ? '<b class="pfwarn">🤕 A knock: playable, at risk</b>' : '<b class="pfok">✔ Fit</b>';
+  // 1.10.02 (QA-156): one header: face, name, shirt number badge, the 3 preferred positions, and the big box = rating at the position played (fit colour)
+  C.pfHead = (p, pos, extra) => { const P = C.PILL || [], fit = pos ? C.fit(p, pos) : 5, rate = pos ? C.posRating(p, pos) : p.rating;
+    const tops = (C.topPositions ? C.topPositions(p) : []).slice(0, 3).map(([x, v]) => `<i style="background:${P[C.fit(p, x)] || '#cbd5e1'}">${x} ${v}</i>`).join('');
+    return `<div class="pfhd"><div class="pff">${C.faceOf(p)}</div><div class="pfn"><b>${C.esc(p.fn)} ${C.esc(p.ln)}</b><small><span class="pfnum">${p.num || '–'}</span> ${pos ? `playing ${pos}` : p.pos}${extra ? ' · ' + extra : ''}</small><span class="pftops">${tops}</span></div><b class="pfr" style="background:${P[fit] || '#cbd5e1'};color:#0f172a">${rate}</b></div>`; };
   C.playerFocusHTML = (p, o = {}) => { const v = C.playerVoice ? C.playerVoice(p) : { line: '', f: [] }, ss = p.ss || {}, avg = ss.apps && ss.rs ? (ss.rs / ss.apps).toFixed(1) : '–';
     const mood = p.morale >= 75 ? 'pfok' : p.morale >= 45 ? 'pfwarn' : 'pfbad', why = (v.f || []).filter(x => x[1] < 0).map(x => x[0])[0] || (v.f || []).filter(x => x[1] > 0).map(x => x[0])[0] || '';
-    return `<div class="pfhd"><div class="pff">${C.faceOf(p)}</div><div class="pfn"><b>${C.esc(p.fn)} ${C.esc(p.ln)}</b><small>#${p.num || '–'} · ${p.pos}${o.label ? ` · playing <span class="pfchip" style="background:${o.fitCol || 'var(--school)'}">${o.label}</span>` : ''} · ${yr(p.year)}</small></div><b class="pfr">${o.rate != null ? o.rate : p.rating}</b></div>
+    return `${C.pfHead(p, o.pos, yr(p.year))}
       <div class="pfgrid"><div><small>Freshness</small><b>${C.kDrop ? C.kDrop(15) : ""} ${Math.round(p.energy)}%</b></div><div><small>Health</small>${healthTxt(p)}</div>
-        <div><small>Morale</small><b class="${mood}">${Math.round(p.morale)}</b>${why ? `<em>${C.esc(why)}</em>` : ''}</div><div><small>This season</small><b>${ss.apps || 0} apps · ⭐ ${avg}</b><em>${ss.mins || 0} min · ${ss.g || 0} goals · ${ss.a || 0} assists</em></div></div>
+        <div><small>Morale</small><b class="${mood}">${C.kMorale ? C.kMorale(p.morale, 16) : ''} ${Math.round(p.morale)}</b>${why ? `<em>${C.esc(why)}</em>` : ''}</div><div><small>This season</small><b>${ss.apps || 0} apps · ⭐ ${avg}</b><em>${ss.mins || 0} min · ${ss.g || 0} goals · ${ss.a || 0} assists</em></div></div>
       ${v.line ? `<p class="pfv">“${C.esc(v.line)}”</p>` : ''}`; };
   // this match so far (for Substitutions and the Plan)
   C.matchRatingOf = (m, e) => { try { const r = C.rateMatch(m).find(x => x.e === e); return r ? r.r.toFixed(1) : '6.0'; } catch (er) { return '–'; } };
   C.matchFocusHTML = (m, e) => { const s = e.st || {}, r = +C.matchRatingOf(m, e) || 6, en = Math.round(e.energy);
     const read = e.injured ? 'Injured: change them now' : en < 45 ? 'Out on their feet: a good one to change' : en < 60 && r < 6.5 ? 'Tiring, quiet game: a good one to change' : r >= 7.2 ? 'Playing well: worth keeping' : en < 60 ? 'Tiring, but playing their part' : 'Doing a job: fine to keep';
-    return `<div class="pfhd"><div class="pff">${C.faceOf(e.p)}</div><div class="pfn"><b>${C.esc(e.p.fn)} ${C.esc(e.p.ln)}</b><small>#${e.p.num || '–'} · playing ${e.slot.pos} · ${e.p.rating}</small></div><b class="pfr">${C.matchRatingOf(m, e)}</b></div>
+    const mo = Math.round(e.p.morale), mc = mo >= 75 ? 'pfok' : mo >= 45 ? 'pfwarn' : 'pfbad';
+    return `${C.pfHead(e.p, e.slot.pos)}
       <div class="pfgrid"><div><small>Freshness now</small><b class="${en < 45 ? 'pfbad' : en < 60 ? 'pfwarn' : 'pfok'}">${C.kDrop ? C.kDrop(15) : ""} ${en}%</b></div><div><small>Health</small>${e.injured ? '<b class="pfbad">🩹 Injured</b>' : e.knock ? '<b class="pfwarn">🤕 A knock</b>' : '<b class="pfok">✔ Fit</b>'}</div>
-        <div><small>Morale</small><b>${Math.round(e.p.morale)}</b></div><div><small>This match</small><b>${s.g || 0} G · ${s.a || 0} A · ${s.sh || 0} shots</b><em>${s.pa ? Math.round(s.pc / s.pa * 100) + '% passing · ' : ''}${s.tk || 0} tackles${e.bin || s.yc ? ' · 🟨' : ''}</em></div></div>
+        <div><small>Morale</small><b class="${mc}">${C.kMorale ? C.kMorale(mo, 16) : ''} ${mo}</b></div><div><small>This match</small><b class="pfbig">⭐ ${C.matchRatingOf(m, e)}</b><em>${s.g || 0} G · ${s.a || 0} A · ${s.sh || 0} shots</em><em>${s.pa ? Math.round(s.pc / s.pa * 100) + '% passing · ' : ''}${s.tk || 0} tackles${e.bin || s.yc ? ' · 🟨' : ''}</em></div></div>
       <p class="pfv">📋 ${read}</p>`; };
 
   // ---------- A10: one celebration (a banner, the items as tiles, confetti); tap anywhere to close ----------
