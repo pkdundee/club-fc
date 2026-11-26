@@ -127,6 +127,24 @@
   C.edgeHTML = () => { const L = C.edgeLines(); return L.length ? `<div class="scout edgec"><b>Your edge</b>${L.map(x => `<div class="edl"><span class="edi">${x.ic}</span>${C.esc(x.t)}</div>`).join('')}</div>` : ''; };
   const oScout = C.scoutHTML; C.scoutHTML = f => (oScout ? oScout(f) : '') + C.edgeHTML();
 
+  // ---------- 1.10.04 (QA-171): a tap on the map goes to the building whose picture is under the finger ----------
+  // Each building picture is read once into a small alpha mask; the front-most picture with paint at the tap point wins.
+  // Anything not ready (still loading, a drawn fallback) keeps the old tap area, so a tap never does nothing.
+  const MASK = {}, MW = 384;
+  const maskOf = href => { if (MASK[href] !== undefined) return MASK[href]; MASK[href] = null;
+    const im = new Image(); im.onload = () => { try { const w = MW, h = Math.round(MW * im.naturalHeight / im.naturalWidth), cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(im, 0, 0, w, h); MASK[href] = { w, h, d: cx.getImageData(0, 0, w, h).data }; } catch (e) { MASK[href] = false; } };
+    im.onerror = () => { MASK[href] = false; }; im.src = href; return null; };
+  const bldImgs = () => [...document.querySelectorAll('#map image[data-bk]')];
+  const warm = () => bldImgs().forEach(i => maskOf(i.getAttribute('href')));
+  document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#map')) warm(); }, true);
+  C.pickBld = (e, v) => { try { const x = e.clientX, y = e.clientY; if (x == null) return v;
+      const ok = k => !!document.querySelector(`#map .hits polygon[data-v="${k}"]`);
+      for (const im of bldImgs().reverse()) { const k = im.dataset.bk; if (!ok(k)) continue; const r = im.getBoundingClientRect(); if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
+        const M = maskOf(im.getAttribute('href')); if (!M) continue; const u = Math.floor((x - r.left) / r.width * M.w), w = Math.floor((y - r.top) / r.height * M.h);
+        if (M.d[(w * M.w + u) * 4 + 3] > 40) return k; }
+    } catch (err) { } return v; };
+
   // ---------- QA-151: chests: a drop-down list under the chest (preview); shake, open and celebrate (claim) ----------
   // 1.10.03 (QA-162): closing also removes the waiting "close on the next tap", so it can't close the next list as it opens
   let dropOff = null;

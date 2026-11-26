@@ -100,7 +100,8 @@
       const p = C.P(e.p.id); if (!p) continue; const s = e.st; if (s.mins < .5 && !e.on) continue;
       played.add(p.id); p.energy = Math.round(e.energy);
       const ss = p.ss = p.ss || { apps: 0, st: 0, mins: 0, g: 0, a: 0, rs: 0, potm: 0, yc: 0, cs: 0, sv: 0 };
-      ss.apps++; if (m.teams[my].xi.includes(e.p)) ss.st++; if (!f.friendly && !f.ko) { ss.lapps = (ss.lapps || 0) + 1; if (m.teams[my].xi.includes(e.p)) ss.lst = (ss.lst || 0) + 1; }   // 1.06 (QA-73): league apps and starts ss.mins += Math.round(s.mins); ss.g += s.g; ss.a += s.a; ss.sv += s.sv;
+      ss.apps++; if (m.teams[my].xi.includes(e.p)) ss.st++; if (!f.friendly && !f.ko) { ss.lapps = (ss.lapps || 0) + 1; if (m.teams[my].xi.includes(e.p)) ss.lst = (ss.lst || 0) + 1; }   // 1.06 (QA-73): league apps and starts
+      ss.mins += Math.round(s.mins); ss.g += s.g; ss.a += s.a; ss.sv += s.sv;   // 1.10.04 (QA-173): this line was inside the comment above since 1.06
       const rt = (rated.find(x => x.e === e) || { r: 6 }).r; ss.rs += rt; if (potm && potm.e === e) { ss.potm++; p.morale = Math.min(100, p.morale + 5); }
       if (e.slot.pos === 'GK' && m.score[1 - my] === 0 && s.mins > 60) ss.cs++;
       if (s.yc) { ss.yc++; if (ss.yc % 5 === 0) p.ban = 1; }

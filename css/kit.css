@@ -53,7 +53,7 @@
 .kst{display:inline-block;width:22px;height:22px;vertical-align:-5px}
 
 /* ---------- D: the Inventory as square tiles ---------- */
-.invg{grid-template-columns:repeat(4,1fr)!important;gap:7px!important}
+.invg{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important}
 .invk{position:relative;border:0;background:none;padding:0;border-radius:8px;aspect-ratio:1/1}
 .invk .ktile{width:100%;height:100%}
 .invk.none{opacity:.45;filter:saturate(.4)}
@@ -62,7 +62,7 @@
 .btn.go.invuse{min-width:150px}
 
 /* ---------- QA-120: all 11 formations visible, no scrolling; QA-121: a shorter pitch ---------- */
-.tac2 .forms{display:grid!important;grid-template-columns:repeat(6,1fr);gap:4px!important;overflow:visible!important;flex-wrap:wrap}
+.tac2 .forms{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px!important;overflow:visible!important;flex-wrap:wrap}
 .tac2 .forms button{padding:6px 0!important;font-size:11.5px!important;letter-spacing:-.2px;text-align:center;white-space:nowrap}
 .tac2 .board.tall{aspect-ratio:68/58!important}
 .tac2 .ments button span{font-size:13px;letter-spacing:-2px;font-weight:900}
@@ -87,19 +87,19 @@
 .pfocus .pfn{flex:1;min-width:0}.pfocus .pfn b{display:block;font-size:17px}.pfocus .pfn small{color:var(--mute);font-weight:800}
 .pfocus .pfr{font:600 30px/1 Teko,sans-serif;background:var(--school);color:#fff;border-radius:10px;padding:4px 8px 0}
 .pfchip{color:#fff;border-radius:5px;padding:0 5px;font-weight:900}
-.pfgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.pfgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;margin-top:10px}
 .pfgrid>div{background:var(--bg);border-radius:10px;padding:6px 8px}.pfgrid small{display:block;color:var(--mute);font-weight:800;font-size:11px}.pfgrid b{font-size:14px}.pfgrid em{display:block;font-style:normal;font-size:11px;color:var(--mute);font-weight:700}
 .pfok{color:#16a34a}.pfwarn{color:#d97706}.pfbad{color:#dc2626}
 .pfv{margin:8px 0 0;font-weight:800;font-size:13px}
 .pfin{margin:4px 0 0}
-.instr.pfi{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.instr.pfi button{font-size:10.5px;padding:5px 2px;display:flex;flex-direction:column;align-items:center}
+.instr.pfi{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.instr.pfi button{font-size:10.5px;padding:5px 2px;display:flex;flex-direction:column;align-items:center}
 .submark{display:block;font-style:normal;font-size:11px;font-weight:900;color:#2563eb}
 .mplanb{position:relative;aspect-ratio:68/62!important;margin-top:6px}
 .mplanb .mptk{border:0;background:none;padding:0;position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center}
 .mplanb .mptk.sel .tkf{outline:3px solid #facc15;border-radius:50%}
 .mplanb .mpst{font:800 9.5px Nunito;color:#fff;background:rgba(15,23,42,.7);border-radius:5px;padding:0 4px;white-space:nowrap}
 .mplanb .mpe{position:absolute;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;border:2px dashed #fff;display:grid;place-items:center;color:#fff;font-size:9px}
-.forms.mforms2{display:grid!important;grid-template-columns:repeat(6,1fr);gap:4px}.forms.mforms2 button{padding:6px 0;font-size:11.5px}
+.forms.mforms2{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}.forms.mforms2 button{padding:6px 0;font-size:11.5px}
 .ments.mments button{display:flex;flex-direction:column;align-items:center;font-size:13px;padding:5px 2px}.ments.mments small{font-size:10px}
 .ments.mments button.on{background:#ea580c;color:#fff}
 .resnote{text-align:center;margin:8px 0 4px}
@@ -152,7 +152,7 @@ html,body{overflow-x:hidden}#app{overflow-x:hidden}   /* 1.10.02 (QA-154): #app 
 #matchv .kpre .lu.r{justify-content:flex-end}
 #matchv .kpre .tiredw,#matchv .kpre .scout,#matchv .kpre .bigm{margin:10px 12px 0}
 #matchv .kpre .scout{background:var(--card);color:var(--ink);border:0;box-shadow:var(--shadow)}
-#matchv .kpre .prebtns{grid-template-columns:1fr 1fr;margin:12px 12px 0}
+#matchv .kpre .prebtns{grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin:12px 12px 0}
 #matchv .kpre .kick,#matchv .kpre .resnote{margin-left:12px;margin-right:12px;width:auto}
 #matchv .kpre .resnote{color:var(--mute)}
 .kpreft{position:fixed;left:0;right:0;bottom:0;z-index:13;background:#1e293b;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
@@ -222,3 +222,12 @@ i.dropi{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em;bac
 .swtag{display:block;font-style:normal;font-size:11px;font-weight:800;color:#2563eb}
 .gain .gup{color:#16a34a}
 #matchv .kpre .edgec .edl{display:flex;align-items:center;gap:6px;margin:3px 0;font-weight:800}.edgec .edi{width:18px;display:inline-flex;justify-content:center}
+
+/* 1.10.04 */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.attr,.attr .ab{min-width:0}.attr .ab div{gap:6px}.attr .ab div span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.attr .ab div em{flex:none}
+.gslot{min-width:0}.gslot small{overflow-wrap:anywhere;hyphens:auto;font-size:10.5px}.grow .gtile{width:100%;max-width:60px;height:auto;aspect-ratio:1}
+.tkf.frr{border:0;padding:6px;background:radial-gradient(circle closest-side,#475569 calc(100% - 6px),transparent calc(100% - 5.5px)),conic-gradient(#06b6d4 calc(var(--fr) * 1%),#cfe3ea 0)}
+.tac2 .tkf.frr{width:40px!important;height:40px!important}
+.tkf.frr>*{border-radius:50%;overflow:hidden;display:block;width:100%;height:100%}
+@media (max-width:420px){.attrs{column-gap:10px}.attr{gap:6px}.attr .ai{width:28px;height:28px;border-radius:8px}.attr .ai svg{width:22px!important;height:22px!important}.attr .ab div{font-size:12.5px;gap:4px}.attr .ab div em small{font-size:10px}}

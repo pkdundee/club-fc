@@ -63,11 +63,11 @@
     return { rec, q, secs, pick: p, coins };
   };
   C.finishLabel = (kind, key) => { const a = C.speedAdvice(kind, key); if (!a) return '';
-    return a.rec === 'free' ? 'Free' : a.rec === 'items' ? '⏩ Speed-ups' : `${C.GEM} ${a.coins}`; };
+    return a.rec === 'free' ? 'Free' : a.rec === 'items' ? '⏩ Speed-ups' : `${C.GEM} ${C.full(a.coins)}`; };
   C.speedButtonHTML = (kind, key) => { const a = C.speedAdvice(kind, key); if (!a) return '';
     if (a.rec === 'free') return `Finish<br><em style="color:#15803d">Free</em>`;
     if (a.rec === 'items') return `Speed Up<br><em>⏩ ${C.dur(a.pick.total * 60)}</em>`;
-    return `Finish Now<br><em class="${C.acct().gold < a.coins ? 'short' : ''}">${C.GEM} ${a.coins}</em>`; };
+    return `Finish Now<br><em class="${C.acct().gold < a.coins ? 'short' : ''}">${C.GEM} ${C.full(a.coins)}</em>`; };
 
   // ---------- 6. the Speed Up popup ----------
   let cur = null;   // { kind, key, done }
@@ -97,7 +97,7 @@
       const inst = hasItems ? row(ico(null), 'Instant Speed-up', `Use speed-up items <b class="spg">${C.dur(p.total * 60)}</b>${p.covers ? '' : ` · ${C.dur(rem - p.total * 60)} left after`}${rec === 'items' ? ' · <b>best value</b>' : ''}`,
         `<button class="spbtn green" data-act="spitems">Instant<br>Speed-up</button>`) : '';
       const fin = row(ico(null), 'Finish Now', `Finish straight away with Coins (${C.dur(rem)})${rec === 'coins' ? ' · <b>best value</b>' : ''}`,
-        `<button class="spbtn gold ${gold < a.coins ? 'short' : ''}" data-act="spcoins">Buy &amp; Use<br>${C.GEM} ${a.coins}</button>`);
+        `<button class="spbtn gold ${gold < a.coins ? 'short' : ''}" data-act="spcoins">Buy &amp; Use<br>${C.GEM} ${C.full(a.coins)}</button>`);
       const owned = C.speedKeys(kind).filter(k => C.meta().inv[k] > 0).sort((x, y) => mins(y) - mins(x) || (C.XN[x][3] === 'g') - (C.XN[y][3] === 'g'));
       const items = owned.map(k => { const n = C.batchN(k, rem);
         return row(ico(k, lbl(mins(k))), C.esc(C.XN[k][1]), `Owned: ${C.meta().inv[k]}`, `<span class="spbtns">${n > 1 ? `<button class="spbtn blue" data-act="spone" data-v="${k}|${n}">×${n}</button>` : ''}<button class="spbtn blue" data-act="spone" data-v="${k}|1">Use</button></span>`); }).join('');

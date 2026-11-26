@@ -435,9 +435,9 @@
       if (!e) return `<div class="tk" style="left:${left}%;top:${top}%"><div class="tkf empty">✖</div><div class="tkn" style="background:#f87171"><span>${L[i]}</span></div></div>`;
       const fit = C.fit(e.p, s[0]), en = Math.round(e.energy), po = pendOut(e);
       return `<div class="tk" style="left:${left}%;top:${top}%" data-act="mpick" data-v="${m.ents.indexOf(e)}"><div class="tkb">${e.instr !== 2 ? `<i class="bdg ins">${MARROW[e.instr]}</i>` : ''}${po || (m.swaps || []).some(s => s.side === my && (s.a === e || s.b === e)) ? '<i class="bdg subm">🔁</i>' : ''}${e.bin ? '<i class="bdg yc"></i>' : ''}</div>
-        <button class="tkf" data-act="mpick" data-v="${m.ents.indexOf(e)}">${C.faceOf(e.p)}</button>
+        <button class="tkf frr" style="--fr:${en}" data-act="mpick" data-v="${m.ents.indexOf(e)}">${C.faceOf(e.p)}</button>
         <button class="tkn" style="background:${PILL[fit] || '#cbd5e1'}" data-act="mpick" data-v="${m.ents.indexOf(e)}"><span>${C.esc(C.sn(e.p))}</span><i>▾</i></button>
-        <div class="tkm">${C.frBadge ? C.frBadge(e.energy) : en}<span class="tr tmr">⭐ ${C.matchRatingOf(m, e)}</span></div></div>`; }).join('');
+        <div class="tkm"><span class="tp">${L[i]}</span><span class="tr">${C.posRating(e.p, s[0])}</span></div></div>`; }).join('');
     const bench = benchPool(m, my).map(p => { const pi = pendIn(p); return `<div class="btok ${pi ? 'sel' : ''}"><span class="bf">${C.faceOf(p)}</span><b>${C.esc(C.sn(p))}</b><small>${C.tacRing ? C.tacRing(p.energy, 12) : ''} ${p.pos} · ${p.rating}</small>${pi ? `<em class="subm2">On for ${C.esc(pi.outE.p.ln)}</em>` : ''}</div>`; }).join('');
     return `<div class="tac2 tmatch"><div class="slimadv">${C.adviceLine ? C.adviceLine(liveRead(m, my)) : ''}</div>
       <div class="forms">${Object.keys(C.FORMATIONS).map(f => `<button class="${T.form === f ? 'on' : ''}" data-act="mform" data-v="${f}">${f}</button>`).join('')}</div>

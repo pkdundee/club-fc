@@ -72,7 +72,7 @@
   C.injButtons = p => { const M = C.medState(), j = p.injury || { icon: '🩹', name: 'Injury', sev: 0 };
     const btn = (on, act, v, label) => `<button class="btn sm2 ${on ? '' : 'off'}" data-act="${act}" data-v="${v}" ${on ? '' : 'disabled'}>${label}</button>`;
     return `${j.sev === 0 && !j.conc && j.k !== 'flu' ? btn(!j.physio && M.physio > 0, 'treat', p.id + '|physio', '🩺 Physio') : ''}
-        ${minorOrMod(p) ? btn(!j.spec, 'treatc', p.id + '|spec', `${C.GEM} ${C.TREAT.spec}`) : ''}
+        ${minorOrMod(p) ? btn(!j.spec, 'treatc', p.id + '|spec', `${C.GEM} ${C.full(C.TREAT.spec)}`) : ''}
         ${minorOrMod(p) && p.inj === 1 ? btn(true, 'treatc', p.id + '|rush', 'Rush back') : ''}
         ${j.conc ? '<small class="mutey">Protocol: can\'t be rushed</small>' : ''}`; };
   // ================= Medical Room =================
@@ -85,7 +85,7 @@
         <div class="medbt">${C.injButtons(p)}</div></div>`; };
     return `<div class="medtop"><div><b>${M.physio}</b><small>🩺 Physio sessions</small><em>+1 every ${C.physioEvery()} match${C.physioEvery() > 1 ? 'es' : ''}</em></div>
         <div><b>${kits}</b><small>🧴 Recovery kits</small><em>+25 Freshness</em></div><div><b>${C.teamN()}</b><small>👥 Team sessions</small><em>+1 every ${C.teamEvery()} match${C.teamEvery() > 1 ? 'es' : ''}</em></div></div>
-      <div class="jbtns" style="margin-top:8px"><button class="btn sec2" data-act="teamsess">${C.teamN() ? '👥 Run team session · use 1' : `👥 Run team session · ${C.GEM} ${C.TREAT.team}`}<small class="bsub">+12 Freshness for everyone</small></button><button class="btn sec2" data-act="buykitc">🧴 Buy kit · ${C.GEM} ${C.TREAT.kit}</button></div>
+      <div class="jbtns" style="margin-top:8px"><button class="btn sec2" data-act="teamsess">${C.teamN() ? '👥 Run team session · use 1' : `👥 Run team session · ${C.GEM} ${C.full(C.TREAT.team)}`}<small class="bsub">+12 Freshness for everyone</small></button><button class="btn sec2" data-act="buykitc">🧴 Buy kit · ${C.GEM} ${C.full(C.TREAT.kit)}</button></div>
       <h3 class="jh">Injured <small class="devp">${inj.length}</small></h3>${inj.length ? inj.map(row).join('') : '<p class="note">Nobody injured. 🙌</p>'}
       ${(() => { const xi = C.tac().xi.map(C.P).filter(Boolean), av = l => Math.round(l.reduce((s, p) => s + p.energy, 0) / (l.length || 1)), word = v => v >= 80 ? ['Fresh', 'var(--fit5)'] : v >= 60 ? ['Okay', '#d97706'] : ['Tired', 'var(--fit1)'], a1 = av(xi), a2 = av(car.squad.filter(p => !p.inj)), w1 = word(a1);
         const all = car.squad.filter(p => !p.inj).sort((a, b) => a.energy - b.energy);   // 1.06 (QA-84): Freshness at a glance, and the whole squad, lowest first

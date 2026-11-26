@@ -84,7 +84,7 @@
     const ok = un && car.cp >= k.cp && car.cash >= k.cash, slot = pbq().length < C.pbSlots(), waitDone = !slot && pbq().some(z => z.end <= C.now());
     return head + `<h3 class="jh" style="text-align:center">Cost</h3><div class="tbl">${rows}</div>
       <div class="orig"><span>${ok && !slot ? (waitDone ? 'Complete a finished research first' : 'All research slots are busy') : ''}</span><span>Original Time: ${C.dur(tm)}</span></div>
-      <div class="bt2"><button class="btn fin2" data-act="pbinstant" data-v="${key}" ${ok ? '' : 'disabled'}>Finish Now<br><em>${C.GEM} ${C.coinsFor(tm)}</em></button>
+      <div class="bt2"><button class="btn fin2" data-act="pbinstant" data-v="${key}" ${ok ? '' : 'disabled'}>Finish Now<br><em>${C.GEM} ${C.full(C.coinsFor(tm))}</em></button>
       <button class="btn pri" data-act="${slot ? 'pbgo' : 'pbqfull'}" data-v="${key}" ${ok && (slot || waitDone) ? '' : 'disabled'}>Research<br><em>⏱ ${C.dur(tm)}</em></button></div>`;
   }, { popup: true });
 
@@ -94,7 +94,7 @@
     let left = Math.ceil(secs / 60); const plan = {}; for (const k of ks) { while (left > 0 && (plan[k] || 0) < inv[k]) { plan[k] = (plan[k] || 0) + 1; left -= XN[k][2]; if (left <= 0) break; } if (left <= 0) break; }
     return left <= 0 ? plan : null; };
   function finishLabel(kind, key) { const q = kind === 'r' ? C.pbInQueue(key) : C.inQueue(key); if (!q) return ''; if (C.isFreeFinish(q)) return 'Free';
-    return C.speedPlan(kind, C.remaining(q)) ? '⏩ Speed-ups' : `${C.GEM} ${C.goldToFinish(q)}`; }
+    return C.speedPlan(kind, C.remaining(q)) ? '⏩ Speed-ups' : `${C.GEM} ${C.full(C.goldToFinish(q))}`; }
   C.finishLabel = finishLabel;
   // confirm the items Finish Now will use (FEEDBACK 79)
   C.confirmItems = (plan, secs, go) => { const XN = C.XN, total = Object.keys(plan).reduce((s, k) => s + XN[k][2] * plan[k], 0);

@@ -265,7 +265,8 @@
     if (lvl) out.push({ g: 'info', label: 'Info', act: 'bldopen', v: k, col: C.kRingCol.blue });
     if (lvl) (SHORTCUTS[k] || []).forEach(([g, label, act, v]) => out.push({ g, label, act, v, col: C.kRingCol.orange }));
     // the upgrade button is always last (right-most) and stays active until the building's maximum level; only then is it an orange "i"
-    if (q) out.push({ g: 'speed', label: C.buildReady(k) ? 'Complete' : 'Speed up', act: 'bldopen', v: k, main: true, col: C.buildReady(k) ? C.kRingCol.green : C.kRingCol.lgreen });
+    if (q) out.push({ g: 'speed', label: C.buildReady(k) ? 'Complete' : 'Speed up', act: C.buildReady(k) ? 'bdone' : 'speed', v: k,   // 1.10.04 (QA-170)
+      main: true, col: C.buildReady(k) ? C.kRingCol.green : C.kRingCol.lgreen });
     else if (lvl < C.topLevel(k)) out.push({ g: 'up', label: lvl ? 'Upgrade' : 'Build', act: 'bldopen', v: k, main: true, col: C.kRingCol.green });
     if (!out.length) out.push({ g: 'info', label: 'Info', act: 'bldopen', v: k, col: C.kRingCol.blue });
     return out;

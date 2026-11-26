@@ -192,7 +192,7 @@ function tileImage(I,x,y,sz,href){const f=2*sz*I.K/1300,[tx,ty]=I.P(x,y,0);retur
 function painted(I,k,x,y,sz,lvl){let n=Math.min(ART_MAX[k]||10,testRender()||window.CFC.renderOf(lvl));
  if(probe(`img/campus/b_${k}_${n}.webp`)==='bad')n=1;
  if(probe(`img/campus/b_${k}_${n}.webp`)==='bad')return drawn(I,k,x,y,sz,lvl);
- return tileImage(I,x,y,sz,k==='stadium'?stadiumHref(n):`img/campus/b_${k}_${n}.webp`)}
+ return tileImage(I,x,y,sz,k==='stadium'?stadiumHref(n):`img/campus/b_${k}_${n}.webp`).replace('<image ',`<image data-bk="${k}" `)}   // 1.10.04 (QA-171)
 function plotTile(I,x,y,sz,name,fallback){return probe(`img/campus/${name}.webp`)==='bad'?fallback():tileImage(I,x,y,sz,`img/campus/${name}.webp`)}
 // a painted sprite standing on the ground at world point (wx,wy); f = drawn height / file height of the object
 function sprite(I,href,wx,wy,m,f,bxKey='bx',byKey='by',wKey='w',hKey='h'){const [px,py]=I.P(wx,wy,0);return `<image href="${href}" x="${(px-m[bxKey]*f).toFixed(1)}" y="${(py-m[byKey]*f).toFixed(1)}" width="${(m[wKey]*f).toFixed(1)}" height="${(m[hKey]*f).toFixed(1)}"/>`}

@@ -93,9 +93,9 @@
       if (!p) return `<div class="tk" style="left:${left}%;top:${top}%" data-act="pick" data-v="${i}"><button class="tkf empty" data-act="pick" data-v="${i}">+</button><button class="tkn" style="background:${PILL[0]}" data-act="pick" data-v="${i}"><span>Empty</span><i>▾</i></button><div class="tkm"><span class="tp">${L[i]}</span></div></div>`;
       const fit = C.fit(p, s[0]), ins = t.instr[p.id] ?? 2;
       return `<div class="tk" style="left:${left}%;top:${top}%" data-act="pick" data-v="${i}"><div class="tkb">${C.badges(p)}${ins !== 2 ? `<i class="bdg ins">${INSTR[ins][0]}</i>` : ''}</div>
-        <button class="tkf" data-act="pick" data-v="${i}">${C.faceOf(p)}</button>
+        <button class="tkf frr" style="--fr:${Math.round(p.energy)}" data-act="pick" data-v="${i}">${C.faceOf(p)}</button>
         <button class="tkn" style="background:${PILL[fit]}" data-act="pick" data-v="${i}"><span>${C.esc(C.sn(p))}</span><i>▾</i></button>
-        <div class="tkm">${C.frBadge(p.energy)}<span class="tp">${L[i]}</span><span class="tr">${C.posRating(p, s[0])}</span></div></div>`; }).join('');
+        <div class="tkm"><span class="tp">${L[i]}</span><span class="tr">${C.posRating(p, s[0])}</span></div></div>`; }).join('');
     const row = (p, chip, chipCol, rating, slot) => `<button class="lrw" data-act="${slot != null ? 'pick' : 'player'}" data-v="${slot != null ? slot : p.id}">
         <span class="lchip" style="background:${chipCol}">${chip}</span><span class="lnm">${C.esc(p.fn[0] + '. ' + p.ln)}${C.badges(p)}</span><b class="lrt">${rating}</b>
         <span class="ltop">${C.topPositions(p).map(([x, v]) => `<i style="background:${PILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}</span><span class="lfr" style="color:${fcol(p.energy)}">${ring(p.energy)} ${Math.round(p.energy)}%</span></button>`;
