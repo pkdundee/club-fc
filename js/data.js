@@ -102,7 +102,7 @@
       stats: l => [['🏋️', 'Training plan speed', '+' + pct(1.5 * l)], ['➕', 'Training slots', l >= 10 ? '+1 earned' : 'Lv 10: +1']] },
     gym: { name: 'Gym', icon: '🏋️', owner: 'program', start: 0, mult: 1.1,
       desc: 'Strength and conditioning: faster energy recovery and fewer injuries.',
-      stats: l => [['🔋', 'Freshness recovery', '+' + pct(1.5 * l)], ['🩹', 'Injury chance', '−' + pct(l)]] },
+      stats: l => [['<i class="dropi"></i>', 'Freshness recovery', '+' + pct(1.5 * l)], ['🩹', 'Injury chance', '−' + pct(l)]] },
     med: { name: 'Sports Medicine', icon: '🩺', owner: 'program', start: 0, mult: 1.1,
       desc: 'Faster recovery from injuries, and physio and team sessions after matches.',
       stats: l => [['⏱', 'Chance of a faster injury recovery', pct(3 * l)], ['🩺', 'Physio sessions', '+1 every ' + Math.max(1, Math.round(3 - l / 10)) + ' match' + (Math.max(1, Math.round(3 - l / 10)) > 1 ? 'es' : '')], ['👥', 'Team sessions', '+1 every ' + Math.max(1, 3 - Math.floor(l / 10)) + ' match' + (Math.max(1, 3 - Math.floor(l / 10)) > 1 ? 'es' : '')]] },

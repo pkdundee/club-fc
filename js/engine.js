@@ -351,7 +351,12 @@
   C.queueSub = (m, side, outE, inP, replace) => { const clash = m.pending.filter(s => s.outE === outE || s.inP === inP);
     if (clash.length && !replace) return null; m.pending = m.pending.filter(s => !clash.includes(s)); m.pending.push({ side, outE, inP }); return clash; };   // 1.10 (QA-116): your re-pick replaces
   C.canBringOn = (m, side, p) => { const o = m.offAt[p.id]; if (m.ents.some(e => e.p === p && e.on)) return false; if (o == null) return true; return o.half === 1 && m.half === 2 && !o.back; };
-  function applySubs(m) {
+  // 1.10.03 (QA-164): two players on the pitch swap positions at the next stoppage (no substitution used)
+  C.queueSwap = (m, side, a, b) => { m.swaps = (m.swaps || []).filter(s => s.a !== a && s.b !== a && s.a !== b && s.b !== b); m.swaps.push({ side, a, b }); };
+  function applySwaps(m) { if (!m.swaps || !m.swaps.length) return;
+    for (const s of m.swaps.splice(0)) { const { a, b } = s; if (!a.on || !b.on) continue; const sl = a.slot, ix = a.i; a.slot = b.slot; a.i = b.i; b.slot = sl; b.i = ix;
+      a.fit = C.fit(a.p, a.slot.pos); b.fit = C.fit(b.p, b.slot.pos); m.shapeV = (m.shapeV || 0) + 1; } }
+  function applySubs(m) { applySwaps(m);
     for (const s of m.pending.splice(0)) {
       const e = s.outE; if (!e.on && !e.injured) continue;
       if (!C.canBringOn(m, s.side, s.inP)) continue;

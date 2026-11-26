@@ -89,8 +89,8 @@
       <h3 class="jh">Injured <small class="devp">${inj.length}</small></h3>${inj.length ? inj.map(row).join('') : '<p class="note">Nobody injured. 🙌</p>'}
       ${(() => { const xi = C.tac().xi.map(C.P).filter(Boolean), av = l => Math.round(l.reduce((s, p) => s + p.energy, 0) / (l.length || 1)), word = v => v >= 80 ? ['Fresh', 'var(--fit5)'] : v >= 60 ? ['Okay', '#d97706'] : ['Tired', 'var(--fit1)'], a1 = av(xi), a2 = av(car.squad.filter(p => !p.inj)), w1 = word(a1);
         const all = car.squad.filter(p => !p.inj).sort((a, b) => a.energy - b.energy);   // 1.06 (QA-84): Freshness at a glance, and the whole squad, lowest first
-        return `<div class="card fresh2"><b>🔋 XI ${a1}% · Squad ${a2}%</b><span style="color:${w1[1]}">${w1[0]}</span></div>
-      <h3 class="jh">Freshness <small class="devp">lowest first · under 60% highlighted</small></h3>${all.map(p => `<div class="medrow ${p.energy < 60 ? 'low' : ''}"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn[0] + '. ' + p.ln)}${xi.includes(p) ? ' <em class="wtag xi">XI</em>' : ''}</b><small>🔋 ${Math.round(p.energy)}%</small></div><div class="medbt">${btn(kits > 0 && p.energy < 100, 'treat', p.id + '|kit', '🧴 Kit')}</div></div>`).join('')}`; })()}
+        return `<div class="card fresh2"><b><i class="dropi"></i> XI ${a1}% · Squad ${a2}%</b><span style="color:${w1[1]}">${w1[0]}</span></div>
+      <h3 class="jh">Freshness <small class="devp">lowest first · under 60% highlighted</small></h3>${all.map(p => `<div class="medrow ${p.energy < 60 ? 'low' : ''}"><div class="pkf">${C.faceOf(p)}</div><div class="pki"><b>${C.esc(p.fn[0] + '. ' + p.ln)}${xi.includes(p) ? ' <em class="wtag xi">XI</em>' : ''}</b><small><i class="dropi"></i> ${Math.round(p.energy)}%</small></div><div class="medbt">${btn(kits > 0 && p.energy < 100, 'treat', p.id + '|kit', '🧴 Kit')}</div></div>`).join('')}`; })()}
       <p class="note">Freshness drops when players play and recovers over time, faster with rest. First-years get injured most; players get sturdier every year. Concussions and season-ending injuries can't be shortened.</p>`;
   });
 })(window.CFC);

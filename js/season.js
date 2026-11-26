@@ -113,7 +113,7 @@
       if (p.pos === 'GK') { add('stp', s.sv * .06); add('ref', s.sv * .05); add('psn', s.mins * .0015); add('dis', s.pc * .003); add('crs', .02); }
       else { add('pas', s.pc * .004); add('def', (s.tk + s.int + s.blk) * .035); add('sho', s.sh * .035 + s.g * .08); add('dri', s.drb * .04); add('phy', s.mins * .0012 * nut); add('pac', s.mins * .0008 * nut); }
       for (const k in p.xp) while (p.xp[k] >= 1) { p.xp[k] -= 1; if (p.a[k] < C.attrCap(p, k)) { p.a[k]++; g[k] = (g[k] || 0) + 1; } }
-      if (Object.keys(g).length) { const old = p.rating; p.rating = C.calcRating(p); p.up = p.rating - old; gains.push([p.id, g]); }
+      if (Object.keys(g).length) { const old = p.rating; p.rating = C.calcRating(p); p.up = p.rating - old; gains.push([p.id, g, old]); }
       // playing out of position slowly builds familiarity
       if (e.fit < 5 && e.fit > 1 && s.mins > 20) { p.fam = p.fam || {}; p.fam[e.slot.pos] = (p.fam[e.slot.pos] || 0) + s.mins / 900; if (p.fam[e.slot.pos] >= 1 && (p.fitB[e.slot.pos] || 0) < 3) { p.fam[e.slot.pos] = 0; p.fitB[e.slot.pos] = (p.fitB[e.slot.pos] || 0) + 1; gains.push([p.id, { pos: e.slot.pos }]); } }
     }

@@ -214,3 +214,11 @@ i.cashi{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.22em;ba
 .uc .bt .fin em{color:#fff!important;text-shadow:var(--kout)!important}
 .uc .cr .ok,.uc .crc .ok{font-size:0!important;width:22px;height:22px;border-radius:50%;background:#22c55e;border:2px solid #14532d;box-shadow:0 2px 0 rgba(15,23,42,.6);position:relative;display:inline-block;flex:none}
 .uc .cr .ok::after,.uc .crc .ok::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg)}
+
+/* 1.10.03 */
+i.dropi{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2210.5%22%20fill%3D%22%2306b6d4%22%20stroke%3D%22%230e7490%22%20stroke-width%3D%221.6%22/%3E%3Cpath%20d%3D%22M12%204.5c3%203.8%205.2%206.6%205.2%209.4a5.2%205.2%200%200%201-10.4%200c0-2.8%202.2-5.6%205.2-9.4z%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E") center/contain no-repeat}
+.frb{display:block;flex:0 0 auto;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}.frb text{paint-order:stroke;stroke:#0f172a;stroke-width:2px}
+.tkm:has(.frb){display:flex;align-items:center;gap:2px;justify-content:center}
+.swtag{display:block;font-style:normal;font-size:11px;font-weight:800;color:#2563eb}
+.gain .gup{color:#16a34a}
+#matchv .kpre .edgec .edl{display:flex;align-items:center;gap:6px;margin:3px 0;font-weight:800}.edgec .edi{width:18px;display:inline-flex;justify-content:center}

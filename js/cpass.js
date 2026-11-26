@@ -11,7 +11,7 @@
     ['lgm', '⚽', 'Play a league match', 'lgm', 1, 10, 'prematch', ''], ['lgw', '🏆', 'Win a league match', 'lgw', 1, 12, 'prematch', ''],
     ['cpc', '🧪', 'Collect Coaching Points twice', 'cpc', 2, 10, 'dgo', 'lab'], ['cash', '💵', 'Collect Booster $ twice', 'cashc', 2, 10, 'dgo', 'booster'],
     ['upg', '🔨', 'Complete a building upgrade', 'upg', 1, 12, 'drawer', ''], ['spd', '⏩', 'Use a speed-up', 'spd', 1, 10, 'rqueue', ''],
-    ['trn', '🏋️', 'Start a training plan', 'trn', 1, 12, 'tab', 'squad'], ['rst', '🔋', 'Rest or refresh a tired player', 'rst', 1, 10, 'rejuv', ''],
+    ['trn', '🏋️', 'Start a training plan', 'trn', 1, 12, 'tab', 'squad'], ['rst', '<i class="dropi"></i>', 'Rest or refresh a tired player', 'rst', 1, 10, 'rejuv', ''],
     ['off', '✉️', 'Make a recruiting offer', 'off', 1, 10, 'tab', 'recruit'], ['res', '📋', 'Finish a research', 'res', 1, 12, 'pbrec', '']];
   // Target Tasks [id, icon, text, check(P, car), points, go action, go value]: for the whole Pass (500 points)
   const TARGETS = [

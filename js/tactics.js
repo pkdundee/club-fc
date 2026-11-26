@@ -82,6 +82,9 @@
   // 1.06 (QA-83): Tactics fits one screen: no default-setup line (it's in the Handbook), formations on one scrolling row,
   // mentality buttons carry their word, a small Board/List switch, a shorter pitch and a one-line key
   C.tacRing = (f, sz) => ring(f, sz);
+  // 1.10.03 (QA-166): one Freshness badge: the ring empties as the player tires, the number inside
+  C.frBadge = (f, sz = 24) => { const v = Math.max(0, Math.min(100, Math.round(f))), r = sz / 2 - 2, c = 2 * Math.PI * r, col = v >= 70 ? '#22c55e' : v >= 50 ? '#eab308' : v >= 30 ? '#f97316' : '#ef4444';
+    return `<svg class="frb" viewBox="0 0 ${sz} ${sz}" width="${sz}" height="${sz}"><circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="#0f172a" stroke="rgba(255,255,255,.25)" stroke-width="3"/><circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${c * v / 100} ${c}" transform="rotate(-90 ${sz / 2} ${sz / 2})"/><text x="50%" y="50%" dy=".36em" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="${v >= 100 ? sz * .36 : sz * .44}" fill="#fff">${v}</text></svg>`; };
   C.openTactics = (fromMatch) => C.ui.open('Tactics', () => `<div class="tac2">${boardHTML(fromMatch)}</div>`);
   const MENT_SHORT = ['Ultra def', 'Defend', 'Balanced', 'Attack', 'Ultra att'];
   function boardHTML(fromMatch) {
@@ -92,7 +95,7 @@
       return `<div class="tk" style="left:${left}%;top:${top}%" data-act="pick" data-v="${i}"><div class="tkb">${C.badges(p)}${ins !== 2 ? `<i class="bdg ins">${INSTR[ins][0]}</i>` : ''}</div>
         <button class="tkf" data-act="pick" data-v="${i}">${C.faceOf(p)}</button>
         <button class="tkn" style="background:${PILL[fit]}" data-act="pick" data-v="${i}"><span>${C.esc(C.sn(p))}</span><i>▾</i></button>
-        <div class="tkm">${ring(p.energy)}<span class="tp">${L[i]}</span><span class="tr">${C.posRating(p, s[0])}</span></div></div>`; }).join('');
+        <div class="tkm">${C.frBadge(p.energy)}<span class="tp">${L[i]}</span><span class="tr">${C.posRating(p, s[0])}</span></div></div>`; }).join('');
     const row = (p, chip, chipCol, rating, slot) => `<button class="lrw" data-act="${slot != null ? 'pick' : 'player'}" data-v="${slot != null ? slot : p.id}">
         <span class="lchip" style="background:${chipCol}">${chip}</span><span class="lnm">${C.esc(p.fn[0] + '. ' + p.ln)}${C.badges(p)}</span><b class="lrt">${rating}</b>
         <span class="ltop">${C.topPositions(p).map(([x, v]) => `<i style="background:${PILL[C.fit(p, x)]}">${x}${v}</i>`).join('')}</span><span class="lfr" style="color:${fcol(p.energy)}">${ring(p.energy)} ${Math.round(p.energy)}%</span></button>`;

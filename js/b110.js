@@ -6,7 +6,8 @@
   C.fixRayMail = () => { const M = C.car() && C.meta && C.meta(); if (!M || !M.inbox) return; let n = 0;
     M.inbox.forEach(x => { if (x.body && /Ray here\. A few changes around the office:/.test(x.body)) { x.body = x.body.replace('Ray here. A few changes around the office:', 'A few changes around the office, Coach:'); n++; } }); if (n) C.save(); };
   // QA-116: a waiting sub made at half-time comes on at the restart
-  const oPend = C.pendingSubsHTML; C.pendingSubsHTML = m => { const h = oPend ? oPend(m) : ''; return m && m.ht ? h.replace(/Coming on at the next stoppage/g, 'Coming on at the restart') : h; };
+  const oPend = C.pendingSubsHTML; C.pendingSubsHTML = m => { const h0 = oPend ? oPend(m) : '', my = C.matchMySide ? C.matchMySide() : 0;
+    const h = h0 + (m && m.swaps ? m.swaps.filter(s => s.side === my).map(s => `<div class="subpend">🔁 Swapping positions at the next stoppage: <b>${C.esc(s.a.p.ln)}</b> (${s.a.slot.pos}) ↔ <b>${C.esc(s.b.p.ln)}</b> (${s.b.slot.pos}) <button class="btn sm2 sec2" data-act="swapcancel" data-v="${m.swaps.indexOf(s)}">Cancel</button></div>`).join('') : ''); return m && m.ht ? h.replace(/Coming on at the next stoppage/g, 'Coming on at the restart') : h; };
 
   // ---------- QA-119: opening a chest: it shakes, the lid pops, the rewards rise into the box above the track ----------
   let chT = null;
@@ -114,14 +115,28 @@
   C.itemTiles = r => { if (!r) return ''; const keys = Object.keys(r).filter(k => k !== 'gear'), g = r.gear ? oTiles({ gear: r.gear }) : '';
     return `<span class="itiles ktiles">${keys.map(k => `<span class="itk" data-act="itemdet" data-v="${k}|${r[k]}" title="${C.esc(C.rewardName(k))}">${rTile(k, r[k])}</span>`).join('')}${g}</span>`; };
 
+  // ---------- 1.10.03 (QA-168): Your edge, on the pre-match page: only what affects a match, name and effect ----------
+  const EDGE_IC = { sho: 'shooting', def: 'defending', pas: 'passing' }, EDGE_KEYS = ['sho', 'def', 'pas', 'oop', 'set', 'late', 'inj'];
+  C.edgeLines = () => { const rows = {};
+    for (const B of C.PB || []) B[3].forEach((n, t) => { if (!EDGE_KEYS.includes(n[1])) return; const lv = C.pbLv(B[0] + '.' + t); if (!lv) return;
+      const name = n[0].replace(/ (I|II|III)$/, ''), k = name + '|' + n[1]; rows[k] = rows[k] || { name, key: n[1], ic: B[1], v: 0, txt: n[4] }; rows[k].v += lv * n[2]; });
+    const out = Object.values(rows).map(r => ({ ic: EDGE_IC[r.key] && C.kSkill ? C.kSkill(EDGE_IC[r.key], 18) : r.ic, t: `${r.name}: +${Math.round(r.v * 1000) / 10}% ${r.txt}` }));
+    for (const c of (C.onStaff ? C.onStaff() : [])) { if (!['tac', 'gk', 'snc'].includes(c.spec)) continue; const ef = C.coachEffects(c); const S = C.SPECS[c.spec];
+      const l = c.spec === 'snc' ? ef.filter(x => /^(Injuries|Fatigue)/.test(x)).join(', ') : ef[0]; out.push({ ic: S[0], t: `${S[1]} ${c.ln}: ${l}` }); }
+    return out; };
+  C.edgeHTML = () => { const L = C.edgeLines(); return L.length ? `<div class="scout edgec"><b>Your edge</b>${L.map(x => `<div class="edl"><span class="edi">${x.ic}</span>${C.esc(x.t)}</div>`).join('')}</div>` : ''; };
+  const oScout = C.scoutHTML; C.scoutHTML = f => (oScout ? oScout(f) : '') + C.edgeHTML();
+
   // ---------- QA-151: chests: a drop-down list under the chest (preview); shake, open and celebrate (claim) ----------
-  const closeDrop = () => document.querySelectorAll('.chdrop').forEach(x => x.remove());
+  // 1.10.03 (QA-162): closing also removes the waiting "close on the next tap", so it can't close the next list as it opens
+  let dropOff = null;
+  const closeDrop = () => { document.querySelectorAll('.chdrop').forEach(x => x.remove()); if (dropOff) { document.removeEventListener('click', dropOff); dropOff = null; } };
   const chestDrop = (r, btn, label) => { closeDrop(); const app = document.getElementById('app') || document.body; if (!btn) return;
     const a = app.getBoundingClientRect(), b = btn.getBoundingClientRect(), el = document.createElement('div'); el.className = 'chdrop';
     el.innerHTML = `<i class="chdt"></i>${label ? `<small>${label}</small>` : ''}${Object.keys(r).map(k => `<div class="chdr">${rTile(k, r[k])}<b>${C.esc(C.rewardName(k))}</b><em>${k === 'cash' ? C.money(r[k]) : r[k]}</em></div>`).join('')}`;
     app.appendChild(el); const w = el.offsetWidth, cx = b.left + b.width / 2 - a.left, x = Math.max(8, Math.min(a.width - w - 8, cx - w / 2));
     el.style.left = x + 'px'; el.style.top = (b.bottom - a.top + 8) + 'px'; el.querySelector('.chdt').style.left = Math.max(14, Math.min(w - 14, cx - x)) + 'px';
-    setTimeout(() => document.addEventListener('click', closeDrop, { once: true }), 0); };
+    setTimeout(() => { if (dropOff) document.removeEventListener('click', dropOff); dropOff = () => closeDrop(); document.addEventListener('click', dropOff, { once: true }); }, 0); };
   A.chestopen = (v, el) => { const i = +v, row = C.CHESTS[i]; if (!row) return; closeDrop();
     const btn = document.querySelector(`.pchest[data-v="${i}"]`), r = C.chestOpen(i);
     if (r) { if (btn) btn.classList.add('opening'); setTimeout(() => { C.ui.refresh(); C.render(); if (C.celebrate) C.celebrate(r, `Chest at ${row[0]} ★ opened`); }, 420); return; }
