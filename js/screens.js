@@ -282,7 +282,7 @@
       if (!C.slotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), `<small>${C.esc(sl.why)}: a permanent builder${C.nextBuilderPack && C.nextBuilderPack() !== sl.pack ? ' (after the packs before it)' : ''}</small>`, '<button class="btn sm2" data-act="storeat" data-v="items">Get</button>');
       const q = C.laneItem(car.queue, openS.indexOf(sl));
       if (q) { const d = C.BUILDINGS[q.key], f = C.buildReady(q.key) ? 1 : 1 - C.remaining(q) / ((q.end - q.start) / 1000);
-        return slotRow(i, 'busy', `${C.esc(d.name)} → Lv ${q.to}`, `<div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><small ${C.buildReady(q.key) ? '' : `data-timer="${q.key}"`}>${C.buildReady(q.key) ? 'Finished' : C.dur(C.remaining(q))}</small>`,
+        return slotRow(i, 'busy', `${C.esc(d.name)} → Lv ${q.to}`, `<div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><small ${C.buildReady(q.key) ? '' : `data-timer="${q.key}"`}>${C.buildReady(q.key) ? 'Finished' : C.dur(C.remaining(q))}</small>${q.help && !C.buildReady(q.key) ? `<small class="shelp">Staff Help −${C.dur(q.help)}</small>` : ''}`,
           C.buildReady(q.key) ? `<button class="btn sm2 pri" data-act="bdone" data-v="${q.key}">Complete</button>` : `<button class="btn sm2" data-act="bgo" data-v="${q.key}">Go</button>`); }
       return slotRow(i, 'idle', 'Idle', `<small>Next: ${C.esc(C.BUILDINGS[rec].name)}</small>`, `<button class="btn sm2 pri" data-act="bgo" data-v="${rec}">Go</button>`);
     }).join('');
@@ -296,7 +296,7 @@
     const rows = C.PBSLOTS.map((sl, i) => {
       if (!C.pbSlotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), '<small>Available at Performance Lab Lv 10, or with the Playbook\'s Extra Queue Slot</small>', '');
       const r = C.laneItem(q, openS.indexOf(sl));
-      if (r) { const nm = C.pbName ? C.pbName(r.key) : r.key; return slotRow(i, 'busy', `${C.esc(nm)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))}</small>`, '<button class="btn sm2" data-act="playbook">Go</button>'); }
+      if (r) { const nm = C.pbName ? C.pbName(r.key) : r.key; return slotRow(i, 'busy', `${C.esc(nm)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))}</small>${r.help ? `<small class="shelp">Staff Help −${C.dur(r.help)}</small>` : ''}`, '<button class="btn sm2" data-act="playbook">Go</button>'); }
       return slotRow(i, 'idle', 'Idle', '<small>Start the recommended research</small>', '<button class="btn sm2 pri" data-act="playbook">Go</button>');
     }).join('');
     const extra = C.laneExtra(q, openS.length).map((r, j) => slotRow(C.PBSLOTS.length + j, 'busy', `${C.esc(C.pbName ? C.pbName(r.key) : r.key)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))} · finishing in a retired slot</small>`, '<button class="btn sm2" data-act="playbook">Go</button>')).join('');
@@ -434,16 +434,16 @@
         <div class="orig"><span>Under construction · <b data-timer="${k}">${C.dur(rem)}</b> left</span><span>${C.GEM} ${C.short(gems)}</span></div>
         <div class="bt"><button class="fin" data-act="speed" data-v="${k}" style="flex:1;width:100%;max-width:none">${C.speedButtonHTML('b', k)}</button></div></div>`;   // 1.03 (P8): one recommended button; the popup has every option
     }
-    if (lv >= C.topLevel(k)) return head(`Lv.30 <span class="ar">★</span>`) + `<div class="tbl">${statRows(k, lv)}</div><div class="maxed">✨ Fully upgraded</div></div>`;
+    if (lv >= C.topLevel(k)) return head(`Lv.${lv} <span class="ar">★</span>`) + `<div class="tbl">${statRows(k, lv)}</div><div class="maxed">${C.topLevel(k) >= 30 ? '✨ Maximum level for the college game' : '✨ Fully upgraded'}</div></div>`;   // 1.11 (A-3, FEEDBACK 244)
 
-    const reqs = C.requirements(k), ok = reqs.every(r => r[2]), t = C.timeOf(k, lv + 1), gi = C.coinsFor(t), gems = C.acct().gold;
+    const reqs = C.requirements(k), ok = reqs.every(r => r[2]), t = C.timeOf(k, lv + 1), gi = C.coinsFor(t), gems = C.acct().gold, help = lv ? C.staffHelp(t) : 0;   // 1.11 (B-1)
     const slotMsg = ok && !C.freeSlot() ? `<span style="color:#fde68a">All build slots are busy</span>` : '<span></span>';
     return head(lv ? `Lv.${lv} <span class="ar">▶</span> ${lv + 1}` : `Build <span class="ar">▶</span> Lv 1`) +
       `<div class="tbl"><div class="tscroll">${statRows(k, lv)}</div><div class="costh">Cost</div>
         <div class="tscroll">${reqs.map(r => costRow(r)).join('')}</div></div>
-      <div class="orig">${slotMsg}<span>Original Time: ${C.dur(t)}</span></div>
+      <div class="orig">${slotMsg}<span>Original Time: ${C.dur(t)}${help ? `<br><em class="shelp">Staff Help −${C.dur(help)}</em>` : ''}</span></div>
       <div class="bt">${lv ? `<button class="fin" data-act="instant" data-v="${k}" ${ok ? '' : 'disabled'}>Finish Now<br><em class="${gems < gi ? 'short' : ''}">${C.GEM} ${C.full(gi)}</em></button>` : ''}
-      <button class="upg" data-act="upgrade" data-v="${k}" ${C.canUpgrade(k) || (lv && C.canUpgradeIgnoringSlot(k)) ? '' : 'disabled'}>${lv ? `Upgrade<br>⏱ ${C.dur(t)}` : 'Build<br>Free'}</button></div></div>`;
+      <button class="upg" data-act="upgrade" data-v="${k}" ${C.canUpgrade(k) || (lv && C.canUpgradeIgnoringSlot(k)) ? '' : 'disabled'}>${lv ? `Upgrade<br>⏱ ${C.dur(t - help)}` : 'Build<br>Free'}</button></div></div>`;
   }
 
   // Pay Coins to skip the build time entirely (resources still required)

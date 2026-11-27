@@ -69,6 +69,8 @@
     same.forEach((x, i) => OFF[x.id] = Math.round(-5 + 12 * i / Math.max(1, n - 1))); return OFF[id]; };
   C.collegeRating = (id, season) => { const c = C.COLLEGES[id]; return C.tierBase(c.tier) + C.collegeOffset(id) + ((hash(id * 31 + (season || 0)) % 3) - 1); };   // +/-1 each season
   C.TIER_GATE = { 4: 10, 3: 15, 2: 20, 1: 25 };
+  C.footballCostMult = (car = C.car()) => { const F = C.ECON.footballCost; return (F && car && F[car.tier]) || 1; };   // 1.11 Foundation (B-2)
+  C.tierCost = (v, step = 100) => Math.round(v * C.footballCostMult() / step) * step;
   C.TIER_COA = { 5: 30000, 4: 31500, 3: 33000, 2: 34500, 1: 36000 };
   C.TIER_FUNDED = { 5: 6, 4: 8, 3: 10, 2: 12, 1: 14 };
 
@@ -76,7 +78,7 @@
   const pct = v => (Math.round(v * 10) / 10) + '%';
   const seats = l => { const S = C.ECON.seats; return Math.round(S.base + S.perLv * l + S.perLv2 * l * l); };
   C.prod = {
-    booster: l => { const P = C.ECON.prod; return l ? Math.round(P.clubBase + P.clubPerLv * l * Math.pow(P.clubGrowth, l)) : 0; }, // Booster $ per hour (Clubhouse fundraising)
+    booster: l => { const P = C.ECON.prod; return l ? Math.round((P.clubBase + P.clubPerLv * l * Math.pow(P.clubGrowth, l)) * (P.clubMult ?? 1)) : 0; },   // 1.11: x clubMult // Booster $ per hour (Clubhouse fundraising)
     lab: l => C.ECON.prod.labBase + C.ECON.prod.labPerLv * l                                        // Coaching Points per hour
   };
   // Media Center (9p, FEEDBACK 67): exposure, not hourly income. Broadcast money after each home match, more for a win and at higher tiers,
@@ -155,7 +157,7 @@
 
   // Cost to reach level `to` (Booster $, Coaching Points) and build time in seconds.
   C.costOf = (key, to) => { const m = C.BUILDINGS[key].mult; if (to <= 1) return { cash: 0, cp: 0 };   // first build is free (FEEDBACK 85)
-    const B = C.ECON.build; return { cash: Math.round(B.base * m * Math.pow(B.growth, to - 1) / B.round) * B.round, cp: 0 }; };  // buildings cost Booster $ only (Coaching Points are for the Playbook)
+    const B = C.ECON.build; return { cash: Math.max(B.round, Math.round(B.base * m * Math.pow(B.growth, to - 1) * (B.costMult ?? 1) / B.round) * B.round), cp: 0 }; };   // 1.11: x costMult  // buildings cost Booster $ only (Coaching Points are for the Playbook)
   // 1.03 (PROVISIONAL): the Coaches' Office timer table; other buildings scale by multiplier / 1.6. First build: a few seconds.
   C.timeOf = (key, to) => { const B = C.ECON.build, T = B.hqSecs; if (to <= 1) return B.firstBuildSecs;
     const base = to < T.length ? T[to] : T[T.length - 1] * Math.pow(T[T.length - 1] / T[T.length - 2], to - T.length + 1);

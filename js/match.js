@@ -291,8 +291,8 @@
   C.toggleSound = () => { const a = C.acct(); a.sound = !a.sound; C.save(); if (a.sound) { crowdOn(Math.min(1, (M && M.att || 500) / 3000)); } else crowdOff(); const b = C.$('.mic'); if (b) b.textContent = a.sound ? '🔊' : '🔇'; };
   function halfTime() {
     const m = M.m, S = m.st, my = M.my;
-    host().insertAdjacentHTML('beforeend', `<div class="htcard" id="htc"><b>Half-time</b><div class="hts">${m.teams[0].short} ${m.score[0]} – ${m.score[1]} ${m.teams[1].short}</div>
-      ${statBars(S, my)}<button class="btn full go" data-act="msubs">🔁 Team Changes</button><button class="btn full pri" data-act="m2h">▶ Second half</button></div>`);
+    host().insertAdjacentHTML('beforeend', `<div class="htwrap" id="htc"><div class="htcard"><b>Half-time</b><div class="hts">${m.teams[0].short} ${m.score[0]} – ${m.score[1]} ${m.teams[1].short}</div>
+      ${statBars(S, my)}<button class="btn full go" data-act="msubs">🔁 Team Changes</button><button class="btn full pri" data-act="m2h">▶ Second half</button></div></div>`);   // 1.11 (QA-176)
   }
   C.secondHalf = () => { const n = C.$('#htc'); if (n) n.remove(); C.resumeHT(M.m); M.playing = true; whistle(1); const hb = C.$('[data-act=mskip][data-v=ht]'); if (hb) hb.disabled = true; };
   function statBars(S, my) {
@@ -431,7 +431,7 @@
   function benchPool(m, my) { const T = m.teams[my]; return T.bench.concat(m.ents.filter(e => e.side === my && !e.on && !e.red && !e.injured).map(e => e.p)).filter((p, i, a) => a.indexOf(p) === i && C.canBringOn(m, my, p)); }
   function teamHTML() { const m = M.m, my = M.my, T = m.teams[my], F = C.FORMATIONS[T.form] || [], L = C.slotLabels ? C.slotLabels(T.form) : F.map(s => s[0]), on = m.ents.filter(e => e.side === my && e.on), PILL = C.PILL || [];
     const pendOut = e => m.pending.find(s => s.side === my && s.outE === e), pendIn = p => m.pending.find(s => s.side === my && s.inP === p);
-    const tokens = F.map((s, i) => { const e = on.find(z => z.i === i), left = s[1] * 100, top = 93 - s[2] * 86;
+    const tokens = F.map((s, i) => { const e = on.find(z => z.i === i), left = s[1] * 100, top = 87 - s[2] * 80;   /* 1.11 (QA-175): the GK row higher so its chips fit */
       if (!e) return `<div class="tk" style="left:${left}%;top:${top}%"><div class="tkf empty">✖</div><div class="tkn" style="background:#f87171"><span>${L[i]}</span></div></div>`;
       const fit = C.fit(e.p, s[0]), en = Math.round(e.energy), po = pendOut(e);
       return `<div class="tk" style="left:${left}%;top:${top}%" data-act="mpick" data-v="${m.ents.indexOf(e)}"><div class="tkb">${e.instr !== 2 ? `<i class="bdg ins">${MARROW[e.instr]}</i>` : ''}${po || (m.swaps || []).some(s => s.side === my && (s.a === e || s.b === e)) ? '<i class="bdg subm">🔁</i>' : ''}${e.bin ? '<i class="bdg yc"></i>' : ''}</div>

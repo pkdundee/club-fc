@@ -231,3 +231,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .tac2 .tkf.frr{width:40px!important;height:40px!important}
 .tkf.frr>*{border-radius:50%;overflow:hidden;display:block;width:100%;height:100%}
 @media (max-width:420px){.attrs{column-gap:10px}.attr{gap:6px}.attr .ai{width:28px;height:28px;border-radius:8px}.attr .ai svg{width:22px!important;height:22px!important}.attr .ab div{font-size:12.5px;gap:4px}.attr .ab div em small{font-size:10px}}
+
+/* 1.11 (QA-179): a disabled button uses plain grey text, never the outline (outlines only on coloured buttons) */
+.btn:disabled,.btn.off,.btn.pri:disabled,.btn.go:disabled,.btn.gold:disabled,.uc .bt button:disabled{text-shadow:none!important}

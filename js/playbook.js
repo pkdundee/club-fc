@@ -33,7 +33,7 @@
     const car = C.car(), { n } = node(key), to = C.pbLv(key) + 1; pb();
     if (to > n[3]) return 'max'; if (!C.pbUnlocked(key)) return 'locked'; if (C.pbInQueue(key)) return 'busy'; if (car.pbq.length >= C.pbSlots()) return 'slots';
     const k = C.pbCost(key, to); if (car.cp < k.cp) return 'cp'; if (car.cash < k.cash) return 'cash';
-    car.cp -= k.cp; car.cash -= k.cash; const t = C.now(); car.pbq.push({ key, to, start: t, end: t + C.pbTime(key, to) * 1000, lane: C.laneFree(car.pbq) }); C.save(); return true;
+    car.cp -= k.cp; car.cash -= k.cash; const t = C.now(); const tm = C.pbTime(key, to), help = C.staffHelp(tm); car.pbq.push({ key, to, start: t, end: t + (tm - help) * 1000, lane: C.laneFree(car.pbq), help }); C.save(); return true;   // 1.11 (B-1): Staff Help
   };
   C.tickPB = () => { const car = C.car(); if (!car || !car.pbq) return []; const done = car.pbq.filter(q => q.end <= C.now()), msg = [];
     for (const q of done) { pb()[q.key] = q.to; msg.push(`📋 ${node(q.key).n[0]} Lv ${q.to} researched`); }

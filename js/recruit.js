@@ -25,7 +25,7 @@
   C.jobsLeft = () => Math.max(0, C.jobsCap() - C.jobsHeld());   // 1.08 (R-50): a job is held until the player leaves
   C.houseCap = () => 1 + Math.floor(C.level('dorms') / 3);   // 1.08 (R-51): housing places from the Dorms (provisional)
   C.houseLeft = () => Math.max(0, C.houseCap() - C.car().squad.filter(p => p.house).length);
-  C.campCost = () => Math.round((1500 + 300 * C.level('recruit')) / 100) * 100;
+  C.campCost = () => C.tierCost(Math.round((1500 + 300 * C.level('recruit')) / 100) * 100);   // 1.11 (B-2): x the division's cost multiplier
   const isJC = () => C.car().job.type === 'juco', isAcad = () => C.car().job.type === 'acad';
   C.R = id => rec().list.find(r => r.id === id);
   const round5 = v => Math.round(v / 5) * 5, floor5 = v => Math.floor(v / 5) * 5;
@@ -119,10 +119,16 @@
 
   let O = null; // the offer being built: {id, pct, job, aid, house, raise, role}
   C.openRecruit = id => C.ui.open('Recruit', () => profileHTML(id));
+  const recheck = x => { const out = [];
+    if (O.aid && !aidOK(x)) { O.aid = false; out.push('Academic aid removed: it needs a GPA of 3.3'); }
+    if (O.house && !C.houseLeft()) { O.house = false; out.push('Housing place removed: none free'); }
+    if (O.job && !C.jobsLeft()) { O.job = false; out.push('Campus job removed: none free'); }
+    if (isAcad() && O.raise) { O.raise = false; out.push('More next year removed'); }
+    x.offer = Object.assign({}, O); return out; };
   C.openOffer = id => { const x = C.R(id); if (!x) return;
     O = x.offer ? Object.assign({}, x.offer) : { id, pct: Math.min(C.maxPct(), round5(x.ask * 60)), job: false, aid: false, house: false, raise: false, role: x.want };
-    O.pct = Math.min(O.pct, C.maxPct()); if (O.job && !C.jobsLeft()) O.job = false;
-    C.ui.open('Make an offer', offerHTML); };
+    O.pct = Math.min(O.pct, C.maxPct()); const notes = recheck(x);
+    C.ui.open('Make an offer', offerHTML); if (notes.length) C.toast('⚠ ' + notes.join(' · ')); };
   C.offerSet = (k, v) => { if (!O) return; const x = C.R(O.id);
     if (k === 'role') O.role = v;
     else if (k === 'job' && !O.job && !C.jobsLeft()) return C.toast('No campus jobs free: each is held until its player leaves');
@@ -153,9 +159,10 @@
         : `<input type="range" class="slider" id="oPct" min="0" max="${maxP}" step="5" value="${O.pct}" ${maxP ? '' : 'disabled'}>${poolBar(c.schol)}`}
       <h3 class="jh">Extras</h3>
       <div class="xchips">${chip('job', '💼', 'Campus job', `${C.jobsLeft()} of ${C.jobsCap()} free · ${C.short(JOB_VALUE)}/yr`, C.jobsLeft() || O.job)}
-        ${chip('aid', '📚', 'Academic aid', aidOK(x) ? `${C.short(aidAmt(x))} · college pays` : `Needs GPA 3.3 (${x.gpa})`, aidOK(x))}
+        ${chip('aid', '📚', 'Academic aid', aidOK(x) ? `GPA ${x.gpa} ✓ · ${C.short(aidAmt(x))} · college pays` : `Needs GPA 3.3 (${x.gpa})`, aidOK(x))}
         ${chip('house', '🏠', 'Housing place', `${C.houseLeft()} of ${C.houseCap()} free · no cost`, C.houseLeft() || O.house)}
-        ${chip('raise', '📈', 'More next year', '+10% if they play half the matches or the team meets its goal', !isAcad())}</div>
+        ${chip('raise', '📈', 'More next year', '+10% next year', !isAcad())}</div>
+      ${isAcad() ? '' : '<p class="note xnote">More next year: +10% if they play half the matches or the team meets its goal.</p>'}
       <h3 class="jh">Role pitch <small class="devp">wants ${C.ROLES[x.want][0]} ${C.ROLES[x.want][1]}</small></h3>
       <div class="rolepick">${ROLE_ORDER.slice().reverse().map(k => `<button class="${O.role === k ? 'on' : ''}" data-act="orole" data-v="${k}"><span>${C.ROLES[k][0]}</span>${C.ROLES[k][1]}</button>`).join('')}</div>
       <p class="pitch">“${C.ROLES[O.role][2]}”${c.warn ? `<br><b class="warn">⚠ ${C.esc(c.warn)}</b>` : ''}</p>
@@ -177,6 +184,7 @@
   C.sendOffer = () => {
     const x = C.R(O.id); if (!x) return; const car = C.car();
     if (car.squad.length >= C.rosterCap()) return C.toast('Roster is full');
+    { const notes = recheck(x); if (notes.length) { C.ui.refresh(); return C.toast('⚠ ' + notes.join(' · ') + '. Check the offer and send again'); } }   // 1.11 (QA-181)
     const c = calc(x, O), d = x.deal; d.round++;
     if (c.happy >= 1) return sign(x, O);
     const walk = () => { const where = x.rival ? x.rival.c : rivals()[Math.floor(Math.random() * rivals().length)]; drop(x.id); C.save(); C.ui.closeAll(); C.render(); C.toast(`❌ ${x.fn} ${x.ln} committed to ${where}`); };
@@ -243,7 +251,7 @@
     if (k === 'role') { p.promise = 'starter'; k0.chance *= k0.why === 'up' ? .8 : .45; }
     k0.done.push(k); p.morale = Math.min(100, p.morale + 6); C.save(); return true;
   };
-  const nilCost = () => 1000 * (8 - C.car().tier);
+  const nilCost = () => C.tierCost(1000 * (8 - C.car().tier));   // 1.11 (B-2)
   C.letGo = pid => { const P = C.portalOpen(); if (!P) return; leave(pid); delete P.risk[pid]; C.save(); };
   function leave(pid) { const car = C.car(); const lp = C.P(pid); if (lp) (car.leftLog = car.leftLog || []).push({ s: car.season, n: C.sn(lp), pos: lp.pos });   // 1.07 (QA-103)
     car.squad = car.squad.filter(p => p.id !== pid); car.captains = car.captains.filter(x => x !== pid); car.devq = car.devq.filter(q => q.pid !== pid); }
@@ -280,7 +288,7 @@
     const list = R.list.filter(x => x.src === route).sort((a, b) => (b.rival ? 1 : 0) - (a.rival ? 1 : 0) || b.rating - a.rating);
     // same row style as Squad (round 5): plain avatar, plain year, top-3 position chips; recruit details where Squad shows condition
     const chips = x => `<div class="pmatch">${C.topPositions(x).map(([q, v]) => `<i style="background:${C.FITPILL[C.fit(x, q)]}">${q}${x.scouted ? v : ''}</i>`).join('')}
-        <span class="rinfo">${x.rival ? `<span class="rv">⚔ ${C.recDue(x)}</span>` : x.expM != null ? `<span class="rv exp">⏳ ${C.recDue(x)}</span>` : ''}${isAcad() ? '' : `<span class="ask">🎓 Asks ${Math.round(x.ask * 100)}%</span>`}<span class="gpa ${x.gpa >= 3.3 ? 'ok' : ''}" title="${x.gpa >= 3.3 ? 'Qualifies for academic aid' : 'Academic aid needs GPA 3.3'}">📚 GPA ${x.gpa}</span></span></div>`;   // 1.06 (QA-64)
+        <span class="rinfo">${x.rival ? `<span class="rv" title="A rival college has made an offer and will decide then">⚔ Rival offer · decides ${C.recDue(x)}</span>` : x.expM != null ? `<span class="rv exp" title="The application expires then">⏳ Leaves ${C.recDue(x)}</span>` : ''}${isAcad() ? '' : `<span class="ask">🎓 Asks ${Math.round(x.ask * 100)}%</span>`}<span class="gpa ${x.gpa >= 3.3 ? 'ok' : ''}" title="${x.gpa >= 3.3 ? 'Qualifies for academic aid' : 'Academic aid needs GPA 3.3'}">📚 GPA ${x.gpa}</span></span></div>`;   // 1.06 (QA-64)
     const cards = list.map(x => `<button class="prow rc" style="--mk:${C.RARITY[x.rar][1]}" data-act="recruit" data-v="${x.id}">
         <div class="av plain"><div class="face">${rface(x)}</div></div>
         <div class="pinfo"><b>${C.esc(x.fn)} ${C.esc(x.ln)} <small class="flag">${x.flag}</small></b>
@@ -331,7 +339,7 @@
         <small class="hometown">${x.flag} ${C.esc(x.town)} · GPA ${x.gpa}</small><small class="hometown">${src[0]} ${src[1]}${x.from ? ' · from ' + C.esc(x.from) : ''}</small></div></div>
       <div class="kpis" style="margin-top:12px"><div class="kpi"><b class="${x.scouted ? '' : 'fz'}" style="${x.scouted ? '' : 'font-size:18px'}">${ratingTxt(x)}</b><small>Rating</small></div><div class="kpi"><b style="color:var(--fit5)">${x.scouted ? x.pot : '?'}</b><small>Potential</small></div>
         <div class="kpi"><b style="font-size:22px">${C.ROLES[x.want][0]}</b><small>Wants</small></div><div class="kpi"><b>${Math.round(x.ask * 100)}%</b><small>Hopes</small></div></div>
-      ${x.rival ? `<div class="card rivalc">⚔ <b>${C.esc(x.rival.c)}</b> has made an offer. They decide <b>${C.recDue(x)}</b></div>` : ''}
+      ${x.rival ? `<div class="card rivalc">⚔ <b>${C.esc(x.rival.c)}</b> has made an offer. They decide <b>${C.recDue(x)}</b></div>` : x.expM != null ? `<div class="card rivalc exp">⏳ This application expires <b>${C.recDue(x)}</b>. Make an offer before then</div>` : ''}
       <h3 class="jh">${x.pos === 'GK' ? 'Goalkeeping' : 'Skills'} ${x.scouted ? '' : '<small class="devp">estimates</small>'}</h3>
       <div class="card"><div class="attrs">${Object.keys(A).map(k => `<div class="attr ${C.KEY[x.pos].includes(k) ? 'key' : ''}"><span class="ai">${A[k][0]}</span><div class="ab"><div><span>${A[k][1]}</span><em>${attrTxt(x, x.a[k])}</em></div><div class="bar"><i style="width:${x.scouted ? x.a[k] : round5(x.a[k])}%;background:${x.scouted ? 'var(--fit4)' : 'var(--silver)'}"></i></div></div></div>`).join('')}</div></div>
       ${x.scouted ? '' : `<button class="btn full sec2" data-act="scout" data-v="${id}" style="margin-top:10px">🔍 Scout for exact ratings · <i class="cpi"></i> ${SCOUT_CP}</button>`}

@@ -89,7 +89,7 @@
   const MENT_SHORT = ['Ultra def', 'Defend', 'Balanced', 'Attack', 'Ultra att'];
   function boardHTML(fromMatch) {
     const car = C.car(), t = C.tac(), F = C.FORMATIONS[t.form], L = C.slotLabels(t.form);
-    const tokens = F.map((s, i) => { const p = C.P(t.xi[i]), left = s[1] * 100, top = 93 - s[2] * 86;   // 1.10.01 (QA-153)
+    const tokens = F.map((s, i) => { const p = C.P(t.xi[i]), left = s[1] * 100, top = 87 - s[2] * 80;   /* 1.11 (QA-175): the GK row higher so its chips fit */   // 1.10.01 (QA-153)
       if (!p) return `<div class="tk" style="left:${left}%;top:${top}%" data-act="pick" data-v="${i}"><button class="tkf empty" data-act="pick" data-v="${i}">+</button><button class="tkn" style="background:${PILL[0]}" data-act="pick" data-v="${i}"><span>Empty</span><i>▾</i></button><div class="tkm"><span class="tp">${L[i]}</span></div></div>`;
       const fit = C.fit(p, s[0]), ins = t.instr[p.id] ?? 2;
       return `<div class="tk" style="left:${left}%;top:${top}%" data-act="pick" data-v="${i}"><div class="tkb">${C.badges(p)}${ins !== 2 ? `<i class="bdg ins">${INSTR[ins][0]}</i>` : ''}</div>

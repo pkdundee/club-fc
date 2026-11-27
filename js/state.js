@@ -1,7 +1,8 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY = 'clubfc_v110';   // CLUB FC 1.10: its own save; carries over the 1.09 save on first open
-  const KEY_PREV = 'clubfc_v109';
+  const KEY_BASE = 'clubfc_v111';   // CLUB FC 1.11 Foundation: its own save; carries over the 1.10 save on first open
+  const KEY = KEY_BASE + (C.VARIANT && C.VARIANT !== 'foundation' ? '__' + C.VARIANT : '');   // 1.11 (B-4): each variant plays on its own save
+  const KEY_PREV = 'clubfc_v110';
   const KEY_9T = 'clubfc2_p9t'; // phase-9t's save: read only, never written by 1.00
   const FREE_SLOTS = 2;
 
@@ -11,9 +12,10 @@
   C.db = { v: 2, account: freshAccount(), careers: [], active: -1 };
 
   C.SAVE_KEY = KEY;   // 1.05.02: the test scenarios back up and restore this save
+  C.SAVE_BASE = KEY_BASE;   // 1.11 (B-4): the foundation save; variants copy the shared start point instead of the 1.10 save
   C.load = () => {
     // first open: copy the 1.04 save (and its intro flag) so playtest progress carries over. 1.04's save is only read.
-    try { if (!localStorage.getItem(KEY)) { const old = localStorage.getItem(KEY_PREV); if (old) { localStorage.setItem(KEY, old); if (localStorage.getItem(KEY_PREV + '_intro')) localStorage.setItem(KEY + '_intro', '1'); } } } catch (e) { }
+    try { if (!localStorage.getItem(KEY) && KEY === KEY_BASE) { const old = localStorage.getItem(KEY_PREV); if (old) { localStorage.setItem(KEY, old); if (localStorage.getItem(KEY_PREV + '_intro')) localStorage.setItem(KEY + '_intro', '1'); } } } catch (e) { }
     try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.v === 2) C.db = d; } } catch (e) { /* storage blocked: play without saving */ }
     C.db.account = Object.assign(freshAccount(), C.db.account);
     // 1.03 (FEEDBACK 212): the $2.99 build slot becomes Builder Pack I's queue. The bought research slot is withdrawn (FEEDBACK 170):
@@ -41,7 +43,7 @@
   };
   // Delete all data (Settings): leave an empty save in place. Also clears the 9t-import flag, so the import can be tried again after a wipe.
   C.wipe = () => { try { localStorage.setItem(KEY, JSON.stringify({ v: 2, account: freshAccount(), careers: [], active: -1 })); localStorage.removeItem(KEY + '_intro'); localStorage.removeItem(KEY + '_import9t'); } catch (e) { } };
-  C.save = () => { try { localStorage.setItem(KEY, JSON.stringify(C.db)); } catch (e) { /* ignore */ } };
+  C.save = () => { if (C.noSave) return; try { localStorage.setItem(KEY, JSON.stringify(C.db)); } catch (e) { /* ignore */ } };   // 1.11 (B-4): no saving while switching variants
   // Optional one-time import of the phase-9t save, for compatibility testing (FEEDBACK 126). It only reads 9t's key; the 9t save is never changed.
   C.has9tSave = () => { try { const d = JSON.parse(localStorage.getItem(KEY_9T) || 'null'); return !!(d && d.v === 2 && d.careers && d.careers.length); } catch (e) { return false; } };
   C.imported9t = () => { try { return !!localStorage.getItem(KEY + '_import9t'); } catch (e) { return false; } };

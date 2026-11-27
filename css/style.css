@@ -1723,3 +1723,40 @@ button.srow.strow .chev{font-style:normal;color:var(--mute);margin-left:4px}
 
 /* 1.09: the Analysis Suite report */
 .scout{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:8px 10px;margin:8px 0;font-size:12.5px}.scout b{display:block;margin-bottom:2px}.scout small{font-weight:700;line-height:1.35;display:block}
+
+/* 1.11 Foundation (B-1): Staff Help line on jobs and the upgrade card */
+.shelp{display:block;font-size:12px;font-weight:700;color:#15803d}
+.uc .orig .shelp{font-style:normal;color:#86efac;font-size:13px}
+
+/* 1.11 (QA-174): the message bar never overflows: compact arrows and icons, Claim takes the remaining width */
+.mbar{gap:6px;margin-left:8px}.mbar .mico{width:40px}.mbar .mico.mchev{width:32px}
+.mbar .mbtn.green{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+/* 1.11 (QA-176): at half-time the panel covers the whole match view; the bar underneath is dimmed and not tappable */
+.htwrap{position:fixed;inset:0;z-index:6;background:rgba(2,6,23,.62)}
+/* 1.11 (QA-177): the Coaches' Office level-up screen scrolls from the top when it's taller than the display, and the rows let the label shrink */
+.lvlup.big{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.lvlup.big .lu-in{margin:auto 0;padding:calc(14px + env(safe-area-inset-top)) 0 18px}
+.lvlup.big .lu-b{width:min(220px,58vw)}
+.lu-row span{min-width:0}.lu-row b,.lu-row i,.lu-row em{flex:none;white-space:nowrap}
+@media (max-height:700px){.lvlup.big .lu-n{font-size:64px}.lvlup.big .lu-b{width:170px}}
+/* 1.11 (QA-178): recruit cards: the deadline, Asks and GPA wrap inside the card instead of overflowing; the rating box keeps its width */
+.prow.rc .rate{flex:none}
+.prow.rc .pmatch{min-width:0}
+.prow.rc .rinfo{margin-left:0;flex:1 1 100%;min-width:0;flex-wrap:wrap;row-gap:3px;column-gap:8px}
+.prow.rc .rinfo>span{white-space:nowrap}
+.prow.rc .rinfo .gpa{margin-left:0}
+.prow.rc .rsay{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 1.11 (QA-180): the Staff header items on one wrapping line with the approved icons; the Hire button sits in the card's flow, not over the name */
+.sitems{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-size:13px}.sitems span{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.kmini{vertical-align:-3px;flex:none}
+.cotd{flex-wrap:wrap}.cotd .ci{flex:1 1 calc(100% - 72px)}.cotd .hirebtn{position:static;flex:none;margin-left:72px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+/* 1.11 (QA-181): extras cards: icon, title and one short line that wraps at most twice */
+.xchip small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25}
+.xchip b{line-height:1.15}
+.xnote{margin:6px 0 0;font-size:12px}
+/* 1.11 (QA-184): the training speed panel in the kit's info styling */
+.trboost2{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;border-radius:12px;padding:8px 10px;margin:8px 0 4px;font-size:12.5px}
+.trboost2>b{display:block;font-size:14px;font-weight:900;margin-bottom:2px}
+.trboost2 .tbl1{display:flex;justify-content:space-between;gap:8px;font-weight:700}.trboost2 .tbl1 em{font-style:normal;font-weight:900}
+.trboost2 .tbnext{color:#64748b;font-weight:700;margin-top:3px}.trboost2 .tbev{color:#b45309;font-weight:800;margin-top:3px}

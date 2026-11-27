@@ -16,7 +16,7 @@
     el.style.setProperty('--c1', col.c1); el.style.setProperty('--c2', col.c2);
     el.innerHTML = hq && !first
       ? `<div class="lu-in"><div class="lu-lv">LEVEL</div><div class="lu-n">${q.to}</div><div class="lu-b">${C.buildingThumb(k, q.to, car, 260, 190)}</div>
-          <div class="lu-name">${C.esc(d.name)}</div><div class="lu-rows">${rows(k, q.to - 1, q.to)}<div class="lu-row"><span>🧱 Every building can now reach</span><b></b><i></i><em>Lv ${q.to}</em></div></div>
+          <div class="lu-name">${C.esc(d.name)}</div><div class="lu-rows">${rows(k, q.to - 1, q.to)}<div class="lu-row"><span>🧱 All buildings up to</span><em>Lv ${q.to}</em></div></div>
           <div class="lu-tiles">${news}${reward}</div><p class="lu-tap">Tap anywhere to continue</p></div>`
       : `<div class="lu-in"><div class="lu-rib">${C.esc(d.name.toUpperCase())} ${first ? 'BUILT!' : 'LEVEL UP!'}</div>
           <div class="lu-rows">${first ? `<div class="lu-row"><span>${C.esc(C.BJOB[k] || d.desc)}</span></div>` : rows(k, q.to - 1, q.to)}</div>

@@ -67,7 +67,7 @@
   wrap('fwEvent', (o, k) => { o(k); if (k === 'speed') C.cppCount('spd'); });
   wrap('collect', (o, k, ...a) => { const r = o(k, ...a); if (r && C.PRODUCERS[k] === 'cp') C.cppCount('cpc'); if (r && C.PRODUCERS[k] === 'cash') C.cppCount('cashc'); return r; });
   wrap('pbComplete', (o, ...a) => { const r = o(...a); if (r) C.cppCount('res'); return r; });
-  wrap('completeBuild', (o, k) => { const q = C.inQueue(k), sped = q && q.start && q.end < q.start + C.timeOf(q.key, q.to) * 1000 - 1000, r = o(k);
+  wrap('completeBuild', (o, k) => { const q = C.inQueue(k), sped = q && q.start && q.end < q.start + (C.timeOf(q.key, q.to) - (q.help || 0)) * 1000 - 1000, r = o(k);
     if (r) { C.cppCount('upg'); if (sped) C.cppCount('fin'); } return r; });
   wrap('startPlan', (o, ...a) => { const r = o(...a); if (r === true) C.cppCount('trn'); return r; });
   wrap('treat', (o, pid, kind) => { const r = o(pid, kind); if (r === true && kind === 'kit') C.cppCount('rst'); return r; });

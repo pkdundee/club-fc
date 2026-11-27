@@ -39,12 +39,18 @@
   C.canAfford = k => C.car().cash >= C.costOf(k, C.level(k) + 1).cash;
   // ready for its free first build: unlocked, still a blank plot, and the Coaches' Office already stands (it goes first)
   C.buildable = k => C.level(k) === 0 && !C.locked(k) && !C.inQueue(k) && (k === 'hq' || C.level('hq') >= 1);
+  // 1.11 Foundation (B-1): Staff Help, from the Dorms. Returns the seconds it takes off a job of `secs` (never all of it).
+  C.staffHelpCount = () => { const S = C.ECON.staffHelp; return S && S.on ? Math.min(S.max, S.base + Math.floor(C.level('dorms') * S.perDorms)) : 0; };
+  C.staffHelp = secs => { const S = C.ECON.staffHelp, n = C.staffHelpCount(); let cut = 0;
+    for (let i = 0; i < n; i++) cut += Math.max(S.minSecs, (secs - cut) * S.pct);
+    return Math.round(Math.min(Math.max(0, secs - 1), cut)); };
   C.startUpgrade = k => {
     const car = C.car(), to = C.level(k) + 1;
     if (!C.canUpgrade(k)) return false;
     const cost = C.costOf(k, to), t = C.now();
     car.cash -= cost.cash; car.cp -= cost.cp;
-    car.queue.push({ key: k, to, start: t, end: t + C.timeOf(k, to) * 1000, lane: C.laneFree(car.queue) });
+    const tm = C.timeOf(k, to), help = to > 1 ? C.staffHelp(tm) : 0;   // 1.11 (B-1): Staff Help on every upgrade
+    car.queue.push({ key: k, to, start: t, end: t + (tm - help) * 1000, lane: C.laneFree(car.queue), help });
     C.save(); return true;
   };
 

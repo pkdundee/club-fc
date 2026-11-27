@@ -66,7 +66,7 @@
   // ---------- slots, hiring ----------
   C.staffSlots = () => C.STAFFSLOTS.filter(s => C.staffSlotOpen(s.id)).length;
   C.assign = id => { const S = st(); if (S.on.includes(id)) { S.on = S.on.filter(x => x !== id); C.save(); return true; } if (S.on.length >= C.staffSlots()) return 'full'; S.on.push(id); C.save(); return true; };
-  C.hireCost = c => c.rar >= 3 ? { gold: c.rar === 3 ? 150 : 300 } : { cash: Math.round((2000 + c.rar * 3000 + c.level * 150) / 100) * 100 };
+  C.hireCost = c => c.rar >= 3 ? { gold: c.rar === 3 ? 150 : 300 } : { cash: C.tierCost(Math.round((2000 + c.rar * 3000 + c.level * 150) / 100) * 100) };   // 1.11 (B-2)
   C.refreshMarket = (force) => { const S = st(); if (!force && C.now() < S.mNext && S.market.length) return; const r = C.rng(C.now() & 0xffffff), hunt = C.pbv ? C.pbv('hunt') : 0;
     S.market = [0, 1, 2, 3].map(() => genCoach(r, pickRar(r, hunt * 3))); S.mNext = C.now() + 48 * H; S.mNew = true; C.save(); };
   C.hire = id => { const S = st(), c = S.market.find(x => x.id === id); if (!c) return false; const cost = C.hireCost(c), car = C.car();
@@ -85,7 +85,7 @@
   C.xpNeed = c => 100 + c.level * 20;
   C.giveXP = (c, n) => { c.xp += n; let up = 0; while (c.level < LV_CAP[c.lic] && c.xp >= C.xpNeed(c)) { c.xp -= C.xpNeed(c); c.level++; up++; } if (c.level >= LV_CAP[c.lic]) c.xp = Math.min(c.xp, C.xpNeed(c)); return up; };
   C.useManual = id => { const S = st(), c = C.coach(id); if (!S.items.manual) return 'none'; if (c.level >= LV_CAP[c.lic]) return 'cap'; S.items.manual--; const up = C.giveXP(c, 100); C.save(); return up; };
-  C.licCost = c => ({ credits: [10, 25, 50, 100][c.lic], cash: [3000, 8000, 20000, 50000][c.lic] });
+  C.licCost = c => ({ credits: [10, 25, 50, 100][c.lic], cash: C.tierCost([3000, 8000, 20000, 50000][c.lic]) });   // 1.11 (B-2)
   C.licenceUp = id => { const S = st(), c = C.coach(id), car = C.car(); if (c.lic >= 4) return 'max'; if (c.level < LV_CAP[c.lic]) return 'level'; const k = C.licCost(c);
     if (S.items.credits < k.credits) return 'credits'; if (car.cash < k.cash) return 'cash'; S.items.credits -= k.credits; car.cash -= k.cash; c.lic++; C.save(); return true; };
   C.traitUp = id => { const S = st(), c = C.coach(id); if (c.trait >= 5) return 'max'; const need = c.trait; if (S.items.books < need) return 'books'; S.items.books -= need; c.trait++; C.save(); return true; };
@@ -118,6 +118,8 @@
   C.ACTS.advall = () => C.ui.open('Coaching notes', () => C.allAdvice().join('') || '<p class="note">Nothing to report.</p>', { popup: true });
   C.coachFace = (c, vb = '24 12 72 72') => { const col = C.college(); return `<svg viewBox="${vb}" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">${window.faceV4(Object.assign({}, c.look, { role: 'coach', age: c.age, k1: col.c1, k2: col.c2 }))}</svg>`; };
 
+  // 1.11 (QA-180): a small inline copy of an approved item icon (v3.3 sheet)
+  const MINI = (k, s = 20) => `<svg class="kmini" viewBox="0 0 100 100" width="${s}" height="${s}" aria-hidden="true">${C.kArt[k]()}</svg>`;
   // ================= Staff tab =================
   C.staffHTML = () => {
     const S = st(), col = C.college(), on = C.onStaff(); C.refreshMarket();
@@ -128,10 +130,10 @@
         <div class="hpic">${C.coachFace(c)}</div><div class="hstars">${'★'.repeat(C.cStars ? C.cStars(c) : 1)}<i>${'★'.repeat(5 - (C.cStars ? C.cStars(c) : 1))}</i></div>
         <b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]}</small><span class="hpow"><i class="ppi"></i>${C.coachPower(c).toLocaleString()}</span></button>`;
     const bench = S.list.filter(c => !S.on.includes(c.id));
-    return `<div class="view scrolly">${C.topBar(true)}<div class="phdr9 tall"><div class="row1"><div><b>Staff</b><small>🏅 Staff Power ${C.staffPower().toLocaleString()} · 📗 ${S.items.manual} · 🎫 ${S.items.credits} · 📕 ${S.items.books}</small></div></div>
+    return `<div class="view scrolly">${C.topBar(true)}<div class="phdr9 tall"><div class="row1"><div><b>Staff</b><small class="sitems"><span><i class="ppi"></i> Staff Power ${C.staffPower().toLocaleString()}</span><span>${MINI('xp')} ${S.items.manual}</span><span>🎫 ${S.items.credits}</span><span>${MINI('book')} ${S.items.books}</span></small></div></div>
         <div class="sslots">${slots}</div></div>
       ${C.car().seen.staffGuide ? '' : `<div class="card sguide"><b>How staff works</b><ol><li><b>Slots:</b> only coaches on duty help. You start with 1 slot.</li><li><b>Hire:</b> the market refreshes every 2 days; Coaching Search draws a random coach.</li><li><b>Upgrade:</b> manuals add XP, Clinic Credits raise the licence, Trait Books power up the trait.</li></ol><button class="btn sm2" data-act="sguide">Got it</button></div>`}
-      ${(() => { const top = S.market.slice().sort((a, b) => b.rar - a.rar || b.level - a.level)[0]; return top ? `<button class="cotd" data-act="coach" data-v="${top.id}" style="--rc:${C.RARITY[top.rar][1]}"><div class="cf">${C.coachFace(top)}</div><div class="ci"><small>⭐ Coach of the day</small><b>${C.esc(top.fn)} ${C.esc(top.ln)}</b><em>${C.SPECS[top.spec][0]} ${C.SPECS[top.spec][1]} · <span class="rarp" style="background:${C.RARITY[top.rar][1]}">${C.RARITY[top.rar][0]}</span></em><p>${C.coachBenefit(top)}</p></div><span class="hirebtn">Hire · ${C.hireCost(top).gold ? C.GEM + ' ' + C.hireCost(top).gold : '💵 ' + C.full(C.hireCost(top).cash)}</span></button>` : ''; })()}
+      ${(() => { const top = S.market.slice().sort((a, b) => b.rar - a.rar || b.level - a.level)[0]; return top ? `<button class="cotd" data-act="coach" data-v="${top.id}" style="--rc:${C.RARITY[top.rar][1]}"><div class="cf">${C.coachFace(top)}</div><div class="ci"><small>⭐ Coach of the day</small><b>${C.esc(top.fn)} ${C.esc(top.ln)}</b><em>${C.SPECS[top.spec][0]} ${C.SPECS[top.spec][1]} · <span class="rarp" style="background:${C.RARITY[top.rar][1]}">${C.RARITY[top.rar][0]}</span></em><p>${C.coachBenefit(top)}</p></div><span class="hirebtn">Hire · ${C.hireCost(top).gold ? C.GEM + ' ' + C.hireCost(top).gold : MINI('cash') + ' ' + C.full(C.hireCost(top).cash)}</span></button>` : ''; })()}
       <button class="searchc" data-act="search"><span>🎲</span><div><b>Coaching Search</b><p>Draw a random coach. Odds shown · Rare or better within ${10 - (S.pity || 0)} searches.</p></div><em>${C.searchCost() ? C.GEM + ' ' + C.searchCost() : 'FREE'}</em></button>
       <div class="stiles"><button class="stile pb" data-act="playbook"><span>📋</span><b>Playbook</b><small>${C.pbRunning()} researching · ${C.pbTotal()} levels</small></button>
         <button class="stile" data-act="market"><span>🧑‍🏫</span><b>Coaching market${S.mNew ? ' <i class="newdot">NEW</i>' : ''}</b><small>4 coaches · new in <span data-until="${S.mNext}">${C.dur((S.mNext - C.now()) / 1000)}</span></small></button>
@@ -152,16 +154,16 @@
       ${hired ? `<div class="card" style="margin-top:10px"><small class="mutey">XP ${c.xp} / ${C.xpNeed(c)}</small><div class="hbar"><i style="width:${Math.min(100, c.xp / C.xpNeed(c) * 100)}%;background:var(--school2)"></i></div></div>` : ''}
       ${hired && C.starsHTML ? C.starsHTML(c) : ''}<h3 class="jh">What they'd do for you</h3><div class="card"><div class="eff" style="color:var(--fit5)">▶ ${C.coachBenefit(c)}</div>${C.coachEffects(c).map(e => `<div class="eff">✔ ${e}</div>`).join('')}<p class="note" style="margin:6px 0 0">${C.SPECS[c.spec][2]}.</p></div>
       ${hired ? `<h3 class="jh">Upgrade</h3>
-        <button class="lrow" data-act="cmanual" data-v="${c.id}"><span class="li">📗</span><span class="lt"><b>Coaching manual · +100 XP</b><small>${S.items.manual} owned${c.level >= cap ? ' · at the level cap: raise the licence' : ''}</small></span></button>
-        <button class="lrow ${c.lic >= 4 ? 'lock' : ''}" data-act="clic" data-v="${c.id}"><span class="li">🎫</span><span class="lt"><b>${c.lic >= 4 ? 'Pro licence: top rank' : `Licence ${C.LICENCE[c.lic]} → ${C.LICENCE[c.lic + 1]} · level cap ${LV_CAP[c.lic + 1]}`}</b><small>${c.lic >= 4 ? '' : `Needs Lv ${cap} · 🎫 ${k.credits} Clinic Credits · 💵 ${C.full(k.cash)}`}</small></span></button>
-        <button class="lrow ${c.trait >= 5 ? 'lock' : ''}" data-act="ctrait" data-v="${c.id}"><span class="li">📕</span><span class="lt"><b>${TRAITS[c.spec][1]} ${c.trait >= 5 ? 'Lv 5 (max)' : `Lv ${c.trait} → ${c.trait + 1}`}</b><small>${c.trait >= 5 ? '' : `📕 ${c.trait} Trait Book${c.trait > 1 ? 's' : ''} (${S.items.books} owned)`}</small></span></button>
+        <button class="lrow" data-act="cmanual" data-v="${c.id}"><span class="li">${MINI('xp', 26)}</span><span class="lt"><b>Coaching manual · +100 XP</b><small>${S.items.manual} owned${c.level >= cap ? ' · at the level cap: raise the licence' : ''}</small></span></button>
+        <button class="lrow ${c.lic >= 4 ? 'lock' : ''}" data-act="clic" data-v="${c.id}"><span class="li">🎫</span><span class="lt"><b>${c.lic >= 4 ? 'Pro licence: top rank' : `Licence ${C.LICENCE[c.lic]} → ${C.LICENCE[c.lic + 1]} · level cap ${LV_CAP[c.lic + 1]}`}</b><small>${c.lic >= 4 ? '' : `Needs Lv ${cap} · 🎫 ${k.credits} Clinic Credits · ${MINI('cash')} ${C.full(k.cash)}`}</small></span></button>
+        <button class="lrow ${c.trait >= 5 ? 'lock' : ''}" data-act="ctrait" data-v="${c.id}"><span class="li">${MINI('book', 26)}</span><span class="lt"><b>${TRAITS[c.spec][1]} ${c.trait >= 5 ? 'Lv 5 (max)' : `Lv ${c.trait} → ${c.trait + 1}`}</b><small>${c.trait >= 5 ? '' : `📕 ${c.trait} Trait Book${c.trait > 1 ? 's' : ''} (${S.items.books} owned)`}</small></span></button>
         <div class="jbtns"><button class="btn ${on ? 'sec2' : 'pri'}" data-act="cassign" data-v="${c.id}">${on ? 'Take off duty' : 'Put on duty'}</button><button class="btn danger" data-act="crelease" data-v="${c.id}">Release</button></div>`
       : cand ? `<button class="btn full pri" data-act="firstpick" data-v="${c.id}">Choose as my first assistant · Free</button>`
-      : `<button class="btn full pri" data-act="chire" data-v="${c.id}">Hire · ${C.hireCost(c).gold ? '<i class="coin"></i> ' + C.hireCost(c).gold : '💵 ' + C.full(C.hireCost(c).cash)}</button>`}`;
+      : `<button class="btn full pri" data-act="chire" data-v="${c.id}">Hire · ${C.hireCost(c).gold ? '<i class="coin"></i> ' + C.hireCost(c).gold : MINI('cash') + ' ' + C.full(C.hireCost(c).cash)}</button>`}`;
   });
   C.openCoachMarket = () => { st().mNew = false; C.save(); C.ui.open('Coaching market', () => { const S = st(); C.refreshMarket();
     return `<p class="note" style="margin-top:0">New coaches every 2 days. Common to Rare cost Booster $; Super Rare and Ultra Rare cost Coins.</p>
-      ${S.market.map(c => `<button class="ccard" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><div class="cf">${C.coachFace(c)}</div><div class="ci"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]} · ${c.pers}</small><div class="ctags"><span>Lv ${c.level}</span><span class="rarp" style="background:${C.RARITY[c.rar][1]}">${C.RARITY[c.rar][0]}</span></div></div><em class="price">${C.hireCost(c).gold ? '<i class="coin"></i> ' + C.hireCost(c).gold : '💵 ' + C.full(C.hireCost(c).cash)}</em></button>`).join('') || '<p class="note">Everyone has been hired. New coaches soon.</p>'}`; }); };
+      ${S.market.map(c => `<button class="ccard" data-act="coach" data-v="${c.id}" style="--rc:${C.RARITY[c.rar][1]}"><div class="cf">${C.coachFace(c)}</div><div class="ci"><b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]} · ${c.pers}</small><div class="ctags"><span>Lv ${c.level}</span><span class="rarp" style="background:${C.RARITY[c.rar][1]}">${C.RARITY[c.rar][0]}</span></div></div><em class="price">${C.hireCost(c).gold ? '<i class="coin"></i> ' + C.hireCost(c).gold : MINI('cash') + ' ' + C.full(C.hireCost(c).cash)}</em></button>`).join('') || '<p class="note">Everyone has been hired. New coaches soon.</p>'}`; }); };
   // career start: choose your first assistant (Ray the generalist or one of two specialists)
   let afterPick = null;
   C.openFirstCoach = then => { const S = st(), r = C.rng(C.now() & 0xffffff), specs = ['dev', 'snc', 'tac', 'rec', 'mot', 'gk'].sort(() => r() - .5);

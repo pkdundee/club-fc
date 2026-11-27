@@ -11,6 +11,14 @@
     ['h20', 'HQ 20 · Division II', 'Every building Lv 20, research and coaches to match, a Division II squad. Start of the regular season'],
     ['h25', 'HQ 25 · Division I', 'Every building Lv 25, research and coaches to match, a Division I squad. Start of the regular season'],
     ['h30', 'HQ 30 · Division I, maxed', 'Every building Lv 30 (the top), research nearly complete, a strong Division I squad. Start of the regular season'],
+    // 1.11 Foundation (B-5): campus accounts at different stages, each tight (Booster $ for about one Coaches' Office upgrade, no speed-ups)
+    // or plenty (a large bank and speed-up items). Building levels are the Phase 4 model's free player at that day (econ5.py, V3.2).
+    ['c05t', 'Campus · HQ 5, tight', 'Early campus (HQ 5, Pre-season). Booster $ for about one upgrade, no speed-ups'],
+    ['c17t', 'Campus · HQ 17, tight', "The model's free player at day 30 (HQ 17, other buildings 13 to 17). Booster $ for about one upgrade, no speed-ups"],
+    ['c17p', 'Campus · HQ 17, plenty', 'The same campus with a large Booster $ and CP bank and building speed-ups'],
+    ['c25t', 'Campus · HQ 25, tight', "The model's free player at day 151 (HQ 25, others 21 to 24). Booster $ for about one upgrade, no speed-ups"],
+    ['c29p', 'Campus · HQ 29, plenty', "The model's free player at day 365 (HQ 29, others 25 to 29) with the model's bank at that day (about 88 million Booster $)"],
+    ['c30p', 'Campus complete · HQ 30, plenty', 'Every building Lv 30 (the college maximum) and a large bank: the post-campus state where Booster $ piles up'],
     ['s4', 'S4 Mid-season, losing run', 'Matchday 6 of 14, bottom half after a poor start, the Progression Pass open. Play the next league match: the "How to improve" reminder follows']];
   const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const set = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } };
@@ -60,7 +68,20 @@
     car.conf = null; car.sea = null; car.cpp = null; car.cyc = null; car.guide = undefined; C.meta().ms.freshTut = 1; C.ensureSeason(car); C.simFriendlies(); A.startseasonok(); C.ui.closeAll();
     car.squad.forEach(p => { p.energy = 100; }); C.meta().main = C.MAIN.map(t => t[0]); C.save(); return car;   // the early Main tasks are behind a career at this level
   }
+  // 1.11 Foundation (B-5): a campus account from a level save, with the model's building levels and tight or plenty resources
+  const MODEL = { 17: { academic: 13, booster: 13, dorms: 13, gym: 13, hq: 17, kitroom: 13, lab: 17, med: 13, media: 14, nutrition: 13, recruit: 13, skills: 13, stadium: 13, training: 13, transport: 13, video: 15 },
+    25: { academic: 21, booster: 21, dorms: 21, gym: 22, hq: 25, kitroom: 21, lab: 24, med: 21, media: 23, nutrition: 21, recruit: 21, skills: 21, stadium: 21, training: 21, transport: 21, video: 24 },
+    29: { academic: 26, booster: 26, dorms: 26, gym: 26, hq: 29, kitroom: 26, lab: 29, med: 27, media: 26, nutrition: 26, recruit: 28, skills: 26, stadium: 29, training: 26, transport: 26, video: 26 } };
+  function resources(car, kind, bank) { const nx = Math.min(C.level('hq') + 1, 30), up = C.costOf('hq', nx).cash || 0, inv = C.meta().inv;
+    ['spb15', 'spb60', 'spb180', 'spb480', 'sp1', 'sp480', 'sp1440'].forEach(k => { if (kind === 'tight') delete inv[k]; });
+    if (kind === 'tight') { car.cash = Math.round(up * 1.2 / 100) * 100; car.cp = 300; C.acct().gold = 150; }
+    else { car.cash = bank || 50000000; car.cp = 200000; C.acct().gold = 5000; inv.spb60 = (inv.spb60 || 0) + 20; inv.spb480 = (inv.spb480 || 0) + 6; inv.spb180 = (inv.spb180 || 0) + 10; } }
+  function campusSave(L, kind, bank) { const car = L <= 5 ? preseasonReady(5) : levelSave(L);
+    if (MODEL[L]) Object.keys(MODEL[L]).forEach(k => { if (C.BUILDINGS[k] && !(C.BUILDINGS[k].needHQ > L)) car.b[k] = Math.min(MODEL[L][k], C.topLevel(k)); });
+    car.queue = []; resources(car, kind, bank); C.save(); return car; }
   const BUILD = {
+    c05t: () => campusSave(5, 'tight'), c17t: () => campusSave(17, 'tight'), c17p: () => campusSave(17, 'plenty', 25000000), c25t: () => campusSave(25, 'tight'),
+    c29p: () => campusSave(29, 'plenty', 88000000), c30p: () => campusSave(30, 'plenty', 92000000),
     h10: () => levelSave(10), h15: () => levelSave(15), h20: () => levelSave(20), h25: () => levelSave(25), h30: () => levelSave(30),
     s1: () => preseasonReady(),
     s2: () => inSeason(S => { S.teams[0].rating = 60; }, S => S.R),
@@ -76,8 +97,27 @@
       ${LIST.map(([id, name, sub]) => `<button class="lrow" data-act="tscen" data-v="${id}"><span class="li">🧪</span><span class="lt"><b>${name}</b><small>${sub}</small></span><span class="lr">›</span></button>`).join('')}
       ${at ? `<button class="btn full pri" data-act="tscenrestore" style="margin-top:10px">↩ Restore my save</button><p class="note">Backed up ${new Date(at).toLocaleString()}. Loading more scenarios keeps this backup.</p>` : '<p class="note">No backup yet: it\'s made when you load your first scenario.</p>'}
       <button class="lrow" data-act="uikit" data-v="0"><span class="li">🎨</span><span class="lt"><b>UI kit</b><small>Every 1.10 component, in three college colour sets</small></span><span class="lr">›</span></button>
-      <p class="note">The test list for this build is TEST_1.10.md.</p>`;
+      ${variantsHTML()}
+      <p class="note">The test list for this build is TEST_1.11.md.</p>`;
   });
+  // ---------- 1.11 Foundation (B-4): variants ----------
+  // Each variant plays on its own save (C.SAVE_BASE + '__' + id). Every variant starts from the same start point: a copy of a save taken once.
+  // Switching never copies progress between variants, and the foundation save is never changed by a variant.
+  const VKEY = 'clubfc_v111_variant', START = () => C.SAVE_BASE + '__start', STARTAT = () => C.SAVE_BASE + '__start_at', vkey = id => id === 'foundation' ? C.SAVE_BASE : C.SAVE_BASE + '__' + id;
+  function variantsHTML() { const V = C.VARIANTS, at = +get(STARTAT()) || 0, cur = C.VARIANT;
+    return `<h3 class="jh">Variants</h3><div class="card" style="font-size:13px;font-weight:700">Playing: <b>${C.esc(V[cur].name)}</b>. Each variant has its own save, started from the same start point, so nothing earned in one reaches another. The Foundation save is never changed by a variant.</div>
+      <div class="card" style="font-size:13px"><b>Start point:</b> ${at ? new Date(at).toLocaleString() : 'not set (a variant with no save starts a new career)'}<br>
+        <button class="btn sm2 go" data-act="vstartset" style="margin-top:6px">Use the current save as the start point</button></div>
+      ${Object.keys(V).map(id => `<button class="lrow" data-act="vswitch" data-v="${id}" ${id === cur ? 'disabled' : ''}><span class="li">${id === cur ? '▶' : '⇄'}</span><span class="lt"><b>${C.esc(V[id].name)}${id === cur ? ' (playing)' : ''}</b><small>${C.esc(V[id].desc)}${id !== 'foundation' ? (get(vkey(id)) ? ' · has a save' : ' · no save yet: starts from the start point') : ''}</small></span><span class="lr">›</span></button>`).join('')}
+      ${cur !== 'foundation' ? `<button class="btn full danger" data-act="vreset" style="margin-top:8px">Reset ${C.esc(V[cur].name)} to the start point</button>` : ''}`; }
+  A.vstartset = () => C.confirm('Set the start point?', '<p class="note">Every variant that has no save yet starts from a copy of the current save. Variants that already have a save keep it (use Reset to start them again).</p>', 'Set', 'vstartsetok', '');
+  A.vstartsetok = () => { C.save(); set(START(), get(C.SAVE_KEY) || JSON.stringify(C.db)); set(STARTAT(), String(Date.now())); C.toast('Start point set'); C.ui.refresh(); };
+  const seed = id => { const st = get(START()); if (st) { set(vkey(id), st); set(vkey(id) + '_intro', '1'); } else set(vkey(id), null); };
+  A.vswitch = id => { if (!C.VARIANTS[id] || id === C.VARIANT) return; C.save();
+    if (id !== 'foundation' && !get(vkey(id))) seed(id);
+    C.noSave = true; set(VKEY, id === 'foundation' ? null : id); location.reload(); };
+  A.vreset = () => C.confirm('Reset this variant?', `<p class="note">${C.esc(C.VARIANTS[C.VARIANT].name)} goes back to the start point. Its progress is lost. Other variants and the Foundation save are not affected.</p>`, 'Reset', 'vresetok', '');
+  A.vresetok = () => { const id = C.VARIANT; if (id === 'foundation') return; C.noSave = true; seed(id); location.reload(); };
   A.tscen = v => { const it = LIST.find(x => x[0] === v); if (!it) return;
     C.ui.open('Load scenario', () => `<div class="card"><p style="font-weight:800">${it[1]}</p><p class="note">${it[2]}</p></div>
       <p class="note">${C.testBackupAt() ? 'Your backup from ' + new Date(C.testBackupAt()).toLocaleString() + ' is kept.' : 'Your current save is backed up first.'}</p>
@@ -89,5 +129,6 @@
   A.tscenrestore = () => { const b = get(BK()); if (!b) return C.toast('No backup to restore');
     set(C.SAVE_KEY, b); set(BK(), null); set(BKT(), null); set(C.SAVE_KEY + '_tscen', null); location.reload(); };
   // after the reload: say which scenario is loaded
-  C.testScenLoaded = () => { const v = get(C.SAVE_KEY + '_tscen'); if (!v) return; set(C.SAVE_KEY + '_tscen', null); const it = LIST.find(x => x[0] === v); if (it) setTimeout(() => C.toast('🧪 Loaded: ' + it[1]), 600); };
+  C.testScenLoaded = () => { if (C.VARIANT !== 'foundation') setTimeout(() => C.toast('🧪 Variant: ' + C.VARIANTS[C.VARIANT].name), 900);   // 1.11 (B-4)
+    const v = get(C.SAVE_KEY + '_tscen'); if (!v) return; set(C.SAVE_KEY + '_tscen', null); const it = LIST.find(x => x[0] === v); if (it) setTimeout(() => C.toast('🧪 Loaded: ' + it[1]), 600); };
 })(window.CFC);
