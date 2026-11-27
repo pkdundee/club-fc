@@ -72,14 +72,14 @@
   // ---------- 6. the Speed Up popup ----------
   let cur = null;   // { kind, key, done }
   const NAMES = { b: k => `${C.BUILDINGS[k].name}`, r: k => C.pbName ? C.pbName(k) : k, t: k => { const p = C.P(k); return p ? 'Training: ' + C.sn(p) : 'Training' } };
-  const tile = (k, n) => { const m = C.XN[k][2]; return `<span class="itile t2">${C.XN[k][0]}<b>${m >= 60 ? m / 60 + 'h' : m + 'm'}</b>${n ? `<em>${n}×</em>` : ''}</span>`; };   // 1.04.01 (QA-45): "N×" bottom left
+  const tile = (k, n) => { if (C.invTileHTML) return `<span class="ukt">${C.invTileHTML({ k, n, tier: 2, icon: '' })}</span>`; const m = C.XN[k][2]; return `<span class="itile t2">${C.XN[k][0]}<b>${m >= 60 ? m / 60 + 'h' : m + 'm'}</b>${n ? `<em>${n}×</em>` : ''}</span>`; };   // 1.11.01 (QA-200): approved tiles: "N×" bottom left
   function finishNow() { const c = cur; if (!c) return; const q = runningQ(c.kind, c.key); if (q) q.end = C.now(); C.save(); C.ui.back(); cur = null; c.done(); }
   function after() { const c = cur; if (!c) return; const q = runningQ(c.kind, c.key); if (!q) return C.ui.back();
     if (C.isFreeFinish(q)) return finishNow(); C.save(); C.ui.refresh(); }
   // 1.03.01 (QA-31, reference image): rows in a fixed order. 1 Instant Speed-up (green, items), 2 Finish Now (gold, Coins),
   // 3 each item biggest to smallest with Use and xN. Only Instant Speed-up and Finish Now confirm; Use and xN act at once.
   const row = (icon, title, sub, btn) => `<div class="sprow">${icon}<div class="sptx"><b>${title}</b><small>${sub}</small></div>${btn}</div>`;
-  const ico = (k, txt) => `<span class="spico">${k ? C.XN[k][0] : '⏩'}${txt ? `<em>${txt}</em>` : ''}</span>`;
+  const ico = (k, txt) => k && C.invTileHTML ? `<span class="spico kt">${C.invTileHTML({ k, n: null, tier: 2, icon: '' })}</span>` : `<span class="spico">${k ? C.XN[k][0] : '⏩'}${txt ? `<em>${txt}</em>` : ''}</span>`;   // 1.11.01 (QA-200): approved tiles
   const mins = k => C.XN[k][2], lbl = m => m >= 60 ? m / 60 + 'h' : m + 'm';
   // xN: 100 when you own 100 or more, 10 when 10 or more, otherwise all you own; never more than the time needs
   C.batchN = (k, secs) => { const own = C.meta().inv[k] || 0, cap = own >= 100 ? 100 : own >= 10 ? 10 : own; return Math.max(1, Math.min(cap, Math.ceil(secs / 60 / mins(k)))); };
@@ -90,14 +90,14 @@
       const q = a.q, total = (q.end - q.start) / 1000, rem = C.remaining(q), f = Math.max(0, Math.min(1, 1 - rem / total));
       const head = `<div class="sphead"><b>${C.esc(NAMES[kind](key))}${q.to ? ' → Lv ' + q.to : ''}</b>
         <div class="bq-bar big"><i style="width:${Math.round(f * 100)}%"></i><span data-until="${q.end}">${C.dur(rem)}</span></div>
-        <small>Free finish: ${C.freeWindow(q) ? 'the last ' + C.dur(C.freeWindow(q)) : 'none yet'}</small></div>`;
+</div>`;   // 1.11.01 (QA-198): no free-finish line; Finish Now reads FREE inside it
       if (rem <= 0) return head.replace('<div class="bq-bar big">', '<div class="bq-bar big done">') + `<button class="btn full pri" data-act="spfree" style="background:#16a34a">✔ Completed</button>`;   // 1.06 (QA-82)
-      if (a.rec === 'free') return head + `<button class="btn full pri" data-act="spfree" style="background:#16a34a">Finish · Free</button>`;
+      if (a.rec === 'free') return head + `<div class="sprows">${row(ico(null), 'Finish Now', 'Inside your free finish: no Coins needed', `<button class="spbtn green" data-act="spfree">FREE</button>`)}</div>`;
       const p = a.pick, gold = C.acct().gold, hasItems = Object.keys(p.plan).length > 0, rec = a.rec;
       const inst = hasItems ? row(ico(null), 'Instant Speed-up', `Use speed-up items <b class="spg">${C.dur(p.total * 60)}</b>${p.covers ? '' : ` · ${C.dur(rem - p.total * 60)} left after`}${rec === 'items' ? ' · <b>best value</b>' : ''}`,
         `<button class="spbtn green" data-act="spitems">Instant<br>Speed-up</button>`) : '';
-      const fin = row(ico(null), 'Finish Now', `Finish straight away with Coins (${C.dur(rem)})${rec === 'coins' ? ' · <b>best value</b>' : ''}`,
-        `<button class="spbtn gold ${gold < a.coins ? 'short' : ''}" data-act="spcoins">Buy &amp; Use<br>${C.GEM} ${C.full(a.coins)}</button>`);
+      const fin = row(ico(null), 'Finish Now', `Finish straight away with Coins${rec === 'coins' ? ' · <b>best value</b>' : ''}`,
+        `<button class="spbtn gold ${gold < a.coins ? 'short' : ''}" data-act="spcoins">Buy &amp; Use<br><span class="${gold < a.coins ? 'spshort' : ''}">${C.GEM} ${C.full(a.coins)}</span></button>`);
       const owned = C.speedKeys(kind).filter(k => C.meta().inv[k] > 0).sort((x, y) => mins(y) - mins(x) || (C.XN[x][3] === 'g') - (C.XN[y][3] === 'g'));
       const items = owned.map(k => { const n = C.batchN(k, rem);
         return row(ico(k, lbl(mins(k))), C.esc(C.XN[k][1]), `Owned: ${C.meta().inv[k]}`, `<span class="spbtns">${n > 1 ? `<button class="spbtn blue" data-act="spone" data-v="${k}|${n}">×${n}</button>` : ''}<button class="spbtn blue" data-act="spone" data-v="${k}|1">Use</button></span>`); }).join('');
@@ -112,10 +112,13 @@
     const p = C.pickItems(c.kind, C.remaining(q));
     if (!Object.keys(p.plan).length) return;
     C.ui.open('Use Items', () => `<div class="useit">${Object.keys(p.plan).map(k => tile(k, p.plan[k])).join('')}</div>
-      <p class="note" style="text-align:center">Speed-up: <b style="color:var(--fit5)">${C.dur(p.total * 60)}</b> · time left ${C.dur(C.remaining(q))}</p>
+      <p class="note" style="text-align:center">Speed-up: <b style="color:var(--fit5)">${C.dur(p.total * 60)}</b> · time left ${C.dur(C.remaining(q))}</p><p class="note" style="text-align:center;margin-top:0">Only what the time left needs is used when you confirm; anything else stays in your Inventory.</p>
       <div class="jbtns" style="grid-template-columns:1fr 1fr"><button class="btn sec2" data-act="back">Cancel</button><button class="btn pri" data-act="spitemsok">Confirm</button></div>`, { popup: true });
-    pend = () => { const q2 = runningQ(c.kind, c.key), inv = C.meta().inv; if (!q2) return; if (C.isFreeFinish(q2)) { cur = c; return finishNow(); } Object.keys(p.plan).forEach(k => inv[k] -= p.plan[k]); q2.end -= p.total * 60000; C.fwEvent && C.fwEvent('speed');
-      cur = c; if (q2.end <= C.now() || p.covers) return finishNow(); after(); }; };
+    pend = () => { const q2 = runningQ(c.kind, c.key), inv = C.meta().inv; if (!q2) return; if (C.isFreeFinish(q2)) { cur = c; return finishNow(); }
+      const p2 = C.pickItems(c.kind, C.remaining(q2));   // 1.11.01 (QA-198): only what the time left NOW needs; the rest stays in the Inventory
+      if (!Object.keys(p2.plan).length) { cur = c; return after(); }
+      Object.keys(p2.plan).forEach(k => inv[k] -= p2.plan[k]); q2.end -= p2.total * 60000; C.fwEvent && C.fwEvent('speed');
+      cur = c; if (q2.end <= C.now() || p2.covers) return finishNow(); after(); }; };
   let pend = null;
   A.spitemsok = () => { const f = pend; pend = null; C.ui.back(); if (f) f(); };
   // Use / xN: straight away, no confirmation
@@ -124,7 +127,7 @@
     const n = Math.min(+nn || 1, inv[k]); inv[k] -= n; q.end -= mins(k) * 60000 * n; C.fwEvent && C.fwEvent('speed'); if (q.end <= C.now()) return finishNow(); after(); };
   // Finish Now: confirms the Coins (the Coin confirmation always shows here, QA-31)
   A.spcoins = () => { const c = cur; if (!c) return; const q = runningQ(c.kind, c.key); if (!q) return; if (C.isFreeFinish(q)) return finishNow(); const g = C.coinsFor(C.remaining(q));
-    if (C.acct().gold < g) return C.toast('Not enough Coins');
+    if (C.acct().gold < g) return C.openMissing('coins', g);   // 1.11.01 (QA-199)
     C.confirmCoins(g, () => { const q2 = runningQ(c.kind, c.key); if (!q2) return; const g2 = C.coinsFor(C.remaining(q2)); if (C.acct().gold < g2) return C.toast('Not enough Coins');
       C.acct().gold -= g2; C.fwEvent && C.fwEvent('speed'); cur = c; finishNow(); }); };
 

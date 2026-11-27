@@ -3,16 +3,36 @@
 (function (C) {
   const H = 3.6e6;
   C.SPECS = {
-    tac: ['🧠', 'Tactician', 'Match-day quality: attack, defence and passing'],
+    tac: ['🧠', 'Tactician', 'Match-day quality: attack, defense and passing'],
     dev: ['🏋️', 'Development coach', 'Faster training plans and match development'],
     snc: ['💪', 'Strength & conditioning', 'Freshness recovery, fewer injuries, less fatigue'],
     gk: ['🧤', 'Goalkeeper coach', 'Keeper performance and development'],
     rec: ['🔍', 'Recruiting coordinator', 'Sharper scouting, more applications, better offers'],
     mot: ['📣', 'Motivator', 'Morale and keeping players from the portal'],
-    gen: ['🧢', 'Generalist', 'A little of everything']
+    gen: ['🧢', 'Generalist', 'A little of everything'],
+    // 1.11.01 (FEEDBACK 250): three more matchday specialists, plain bonuses on one attribute (up to +8% with a Lv 5 trait)
+    atk: ['⚽', 'Attacking coach', 'Finishing: shooting'],
+    pos: ['🔁', 'Possession coach', 'Keeping the ball: passing'],
+    dfc: ['🛡', 'Defensive coach', 'Defending: tackles and interceptions']
   };
+  // 1.11.01: the approved specialism badges (icon sheets v6 and v6.1, 27 Nov) replace the emoji
+  { const W = 'fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"';
+    const B = (c, d, g) => `<svg class="kspec" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12.9" r="10.5" fill="${d}"/><circle cx="12" cy="12" r="10.5" fill="${c}"/>${g}</svg>`;
+    const G = {
+      tac: B('#4f46e5', '#312e81', `<rect x="6" y="5" width="12" height="15" rx="1.8" fill="#fff"/><path d="M8.6 9.2l1.8 1.8M10.4 9.2l-1.8 1.8" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/><circle cx="15" cy="16" r="1.5" fill="none" stroke="#4f46e5" stroke-width="1.4"/><path d="M10 12.5c2 0 3.5 1 4.3 2.4" fill="none" stroke="#4f46e5" stroke-width="1.4" stroke-dasharray="1.6 1.3"/>`),
+      dev: B('#ea580c', '#9a3412', `<path d="M6 15.5l6-6 6 6" ${W} stroke-width="2.6"/><path d="M6 10.5l6-6 6 6" ${W} stroke-width="2.6" opacity=".6"/><path d="M5 19h14" ${W} stroke-width="2.2"/>`),
+      snc: B('#059669', '#065f46', `<path d="M9 7.5a3 3 0 0 1 6 0" ${W} stroke-width="2.2"/><path d="M7.5 9.5h9l1.2 8.5a1.6 1.6 0 0 1-1.6 1.8H7.9a1.6 1.6 0 0 1-1.6-1.8z" fill="#fff"/>`),
+      gk: B('#0f766e', '#134e4a', `<path d="M4.5 19V6.5h15V19" ${W} stroke-width="2.2"/><path d="M4.5 10.5h15M4.5 14.5h15M9.5 6.5V19M14.5 6.5V19" stroke="#fff" stroke-width="1" opacity=".55"/><circle cx="12" cy="15.5" r="3" fill="#fff"/>`),
+      rec: B('#7c3aed', '#4c1d95', `<circle cx="10.5" cy="10.5" r="5.5" ${W} stroke-width="2.4"/><path d="M14.6 14.6l4.6 4.6" ${W} stroke-width="2.8"/><circle cx="10.5" cy="9.3" r="1.6" fill="#fff"/><path d="M7.8 13.2c.6-1.4 1.6-2.1 2.7-2.1s2.1.7 2.7 2.1" fill="#fff"/>`),
+      mot: B('#db2777', '#9d174d', `<path d="M5 10v4h3l7 4V6l-7 4z" fill="#fff"/><path d="M17.5 9.5a3.5 3.5 0 0 1 0 5" ${W} stroke-width="2"/><path d="M8 14l1 4" ${W} stroke-width="2"/>`),
+      gen: B('#475569', '#1e293b', `<circle cx="12" cy="13.5" r="5.2" ${W} stroke-width="2.2"/><path d="M9.5 6h5M12 6v2.3" ${W} stroke-width="2.2"/><path d="M12 13.5l2.4-2.4" ${W} stroke-width="2"/>`),
+      atk: B('#dc2626', '#991b1b', `<circle cx="12" cy="12" r="6" ${W} stroke-width="2"/><circle cx="12" cy="12" r="2.6" fill="#fff"/><path d="M12 3.5v3.5M12 17v3.5M3.5 12H7M17 12h3.5" ${W} stroke-width="2"/>`),
+      pos: B('#2563eb', '#1e3a8a', `<path d="M4.5 9.5h12.5M13.5 6l3.5 3.5-3.5 3.5M19.5 14.5H7M10.5 11L7 14.5l3.5 3.5" ${W} stroke-width="2.3"/>`),
+      dfc: B('#0284c7', '#075985', `<path d="M5 6h14" ${W} stroke-width="2.3"/><path d="M7.5 9v7M5.9 14.4l1.6 1.6 1.6-1.6M12 9v8M10.4 15.4L12 17l1.6-1.6M16.5 9v7M14.9 14.4l1.6 1.6 1.6-1.6" ${W} stroke-width="1.8"/>`) };
+    for (const k in G) if (C.SPECS[k]) C.SPECS[k][0] = G[k]; }
   const TRAITS = { tac: ['🧩', 'Game Reader', 'match quality'], dev: ['🚀', 'Fast Tracker', 'match development'], snc: ['🫁', 'Iron Lungs', 'less fatigue in matches'], gk: ['🧱', 'Wall Builder', 'keeper saves'],
-    rec: ['🗣', 'Silver Tongue', 'offer appeal'], mot: ['📢', 'Hype Machine', 'morale after a win'], gen: ['☕', 'Old Hand', 'everything, a little'] };
+    rec: ['🗣', 'Silver Tongue', 'offer appeal'], mot: ['📢', 'Hype Machine', 'morale after a win'], gen: ['☕', 'Old Hand', 'everything, a little'],
+    atk: ['🎯', 'Clinical', 'finishing'], pos: ['🎼', 'Metronome', 'passing'], dfc: ['🧱', 'Iron Curtain', 'defending'] };
   const PERS = ['Calm', 'Fiery', 'Joker', 'Old-school', 'Data nerd'];
   C.LICENCE = ['D', 'C', 'B', 'A', 'Pro'];
   const LV_CAP = [20, 30, 40, 50, 60];
@@ -38,7 +58,7 @@
     const car = C.car(), female = r() < .5, pools = Object.keys(C.POOLS), pool = r() < .7 ? ['us', 'us_hisp', 'us_irish', 'us_ital', 'us_mw'][Math.floor(r() * 5)] : pools[Math.floor(r() * pools.length)], P = C.POOLS[pool];
     const pk = s => { const a = s.split(/[ |]/); return a[Math.floor(r() * a.length)]; };
     const look = C.makeLook(r, pool, female); look.grey = r() * .5; if (!female && r() < .35) look.beard = 'stubble';
-    spec = spec || ['tac', 'dev', 'snc', 'gk', 'rec', 'mot'][Math.floor(r() * 6)];
+    spec = spec || ['tac', 'dev', 'snc', 'gk', 'rec', 'mot', 'atk', 'pos', 'dfc'][Math.floor(r() * 9)];   // 1.11.01: ten specialisms
     return { id: 'c' + Math.floor(r() * 1e9).toString(36), fn: pk(P[female ? 3 : 2]), ln: pk(P[4]).replace(/^OBrien$/, "O'Brien"), female: female ? 1 : 0, age: 28 + Math.floor(r() * 30), spec, rar, level: 1 + Math.floor(r() * 4) + rar * 2, lic: 0, trait: 1, xp: 0, pers: PERS[Math.floor(r() * 5)], look, flag: P[0] };
   }
   function pickRar(r, boost = 0) { const w = ODDS.map((v, i) => v * (i >= 2 ? 1 + boost : 1)), t = w.reduce((s, v) => s + v, 0); let x = r() * t; for (let i = 0; i < 5; i++) { x -= w[i]; if (x <= 0) return i; } return 0; }
@@ -54,12 +74,12 @@
     const q = C.coachQ(c) / 100 * (c.spec === 'gen' ? .4 : 1) * (1 + (c.trait - 1) * .08), mm = s => C.dur(s);
     const base = Math.round((1200 + 40 * 50) / (1 + C.level('training') * C.ECON.training.speedPerLv));
     return { tac: `Team match quality +${Math.round(4 * q * 10) / 10}%`, dev: `Training plans: ${mm(base)} → ${mm(Math.round(base / (1 + .25 * q)))}`, snc: `Resting a match: +30 → +${Math.round(30 * (1 + .3 * q))} Freshness`,
-      gk: `Keeper saves +${Math.round(6 * q * 10) / 10}%`, rec: `Applications: ${3 + C.level('recruit')} → ${Math.round((3 + C.level('recruit')) * (1 + .3 * q) * 10) / 10} a day`, mot: `Portal risk −${Math.round(30 * q)}% · morale after wins +${Math.round(50 * q)}%`, gen: 'A little of everything (40% strength)' }[c.spec];
+      gk: `Keeper saves +${Math.round(6 * q * 10) / 10}%`, atk: `Shooting +${Math.round(6 * q * 10) / 10}%`, pos: `Passing +${Math.round(6 * q * 10) / 10}%`, dfc: `Defending +${Math.round(6 * q * 10) / 10}%`, rec: `Applications: ${3 + C.level('recruit')} → ${Math.round((3 + C.level('recruit')) * (1 + .3 * q) * 10) / 10} a day`, mot: `Portal risk −${Math.round(30 * q)}% · morale after wins +${Math.round(50 * q)}%`, gen: 'A little of everything (40% strength)' }[c.spec];
   };
   C.coachEffects = c => {
     const q = C.coachQ(c) / 100 * (c.spec === 'gen' ? .4 : 1), p = v => '+' + Math.round(v * 100) + '%', t = c.trait;
     const E = { tac: [`Match quality ${p(.04 * q)}`], dev: [`Training speed ${p(.25 * q)}`, `Match development ${p(.2 * q)}`], snc: [`Freshness recovery ${p(.3 * q)}`, `Injuries −${Math.round(30 * q)}%`, `Fatigue −${Math.round(8 * q)}%`],
-      gk: [`Keeper performance ${p(.06 * q)}`], rec: [`Applications ${p(.3 * q)}`, `Offer appeal ${p(.08 * q)}`], mot: [`Morale gains ${p(.5 * q)}`, `Portal risk −${Math.round(30 * q)}%`] };
+      gk: [`Keeper performance ${p(.06 * q)}`], atk: [`Shooting ${p(.06 * q)}`], pos: [`Passing ${p(.06 * q)}`], dfc: [`Defending ${p(.06 * q)}`], rec: [`Applications ${p(.3 * q)}`, `Offer appeal ${p(.08 * q)}`], mot: [`Morale gains ${p(.5 * q)}`, `Portal risk −${Math.round(30 * q)}%`] };
     return c.spec === 'gen' ? ['A little of everything (40% strength)'] : E[c.spec].concat([`${TRAITS[c.spec][0]} ${TRAITS[c.spec][1]} Lv ${t}: ${t > 1 ? '+' + (t - 1) * 8 + '% to all of the above' : 'upgrade with Trait Books for +8% a level'}`]);
   };
 
@@ -119,7 +139,7 @@
   C.coachFace = (c, vb = '24 12 72 72') => { const col = C.college(); return `<svg viewBox="${vb}" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">${window.faceV4(Object.assign({}, c.look, { role: 'coach', age: c.age, k1: col.c1, k2: col.c2 }))}</svg>`; };
 
   // 1.11 (QA-180): a small inline copy of an approved item icon (v3.3 sheet)
-  const MINI = (k, s = 20) => `<svg class="kmini" viewBox="0 0 100 100" width="${s}" height="${s}" aria-hidden="true">${C.kArt[k]()}</svg>`;
+  const MINI = (k, s = 20) => `<svg class="kmini" viewBox="0 0 100 100" width="${s}" height="${s}" aria-hidden="true">${(k === 'clinic' ? C.kClinic : C.kArt[k])()}</svg>`;
   // ================= Staff tab =================
   C.staffHTML = () => {
     const S = st(), col = C.college(), on = C.onStaff(); C.refreshMarket();
@@ -130,7 +150,7 @@
         <div class="hpic">${C.coachFace(c)}</div><div class="hstars">${'★'.repeat(C.cStars ? C.cStars(c) : 1)}<i>${'★'.repeat(5 - (C.cStars ? C.cStars(c) : 1))}</i></div>
         <b>${C.esc(c.fn)} ${C.esc(c.ln)}</b><small>${C.SPECS[c.spec][0]} ${C.SPECS[c.spec][1]}</small><span class="hpow"><i class="ppi"></i>${C.coachPower(c).toLocaleString()}</span></button>`;
     const bench = S.list.filter(c => !S.on.includes(c.id));
-    return `<div class="view scrolly">${C.topBar(true)}<div class="phdr9 tall"><div class="row1"><div><b>Staff</b><small class="sitems"><span><i class="ppi"></i> Staff Power ${C.staffPower().toLocaleString()}</span><span>${MINI('xp')} ${S.items.manual}</span><span>🎫 ${S.items.credits}</span><span>${MINI('book')} ${S.items.books}</span></small></div></div>
+    return `<div class="view scrolly">${C.topBar(true)}<div class="phdr9 tall"><div class="row1"><div><b>Staff</b><small class="sitems"><span><i class="ppi"></i> Staff Power ${C.staffPower().toLocaleString()}</span><span>${MINI('xp')} ${S.items.manual}</span><span>${MINI('clinic')} ${S.items.credits}</span><span>${MINI('book')} ${S.items.books}</span></small></div></div>
         <div class="sslots">${slots}</div></div>
       ${C.car().seen.staffGuide ? '' : `<div class="card sguide"><b>How staff works</b><ol><li><b>Slots:</b> only coaches on duty help. You start with 1 slot.</li><li><b>Hire:</b> the market refreshes every 2 days; Coaching Search draws a random coach.</li><li><b>Upgrade:</b> manuals add XP, Clinic Credits raise the licence, Trait Books power up the trait.</li></ol><button class="btn sm2" data-act="sguide">Got it</button></div>`}
       ${(() => { const top = S.market.slice().sort((a, b) => b.rar - a.rar || b.level - a.level)[0]; return top ? `<button class="cotd" data-act="coach" data-v="${top.id}" style="--rc:${C.RARITY[top.rar][1]}"><div class="cf">${C.coachFace(top)}</div><div class="ci"><small>⭐ Coach of the day</small><b>${C.esc(top.fn)} ${C.esc(top.ln)}</b><em>${C.SPECS[top.spec][0]} ${C.SPECS[top.spec][1]} · <span class="rarp" style="background:${C.RARITY[top.rar][1]}">${C.RARITY[top.rar][0]}</span></em><p>${C.coachBenefit(top)}</p></div><span class="hirebtn">Hire · ${C.hireCost(top).gold ? C.GEM + ' ' + C.hireCost(top).gold : MINI('cash') + ' ' + C.full(C.hireCost(top).cash)}</span></button>` : ''; })()}
@@ -155,7 +175,7 @@
       ${hired && C.starsHTML ? C.starsHTML(c) : ''}<h3 class="jh">What they'd do for you</h3><div class="card"><div class="eff" style="color:var(--fit5)">▶ ${C.coachBenefit(c)}</div>${C.coachEffects(c).map(e => `<div class="eff">✔ ${e}</div>`).join('')}<p class="note" style="margin:6px 0 0">${C.SPECS[c.spec][2]}.</p></div>
       ${hired ? `<h3 class="jh">Upgrade</h3>
         <button class="lrow" data-act="cmanual" data-v="${c.id}"><span class="li">${MINI('xp', 26)}</span><span class="lt"><b>Coaching manual · +100 XP</b><small>${S.items.manual} owned${c.level >= cap ? ' · at the level cap: raise the licence' : ''}</small></span></button>
-        <button class="lrow ${c.lic >= 4 ? 'lock' : ''}" data-act="clic" data-v="${c.id}"><span class="li">🎫</span><span class="lt"><b>${c.lic >= 4 ? 'Pro licence: top rank' : `Licence ${C.LICENCE[c.lic]} → ${C.LICENCE[c.lic + 1]} · level cap ${LV_CAP[c.lic + 1]}`}</b><small>${c.lic >= 4 ? '' : `Needs Lv ${cap} · 🎫 ${k.credits} Clinic Credits · ${MINI('cash')} ${C.full(k.cash)}`}</small></span></button>
+        <button class="lrow ${c.lic >= 4 ? 'lock' : ''}" data-act="clic" data-v="${c.id}"><span class="li">${MINI('clinic', 26)}</span><span class="lt"><b>${c.lic >= 4 ? 'Pro licence: top rank' : `Licence ${C.LICENCE[c.lic]} → ${C.LICENCE[c.lic + 1]} · level cap ${LV_CAP[c.lic + 1]}`}</b><small>${c.lic >= 4 ? '' : `Needs Lv ${cap} · ${MINI('clinic', 16)} ${k.credits} Clinic Credits · ${MINI('cash')} ${C.full(k.cash)}`}</small></span></button>
         <button class="lrow ${c.trait >= 5 ? 'lock' : ''}" data-act="ctrait" data-v="${c.id}"><span class="li">${MINI('book', 26)}</span><span class="lt"><b>${TRAITS[c.spec][1]} ${c.trait >= 5 ? 'Lv 5 (max)' : `Lv ${c.trait} → ${c.trait + 1}`}</b><small>${c.trait >= 5 ? '' : `📕 ${c.trait} Trait Book${c.trait > 1 ? 's' : ''} (${S.items.books} owned)`}</small></span></button>
         <div class="jbtns"><button class="btn ${on ? 'sec2' : 'pri'}" data-act="cassign" data-v="${c.id}">${on ? 'Take off duty' : 'Put on duty'}</button><button class="btn danger" data-act="crelease" data-v="${c.id}">Release</button></div>`
       : cand ? `<button class="btn full pri" data-act="firstpick" data-v="${c.id}">Choose as my first assistant · Free</button>`

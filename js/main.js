@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.11 · 27 Nov 2026' + (C.VARIANT && C.VARIANT !== 'foundation' ? ' · Variant: ' + C.VARIANTS[C.VARIANT].name : '');   // 1.11 (B-4)
+  C.BUILD = 'CLUB FC 1.11.01 · 27 Nov 2026' + (C.VARIANT && C.VARIANT !== 'foundation' ? ' · Variant: ' + C.VARIANTS[C.VARIANT].name : '');   // 1.11 (B-4)
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -60,7 +60,7 @@
       case 'land': break;   // locked land: nothing to explain on the map (round 5)
       case 'upgrade': if (C.level(v) > 0 && !C.freeSlot() && C.canUpgradeIgnoringSlot(v)) { const nb = C.nextBuilderPack && C.nextBuilderPack(); if (nb) C.openBuilderOffer(nb); else C.openQueue(); break; }   // 1.03.01 (QA-30)
         if (C.startUpgrade(v)) { C.selB = null; C.fwEvent('upgrade'); C.toast(`🔨 ${LEVEL_NAMES(v)} upgrade started`); C.ui.closeAll(); C.render(); } break;
-      case 'instant': if (!C.ok2spend) { const lv0 = car.b[v]; return C.confirmCoins(C.coinsFor(C.timeOf(v, lv0 + 1)), () => C.act('instant', v)); } C.ok2spend = 0; if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); if (v === 'hq') { C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); } else { C.ui.refresh(); setTimeout(() => C.ui.refresh(), 4100); } C.render(); } break;   // 1.06 (QA-97): the popup stays, now on the next level
+      case 'instant': if (!C.ok2spend) { const lv0 = car.b[v], g0 = C.coinsFor(C.timeOf(v, lv0 + 1)); if (C.acct().gold < g0) return C.openMissing('coins', g0);   /* 1.11.01 (QA-199) */ return C.confirmCoins(C.coinsFor(C.timeOf(v, lv0 + 1)), () => C.act('instant', v)); } C.ok2spend = 0; if (C.instantUpgrade(v)) { C.fwEvent('upgrade'); C.fwEvent('speed'); if (v === 'hq') { C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); } else { C.ui.refresh(); setTimeout(() => C.ui.refresh(), 4100); } C.render(); } break;   // 1.06 (QA-97): the popup stays, now on the next level
       case 'speed': { const q = C.inQueue(v); if (!q) break; return C.finishRunning('b', v, () => { if (C.completeBuild(v)) { C.fwEvent('speed'); C.ui.closeAll(); C.render(); } }); }
       case 'speedold': { const q = C.inQueue(v); if (!q) break; const free = C.isFreeFinish(q);
         if (C.finishNow(q, !free)) { C.fwEvent('speed'); C.toast(`✨ ${LEVEL_NAMES(v)} is now Lv ${car.b[v]}`); C.ui.closeAll(); C.render(); } else C.toast('Not enough Coins'); break; }

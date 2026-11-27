@@ -329,7 +329,7 @@
     say(m, att.side, 'foul', att, { by: def });
     stoppage(m, 'freekick', att.side, att.x, att.y, 1.8);
   }
-  function send(m, e, why) { m.shapeV = (m.shapeV || 0) + 1; e.on = false; e.st.rc = 1; m.st.rc[e.side]++; e.red = true; say(m, e.side, 'red', e, { why }); if (m.ball.owner === e) m.ball.owner = null;
+  function send(m, e, why) { m.shapeV = (m.shapeV || 0) + 1; e.on = false; e.bin = 0; m.pending = (m.pending || []).filter(s => s.outE !== e);   /* 1.11.01 (QA-202): a sent-off player leaves the sin bin and can't be replaced */ e.st.rc = 1; m.st.rc[e.side]++; e.red = true; say(m, e.side, 'red', e, { why }); if (m.ball.owner === e) m.ball.owner = null;
     m.pause = Math.max(m.pause, 4); m.redAlert = { side: e.side, e };
     if (m.teams[e.side].auto) C.reshape(m, e.side, null); }
   // change shape during a match (also after a red card): put the players still on the pitch into the new formation's slots
@@ -358,7 +358,7 @@
       a.fit = C.fit(a.p, a.slot.pos); b.fit = C.fit(b.p, b.slot.pos); m.shapeV = (m.shapeV || 0) + 1; } }
   function applySubs(m) { applySwaps(m);
     for (const s of m.pending.splice(0)) {
-      const e = s.outE; if (!e.on && !e.injured) continue;
+      const e = s.outE; if (e.red || (!e.on && !e.injured)) continue;
       if (!C.canBringOn(m, s.side, s.inP)) continue;
       m.shapeV = (m.shapeV || 0) + 1; e.on = false; m.offAt[e.p.id] = { half: m.half, back: m.offAt[e.p.id] ? true : false };
       const n = ent(m, s.inP, s.side, [e.slot.pos, e.slot.x, e.slot.y], e.i); n.x = e.side === 0 ? 1 : PW - 1; n.y = e.y; n.instr = e.instr; n.energy = s.inP.energy;
@@ -373,7 +373,7 @@
     const mn = minute(m);
     m.teams.forEach((T, side) => {
       if (!T.auto) { if (T.needSub && T.needSub.on === false) T.needSub = null; return; }
-      const on = active(m, side).concat(m.ents.filter(e => e.side === side && e.bin)), bench = T.bench.filter(p => C.canBringOn(m, side, p) && !p.injured);
+      const on = active(m, side).concat(m.ents.filter(e => e.side === side && e.on && e.bin)),   /* 1.11.01 (QA-202): only sin-binned players still in the match */ bench = T.bench.filter(p => C.canBringOn(m, side, p) && !p.injured);
       const pick = (e) => { let best = null, bs = -1; for (const p of bench) { if (m.pending.some(s => s.inP === p)) continue; const s = p.rating * FIT_MULT[C.fit(p, e.slot.pos)] + (p.promise === 'rotation' ? 8 : 0); if (s > bs) { bs = s; best = p; } } return best; };
       if (T.needSub && T.needSub.injured) { const p = pick(T.needSub); if (p) C.queueSub(m, side, T.needSub, p); else T.needSub = null; }
       if (mn >= 58 && m.used[side] < (T.maxSubs || 7)) {

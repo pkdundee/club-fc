@@ -94,6 +94,9 @@ function bag(r){const R=RAR[r];return()=>{const a=uid();return `<defs>${lg(a,R[2
 
   C.kRar = RAR;
   C.kArt = { chev, coins, cash, cp, medal, book, xp, medkit, ticket, crate, chest, bag };
+  // 1.11.01: Clinic Credit (icon sheet v6, approved 27 Nov): a clipboard with a green + (green = recovery and care; red only for injury)
+  C.kClinic = () => { const a = uid(); return `<defs>${lg(a, '#fff', '#dbe3ee')}</defs><rect x="24" y="18" width="52" height="64" rx="7" fill="url(#${a})" stroke="#334155" stroke-width="3"/><rect x="38" y="12" width="24" height="12" rx="4" fill="#94a3b8" stroke="#334155" stroke-width="3"/><path d="M45 38h10v9h9v10h-9v9H45v-9h-9V47h9z" fill="#22c55e" stroke="#15803d" stroke-width="2"/>`; };
+  C.kArt.clinic = C.kClinic;
   C.kTile = (r, art, label, qty) => tile(RAR[r] ? r : 'grey', typeof art === 'function' ? art : (() => ''), label, qty);
   // statuses (shaded round badges)
   const badge3=(c1,c2,dk,g)=>{const a=uid();return `<svg class="kst" viewBox="0 0 100 100"><defs><radialGradient id="${a}" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient></defs><circle cx="50" cy="54" r="40" fill="${dk}"/><circle cx="50" cy="50" r="40" fill="url(#${a})" stroke="#fff" stroke-width="4"/><path d="M26 36a30 30 0 0 1 22-14" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".45" fill="none"/>${g}</svg>`;};

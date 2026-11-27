@@ -73,5 +73,5 @@
   // the one resource bar used on every tab (round 4, item 13): Booster $, Coaching Points, Coins (+ opens the Store)
   C.schChip = () => `<span class="schip" title="Scholarship money left this year"><i class="schi"></i>$${C.short(C.poolLeft())} of $${C.short(C.car().job.pool)} left</span>`;   // 1.06 (QA-64)
   C.resBar = () => { const car = C.car(), a = C.acct();
-    return `<span>${C.kCash(17)}<b id="r-cash">$${C.full(car.cash)}</b></span><span>${C.kCP(17)}<b id="r-cp">${C.full(car.cp)}</b></span><span data-act="store">${C.kCoin(17)}<b id="r-gold">${C.full(a.gold)}</b><em class="plus">+</em></span>`; };
+    return `<span>${C.kCash(17)}<b id="r-cash">$${C.full(car.cash)}</b></span><span>${C.kCP(17)}<b id="r-cp">${C.bar(car.cp)}</b></span><span data-act="store">${C.kCoin(17)}<b id="r-gold">${C.bar(a.gold)}</b><em class="plus">+</em></span>`; };
 })(window.CFC);

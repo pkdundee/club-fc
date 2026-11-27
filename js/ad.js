@@ -24,7 +24,11 @@
     if (car.rec && car.rec.signed) m.push({ id: 'signed1', icon: '✍️', title: 'First signing', body: 'Saw the paperwork for your first recruit. Keep the scholarship budget honest: whatever you promise comes off the pool every year they stay.' });
     if (car.rec && car.rec.last) m.push({ id: 'portal' + car.rec.last.at, icon: '🚪', title: 'Transfer window', body: car.rec.last.left.length ? `We lost ${car.rec.last.left.length} player${car.rec.last.left.length > 1 ? 's' : ''} in the window. That happens at our level; make sure the replacements are ready.` : 'Nobody left in the transfer window. Good work keeping the locker room together.' });
     const S = car.sea; if (S && S.end) m.push({ id: 'season' + S.n, icon: S.end.met ? '🏆' : '📋', title: `Season ${S.n} review`, body: S.end.met ? `${S.end.champ ? 'Champions! ' : ''}You finished ${C.ord(S.end.pos)} and hit the goal I set. The boosters are happy.` : `${C.ord(S.end.pos)} isn't what we agreed. I expect better next season.` });
-    else if (S && S.md > 7 && S.phase === 'reg') m.push({ id: 'mid' + S.n, icon: '📋', title: 'Mid-season review', body: C.myPos() <= 4 ? `${C.ord(C.myPos())} at the halfway mark. Keep it going.` : `${C.ord(C.myPos())} at the halfway mark. We need a better second half.` });
+    else if (S && S.md > 7 && S.phase === 'reg') { const pos = C.myPos(), need = C.gateNeed ? C.gateNeed() : 0, hq = car.b.hq || 0, BN = C.BUILDINGS.hq.name;   // 1.11.01 (QA-197): the review includes the promotion check
+      const lines = [`${pos <= 4 ? `${C.ord(pos)} at the halfway mark. Keep it going.` : `${C.ord(pos)} at the halfway mark. We need a better second half.`}`, `<b>This season's goal:</b> ${GOAL[car.job.stars].toLowerCase()}.`];
+      if (need) lines.push(hq >= need ? `<b>Promotion:</b> the campus is ready. ${BN} Lv ${hq} meets the Lv ${need} we need to go up, so it's down to results.` : `<b>Promotion:</b> a top-2 finish only takes us up if the ${BN} is at <b>Lv ${need}</b>. It's Lv ${hq}, so <b>${need - hq} more level${need - hq > 1 ? 's' : ''}</b> are needed before the season ends. The Progression Pass on Home shows the next step.`);
+      else lines.push('<b>Promotion:</b> we are in the top division. Finish as high as you can for the National Championship.');
+      m.push({ id: 'mid' + S.n, icon: '📋', title: 'Mid-season review', body: lines.join('<br><br>') }); }
     m.push({ id: 'review', icon: '📋', title: 'Reviews', body: 'I review every coach at mid-season and at the end of the season. Those reviews start once the season kicks off.' });
     return m;
   };

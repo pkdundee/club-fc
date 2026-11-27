@@ -73,7 +73,7 @@
     const head = `<div class="pbn9"><span class="hx sm on"><span class="hi">${B[1]}</span><b>${lv}/${n[3]}</b></span><div><b>${C.esc(n[0])}</b><small>${C.esc(B[2])} · Tier ${['I', 'II', 'III'][t]}</small>
       <div class="srow"><span>Current</span><b>${val(n, lv)}</b></div>${k ? `<div class="srow"><span>Next level</span><b style="color:var(--fit5)">${val(n, to)}</b></div>` : ''}</div></div>`;
     if (q) { const done = q.end <= C.now(), f = done ? 1 : 1 - C.remaining(q) / ((q.end - q.start) / 1000);
-      return head + `<div class="card"><div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><p class="note" style="text-align:center">${done ? 'Finished' : `<span data-until="${q.end}">${C.dur(C.remaining(q))}</span> left`}</p></div>
+      return head + `<div class="card"><div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><p class="note" style="text-align:center">${done ? 'Finished' : `<span data-until="${q.end}">${C.dur(C.remaining(q))}</span> left`}${q.help ? ` · Staff Help −${C.dur(q.help)}` : ''}${!done && C.freeWindow && C.freeWindow(q) ? ` · free in the last ${C.dur(C.freeWindow(q))}` : ''}</p></div>
         ${done ? `<button class="btn full pri" data-act="pbdone" data-v="${key}">Complete</button>` : `<div class="bt2"><button class="btn fin2" data-act="pbspeed" data-v="${key}">Finish Now<br><em>${finishLabel('r', key)}</em></button></div>`}`; }
     if (!k) return head + '<p class="note">✨ Fully researched.</p>';
     const row = (icon, txt, ok, kind, need) => `<div class="cr ${ok ? '' : 'bad'}"><span class="ic">${icon}</span><span class="ct">${txt}</span>${ok ? '<b class="ok">✔</b>' : kind ? `<button class="obtain" data-act="pbobtain" data-v="${kind}|${need}">Obtain</button>` : '<b class="no">✖</b>'}</div>`;
@@ -82,10 +82,11 @@
       row('<i class="cpi"></i>', `<span class="${car.cp >= k.cp ? '' : 'short'}">${C.full(car.cp)}</span>/${C.full(k.cp)}`, car.cp >= k.cp, 'cp', k.cp) +
       (k.cash ? row('💵', `<span class="${car.cash >= k.cash ? '' : 'short'}">${C.full(car.cash)}</span>/${C.full(k.cash)}`, car.cash >= k.cash, 'cash', k.cash) : '');
     const ok = un && car.cp >= k.cp && car.cash >= k.cash, slot = pbq().length < C.pbSlots(), waitDone = !slot && pbq().some(z => z.end <= C.now());
+    const help = C.staffHelp ? C.staffHelp(tm) : 0, fw = C.freeWindow ? C.freeWindow({ key, start: 0, end: 0 }) : 0;   // 1.11.01 (QA-192)
     return head + `<h3 class="jh" style="text-align:center">Cost</h3><div class="tbl">${rows}</div>
-      <div class="orig"><span>${ok && !slot ? (waitDone ? 'Complete a finished research first' : 'All research slots are busy') : ''}</span><span>Original Time: ${C.dur(tm)}</span></div>
-      <div class="bt2"><button class="btn fin2" data-act="pbinstant" data-v="${key}" ${ok ? '' : 'disabled'}>Finish Now<br><em>${C.GEM} ${C.full(C.coinsFor(tm))}</em></button>
-      <button class="btn pri" data-act="${slot ? 'pbgo' : 'pbqfull'}" data-v="${key}" ${ok && (slot || waitDone) ? '' : 'disabled'}>Research<br><em>⏱ ${C.dur(tm)}</em></button></div>`;
+      <div class="orig pbo"><span>${ok && !slot ? (waitDone ? 'Complete a finished research first' : 'All research slots are busy') : ''}</span><span>Original Time: ${C.dur(tm)}${help ? `<br><em class="shelp">Staff Help −${C.dur(help)}</em>` : ''}${fw ? `<em class="pbfree">Free finish: the last ${C.dur(fw)}</em>` : ''}</span></div>
+      <div class="bt2"><button class="btn fin2" data-act="pbinstant" data-v="${key}" ${ok ? '' : 'disabled'}>Finish Now<br><em class="${C.acct().gold < C.coinsFor(tm) ? 'short' : ''}">${C.GEM} ${C.full(C.coinsFor(tm))}</em></button>
+      <button class="btn go" data-act="${slot ? 'pbgo' : 'pbqfull'}" data-v="${key}" ${ok && (slot || waitDone) ? '' : 'disabled'}>Research<br><em>⏱ ${C.dur(tm - help)}</em></button></div>`;   // 1.11.01 (QA-192, 194): Staff Help shown and taken off; blue like the building card
   }, { popup: true });
 
   // ---------- speed-up items in Finish Now ----------
@@ -107,6 +108,7 @@
   C.finishRunning = (kind, key, done) => { const q = kind === 'r' ? C.pbInQueue(key) : C.inQueue(key); if (!q) return; const secs = C.remaining(q);
     if (C.isFreeFinish(q)) { q.end = C.now(); return done(); }
     const plan = C.speedPlan(kind, secs); if (plan) return C.confirmItems(plan, secs, () => { q.end = C.now(); done(); });
+    if (C.acct().gold < C.goldToFinish(q)) return C.openMissing('coins', C.goldToFinish(q));   // 1.11.01 (QA-199)
     C.confirmCoins(C.goldToFinish(q), () => { const g = C.goldToFinish(q); if (C.acct().gold < g) return C.toast('Not enough Coins'); C.acct().gold -= g; q.end = C.now(); done(); }); };
 
   // ---------- Missing resources (Obtain) and Replenish All ----------
@@ -115,7 +117,9 @@
   const CR = () => { const inv = C.meta().inv; return ['crate', 'crb1', 'crb2', 'crb3', 'crb4', 'crc2', 'crc4', 'crp1', 'crp2', 'crp3', 'crp4'].filter(k => inv[k] > 0); };
   const crateGives = (k, kind) => k === 'crate' ? (kind === 'cash' ? 5000 : 0) : /^crc/.test(k) ? C.crateAmount(k, kind) : /^crp/.test(k) ? (kind === 'cp' ? C.crateAmount(k, 'cp') : 0) : kind === 'cash' ? C.crateAmount(k, 'cash') : 0;
   const openOne = (k, kind) => k === 'crate' ? (C.openCrate() ? 5000 : 0) : C.openCrateX(k, kind);
-  C.openMissing = (kind, need) => C.ui.open('Missing Resources', () => { const car = C.car(), inv = C.meta().inv, have = kind === 'cp' ? car.cp : car.cash, f = Math.min(1, have / need);
+  C.openMissing = (kind, need) => C.ui.open('Missing Resources', () => { const car = C.car(), inv = C.meta().inv, have = kind === 'cp' ? car.cp : kind === 'coins' ? C.acct().gold : car.cash, f = Math.min(1, have / need);   // 1.11.01 (QA-199): Coins too
+    if (kind === 'coins') return `<div class="mrhd"><p>Need <b class="short">${C.full(Math.max(0, need - have))}</b> more Coins to finish now.</p><div class="bq-bar big"><i style="width:${Math.round(f * 100)}%"></i><span>${C.full(have)} / ${C.full(need)}</span></div></div>
+      <p class="note">Coins come from Missions, the login calendar, the Season Pass and the Store. Speed-up items in your Inventory can be used instead (Speed Up).</p><button class="btn full gold" data-act="storeat" data-v="coins">Get Coins in the Store</button>`;
     const ks = CR().filter(k => crateGives(k, kind) > 0);
     const rows = ks.map(k => `<div class="mrw">${C.itemTiles({ [k]: 1 })}<div><b>${C.esc(C.XN[k][1])}</b><small>Owned: ${inv[k]} · gives ${kind === 'cp' ? C.full(crateGives(k, kind)) + ' CP' : C.money(crateGives(k, kind))}</small></div><button class="btn sm2 pri" data-act="mruse" data-v="${k}|${kind}">Use</button></div>`).join('');
     return `<div class="mrhd"><p>Need <b class="short">${C.full(Math.max(0, need - have))}</b> ${kind === 'cp' ? 'Coaching Points' : 'Booster $'} to proceed.</p><div class="bq-bar big"><i style="width:${Math.round(f * 100)}%"></i><span>${C.full(have)} / ${C.full(need)}</span></div></div>
@@ -146,7 +150,7 @@
       return `<div class="pbqrow"><span class="pbtw sm"><span class="pbtile">${tileSVG}<span class="art">${B[1]}</span></span>${hn(i)}</span><b>${C.esc(n[0])} · Lv ${C.pbLv(z.key) + 1}<small>${done ? 'Finished' : C.dur(C.remaining(z)) + ' left'}</small></b>${done ? `<button class="cta2 blue" data-act="pbqdone" data-v="${z.key}">Completed</button>` : `<button class="cta2 gold" data-act="pbspeed" data-v="${z.key}">Speed Up<em>${finishLabel('r', z.key)}</em></button>`}</div>`; }).join('')}`; }, { popup: true });
   A.pbqdone = v => { if (!C.pbComplete(v)) return; C.ui.back(); if (C.ui.isOpen()) C.ui.back(); C.ui.refresh(); C.render(); };
   A.pbdone = v => { if (C.pbComplete(v)) { if (C.ui.isOpen()) C.ui.refresh(); C.render(); } };
-  A.pbinstant = v => { const to = C.pbLv(v) + 1, tm = C.pbTime(v, to), g = C.coinsFor(tm);
+  A.pbinstant = v => { const to = C.pbLv(v) + 1, tm = C.pbTime(v, to), g = C.coinsFor(tm); if (C.acct().gold < g) return C.openMissing('coins', g);   // 1.11.01 (QA-199)
     C.confirmCoins(g, () => { const car = C.car(), k = C.pbCost(v, to); if (C.acct().gold < g) return C.toast('Not enough Coins'); if (car.cp < k.cp || car.cash < k.cash) return C.toast('Not enough resources');
       car.cp -= k.cp; car.cash -= k.cash; C.acct().gold -= g; car.pb[v] = to; C.save(); C.ui.back(); C.powerFlash(PBPOW, `Research on ${C.pbName(v)} Lv ${to} completed.`); C.ui.refresh(); C.render(); }); };
   A.pbspeed = v => C.finishRunning('r', v, () => { C.pbComplete(v); C.ui.back(); C.ui.refresh(); C.render(); });

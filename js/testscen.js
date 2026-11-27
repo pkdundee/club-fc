@@ -61,8 +61,13 @@
     const S = C.staffState(); C.refreshMarket(true); const g0 = C.acct().gold; C.acct().gold = 99999; car.cash = 9999999; (S.market || []).slice(0, 2).forEach(c => C.hire(c.id)); C.acct().gold = g0;
     const LV = [20, 30, 40, 50, 60]; S.list.forEach(c => { c.level = Math.max(c.level, Math.min(LV[c.rar] || 20, Math.round(L * (0.8 + c.rar * .15)))); }); S.on = S.list.slice(0, C.staffSlots()).map(c => c.id);
     car.tier = t; const base = C.ECON.tierRating[t] + 2 + (L === 30 ? 3 : 0); car.job.rating = base; car.job.coa = C.TIER_COA[t]; car.job.eq = car.job.limit = C.TIER_FUNDED[t]; car.job.pool = car.job.coa * car.job.eq;
-    const r = C.rng(L * 7919), POS = ['GK', 'GK', 'CB', 'CB', 'CB', 'LB', 'RB', 'CB', 'DM', 'CM', 'CM', 'AM', 'LM', 'RM', 'CM', 'ST', 'ST', 'LW', 'RW', 'ST', 'CB', 'CM'];
-    car.squad = POS.map((pos, i) => { const p = C.genPlayer(r, { gender: car.gender, pos, rating: base - 7 + Math.floor(r() * 8) + (i < 11 ? 1 : -1), year: 1 + Math.floor(r() * 5) }); p.from = 'Test scenario'; p.schol = Math.round(car.job.coa * (.2 + r() * .3) / 500) * 500; return p; });
+    const r = C.rng(L * 7919), POS = ['GK', 'GK', 'CB', 'CB', 'CB', 'LB', 'RB', 'CB', 'DM', 'CM', 'CM', 'AM', 'LM', 'RM', 'CM', 'ST', 'ST', 'LW', 'RW', 'ST', 'CB', 'CM', 'LB', 'AM'];
+    // 1.11.01 (QA-205): a squad in line with what this level's recruiting brings (recruits are about program rating - 2 + 0.6 x Recruiting Office level),
+    // 24 players, and about 90% of the scholarship pool committed (weighted to the better players)
+    const sqBase = base - 2 + Math.round(.6 * L);
+    car.squad = POS.map((pos, i) => { const p = C.genPlayer(r, { gender: car.gender, pos, rating: sqBase - 5 + Math.floor(r() * 8) + (i < 11 ? 2 : -1), year: 1 + Math.floor(r() * 5) }); p.from = 'Test scenario'; return p; });
+    { const w = car.squad.map(p => Math.max(1, p.rating - sqBase + 8)), tw = w.reduce((a, b) => a + b, 0), pool = car.job.pool * .9;
+      car.squad.forEach((p, i) => { p.schol = Math.min(Math.round(car.job.coa * .9 / 500) * 500, Math.round(pool * w[i] / tw / 500) * 500); }); }
     C.assignNumbers(car.squad); car.squad.forEach(C.ensureAlts); car.captains = []; car.devq = []; car.tac = null; C.autoPick();
     const nx = Math.min(L + 1, 30), cost = C.costOf('hq', nx); car.cash = Math.max(50000, (cost.cash || 0) * 3); car.cp = Math.max(500, (cost.cp || 0) * 3);
     car.conf = null; car.sea = null; car.cpp = null; car.cyc = null; car.guide = undefined; C.meta().ms.freshTut = 1; C.ensureSeason(car); C.simFriendlies(); A.startseasonok(); C.ui.closeAll();
@@ -98,7 +103,7 @@
       ${at ? `<button class="btn full pri" data-act="tscenrestore" style="margin-top:10px">↩ Restore my save</button><p class="note">Backed up ${new Date(at).toLocaleString()}. Loading more scenarios keeps this backup.</p>` : '<p class="note">No backup yet: it\'s made when you load your first scenario.</p>'}
       <button class="lrow" data-act="uikit" data-v="0"><span class="li">🎨</span><span class="lt"><b>UI kit</b><small>Every 1.10 component, in three college colour sets</small></span><span class="lr">›</span></button>
       ${variantsHTML()}
-      <p class="note">The test list for this build is TEST_1.11.md.</p>`;
+      <p class="note">The test list for this build is TEST_1.11.01.md.</p>`;
   });
   // ---------- 1.11 Foundation (B-4): variants ----------
   // Each variant plays on its own save (C.SAVE_BASE + '__' + id). Every variant starts from the same start point: a copy of a save taken once.

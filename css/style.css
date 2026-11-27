@@ -1733,7 +1733,7 @@ button.srow.strow .chev{font-style:normal;color:var(--mute);margin-left:4px}
 .mbar .mbtn.green{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 /* 1.11 (QA-176): at half-time the panel covers the whole match view; the bar underneath is dimmed and not tappable */
-.htwrap{position:fixed;inset:0;z-index:6;background:rgba(2,6,23,.62)}
+.htwrap{position:absolute;inset:0;z-index:6;background:rgba(2,6,23,.62)}   /* 1.11.01 (QA-204): inside the match view, not the browser window */
 /* 1.11 (QA-177): the Coaches' Office level-up screen scrolls from the top when it's taller than the display, and the rows let the label shrink */
 .lvlup.big{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .lvlup.big .lu-in{margin:auto 0;padding:calc(14px + env(safe-area-inset-top)) 0 18px}
@@ -1760,3 +1760,32 @@ button.srow.strow .chev{font-style:normal;color:var(--mute);margin-left:4px}
 .trboost2>b{display:block;font-size:14px;font-weight:900;margin-bottom:2px}
 .trboost2 .tbl1{display:flex;justify-content:space-between;gap:8px;font-weight:700}.trboost2 .tbl1 em{font-style:normal;font-weight:900}
 .trboost2 .tbnext{color:#64748b;font-weight:700;margin-top:3px}.trboost2 .tbev{color:#b45309;font-weight:800;margin-top:3px}
+
+/* 1.11.01 (QA-206): the Staff page opened from the Coaches Office sits inside its page (with the Back bar), not over the navigation */
+.staffpage .view{position:static;inset:auto;overflow:visible;padding-bottom:16px}
+.staffpage .tb9{display:none}
+/* 1.11.01 (QA-198, 199, 200): Speed Up popup */
+.bq-bar.big span{color:#0f172a!important;text-shadow:none!important}
+.spbtn .spshort{color:#b91c1c}
+.spico.kt{background:none;box-shadow:none;width:46px;height:46px}.spico.kt .ktile,.spico.kt>*{width:46px;height:46px}
+.ukt{display:inline-block;width:64px;height:64px;margin:3px}.ukt>*{width:100%;height:100%}
+/* 1.11.01 (QA-194, 196): the research popup follows the building card: Teko time line, a blue main action, a real Obtain button */
+.orig.pbo{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;font:600 15px Teko,sans-serif;padding:6px 2px}
+.orig.pbo .shelp{color:#15803d}.orig.pbo .pbfree{display:block;font-style:normal;font-size:13px;color:#2563eb}
+button.obtain{border:0;border-radius:8px;padding:4px 10px;font:900 12px Nunito;color:#fff;background:linear-gradient(180deg,#60a5fa,#2563eb);box-shadow:0 2px 0 #1e3a8a;cursor:pointer}
+/* 1.11.01 (QA-195): approved queue icons */
+.bq-f .bqg svg,.bq-f>svg,.bq-f .kst{width:40px;height:40px}.bq-f .bqg.idle{opacity:.45}
+/* 1.11.01 (QA-188, 201): card badges with the approved card icons; the number wish in words */
+.bdg.kcard{position:relative;background:none!important;box-shadow:none!important;width:13px;min-width:13px;height:17px;padding:0}.bdg.kcard svg{width:17px;height:17px;margin-left:-2px}
+.bdg.kcard b{position:absolute;left:0;right:0;top:3px;text-align:center;font:900 8px Nunito;color:#713f12}
+.wantno{display:inline-block;font:800 10px Nunito;color:#64748b;background:#f1f5f9;border-radius:6px;padding:1px 5px;vertical-align:2px;margin-left:3px}
+
+/* 1.11.01 (QA-189): status column fits Bench / Reserve; bench-slot rows have no slot chip */
+.arow{grid-template-columns:44px minmax(0,1fr) 54px 30px 62px}.arow.nob{grid-template-columns:minmax(0,1fr) 54px 30px 62px}.wtag.res{background:#e2e8f0;color:#475569}
+
+/* 1.11.01: specialism badges (icon sheets v6, v6.1) */
+.kspec{width:1.25em;height:1.25em;vertical-align:-.28em;display:inline-block}
+.sslot b .kspec{width:22px;height:22px}
+/* 1.11.01: recruiting markers (v5, v6); QA-186: the deadline pill wraps inside the card */
+.krec{width:15px;height:15px;vertical-align:-3px;display:inline-block;flex:none}.xchip span .krec{width:24px;height:24px}
+.prow.rc .rinfo .rv{white-space:normal;display:inline-flex;align-items:center;gap:3px}

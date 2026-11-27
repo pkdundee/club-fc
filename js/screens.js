@@ -127,7 +127,7 @@
     return `<div class="${cls} tb9">
         <button class="pf" data-act="profile" aria-label="Profile">${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 44)}<span class="pflv">${car.b.hq || 0}</span></button>
         <div class="tbm">${spend ? `<div class="res">${C.resBar()}</div>` : `<b class="tbname">${C.esc(col.short)} ${C.esc(col.mascot)}</b>`}<div class="tbpow kpwr" data-act="proginfo" title="Program Power">${C.kPow(20)}${C.programPower().toLocaleString()}</div></div>
-        <button class="storeb" data-act="store">${C.kStoreCircle(24)}<span>${C.kCoin(15)}<b id="r-gold2">${C.full(a.gold)}</b></span></button>
+        <button class="storeb" data-act="store">${C.kStoreCircle(24)}<span>${C.kCoin(15)}<b id="r-gold2">${C.bar(a.gold)}</b></span></button>
       </div>`; };
   // ---------- builders drawer (FEEDBACK 87): every building as a card, by type, in a scrolling strip along the bottom ----------
   C.drawerTab = 'economy';
@@ -252,7 +252,7 @@
       const bar = C.$(`[data-bar="${q.key}"]`); if (bar) bar.setAttribute('width', (28 * C.clamp(1 - C.remaining(q) / ((q.end - q.start) / 1000), 0, 1)).toFixed(1));
     }
     const set = (id, v) => { const e = C.$(id); if (e) e.textContent = v; };
-    set('#r-cash', '$' + C.full(car.cash)); set('#r-cp', C.full(car.cp)); set('#r-gold', C.full(C.acct().gold)); set('#r-gold2', C.full(C.acct().gold));
+    set('#r-cash', '$' + C.full(car.cash)); set('#r-cp', C.bar(car.cp)); set('#r-gold', C.bar(C.acct().gold)); set('#r-gold2', C.bar(C.acct().gold));
   };
 
   // ================= building actions when selected on the map (Last War style) =================
@@ -275,7 +275,10 @@
   // ---------- queues (FEEDBACK 93): every slot with its state; an idle slot takes you to the recommended next step ----------
   C.recommendBuilding = () => { const ks = Object.keys(C.BUILDINGS);
     return ks.find(C.buildable) || (C.readyArrow('hq') ? 'hq' : ks.filter(C.readyArrow).sort((a, b) => C.level(a) - C.level(b))[0]) || 'hq'; };
-  const slotRow = (i, state, title, sub, btn) => `<div class="bqrow ${state}"><div class="bq-f">${state === 'lock' ? '🔒' : state === 'busy' ? '👷' : '😴'}<i>${i + 1}</i></div><div class="bq-t"><b>${title}</b>${sub}</div>${btn || ''}</div>`;
+  // 1.11.01 (QA-195): approved icons: the v3.3 Locked status, and the v4.2 queue glyphs (hammer for builders, Playbook for research); idle is the same glyph, faded
+  const slotRow = (i, state, title, sub, btn, kind = 'b') => { const g = C.kQueue ? C.kQueue(kind === 'r' ? 'playbook' : 'hammer', '') : (state === 'busy' ? '👷' : '😴');
+    const ic = state === 'lock' && C.kStatus ? C.kStatus['Locked'] : state === 'lock' ? '🔒' : `<span class="bqg ${state === 'idle' ? 'idle' : ''}">${g}</span>`;
+    return `<div class="bqrow ${state}"><div class="bq-f">${ic}<i>${i + 1}</i></div><div class="bq-t"><b>${title}</b>${sub}</div>${btn || ''}</div>`; };
   C.openQueue = () => C.ui.open('Building Queue', () => {
     const car = C.car(), openS = C.SLOTS.filter(x => C.slotOpen(x.id)), rec = C.recommendBuilding();
     const rows = C.SLOTS.map((sl, i) => {
@@ -294,12 +297,12 @@
   C.openResearchQueue = () => C.ui.open('Research Queue', () => {
     const car = C.car(), openS = C.PBSLOTS.filter(x => C.pbSlotOpen(x.id)), q = car.pbq || [];
     const rows = C.PBSLOTS.map((sl, i) => {
-      if (!C.pbSlotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), '<small>Available at Performance Lab Lv 10, or with the Playbook\'s Extra Queue Slot</small>', '');
+      if (!C.pbSlotOpen(sl.id)) return slotRow(i, 'lock', C.esc(sl.name), '<small>Available at Performance Lab Lv 10, or with the Playbook\'s Extra Queue Slot</small>', '', 'r');
       const r = C.laneItem(q, openS.indexOf(sl));
-      if (r) { const nm = C.pbName ? C.pbName(r.key) : r.key; return slotRow(i, 'busy', `${C.esc(nm)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))}</small>${r.help ? `<small class="shelp">Staff Help −${C.dur(r.help)}</small>` : ''}`, '<button class="btn sm2" data-act="playbook">Go</button>'); }
-      return slotRow(i, 'idle', 'Idle', '<small>Start the recommended research</small>', '<button class="btn sm2 pri" data-act="playbook">Go</button>');
+      if (r) { const nm = C.pbName ? C.pbName(r.key) : r.key; return slotRow(i, 'busy', `${C.esc(nm)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))}</small>${r.help ? `<small class="shelp">Staff Help −${C.dur(r.help)}</small>` : ''}`, '<button class="btn sm2" data-act="playbook">Go</button>', 'r'); }
+      return slotRow(i, 'idle', 'Idle', '<small>Start the recommended research</small>', '<button class="btn sm2 go" data-act="playbook">Go</button>', 'r');
     }).join('');
-    const extra = C.laneExtra(q, openS.length).map((r, j) => slotRow(C.PBSLOTS.length + j, 'busy', `${C.esc(C.pbName ? C.pbName(r.key) : r.key)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))} · finishing in a retired slot</small>`, '<button class="btn sm2" data-act="playbook">Go</button>')).join('');
+    const extra = C.laneExtra(q, openS.length).map((r, j) => slotRow(C.PBSLOTS.length + j, 'busy', `${C.esc(C.pbName ? C.pbName(r.key) : r.key)} → Lv ${r.to}`, `<small>${C.dur(Math.max(0, (r.end - C.now()) / 1000))} · finishing in a retired slot</small>`, '<button class="btn sm2" data-act="playbook">Go</button>', 'r')).join('');
     return `<p class="note" style="margin-top:0">Research runs in the Performance Lab. Each slot researches one Playbook item at a time.</p>${rows}${extra}`;
   }, { popup: true });
   // take the player to a building on the campus map: pan to it and select it, ready to upgrade (FEEDBACK 93, 94)
@@ -407,7 +410,7 @@
   function costRow(r) {
     const [icon, txt, ok, kind] = r, m = /^(.*?) \/ (.*)$/.exec(txt);
     const label = kind === 'cash' && m ? `<span class="${ok ? '' : 'short'}">${m[1]}</span>/${m[2]}` : C.esc(txt);
-    const end = ok ? '<b class="ok">✔</b>' : kind === 'cash' ? '<button class="obtain" data-act="store">Obtain</button>'
+    const end = ok ? '<b class="ok">✔</b>' : kind === 'cash' ? `<button class="obtain" data-act="pbobtain" data-v="cash|${(m && +m[2].replace(/[^0-9]/g, '')) || 0}">Obtain</button>`   /* 1.11.01 (QA-196, 199): Obtain opens Missing Resources */
       : kind && C.BUILDINGS[kind] ? `<button class="obtain" data-act="bldopen" data-v="${kind}">Go</button>` : '<b class="no">✖</b>';
     return `<div class="cr ${ok ? '' : 'bad'}"><span class="ic">${icon}</span><span class="ct">${label}</span>${end}</div>`;
   }
@@ -450,7 +453,7 @@
   C.instantUpgrade = k => {
     const car = C.car(), lv = car.b[k], to = lv + 1, t = C.timeOf(k, to), g = C.coinsFor(t);
     if (!C.requirements(k).every(r => r[2])) return false;
-    if (C.acct().gold < g) { C.toast('Not enough Coins'); return false; }
+    if (C.acct().gold < g) { C.openMissing ? C.openMissing('coins', g) : C.toast('Not enough Coins'); return false; }   // 1.11.01 (QA-199)
     const cost = C.costOf(k, to); car.cash -= cost.cash; car.cp -= cost.cp; C.acct().gold -= g; car.b[k] = to;
     const q = { key: k, to, cp: to <= 1 ? 0 : C.upgradeReward(k, to) }; car.cp += q.cp;
     // 1.06 (QA-97): Finish Now completes in place: the reward is added and the popup moves on to the next level. Only the Coaches' Office keeps its level-up sequence.

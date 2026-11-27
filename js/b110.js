@@ -121,7 +121,7 @@
     for (const B of C.PB || []) B[3].forEach((n, t) => { if (!EDGE_KEYS.includes(n[1])) return; const lv = C.pbLv(B[0] + '.' + t); if (!lv) return;
       const name = n[0].replace(/ (I|II|III)$/, ''), k = name + '|' + n[1]; rows[k] = rows[k] || { name, key: n[1], ic: B[1], v: 0, txt: n[4] }; rows[k].v += lv * n[2]; });
     const out = Object.values(rows).map(r => ({ ic: EDGE_IC[r.key] && C.kSkill ? C.kSkill(EDGE_IC[r.key], 18) : r.ic, t: `${r.name}: +${Math.round(r.v * 1000) / 10}% ${r.txt}` }));
-    for (const c of (C.onStaff ? C.onStaff() : [])) { if (!['tac', 'gk', 'snc'].includes(c.spec)) continue; const ef = C.coachEffects(c); const S = C.SPECS[c.spec];
+    for (const c of (C.onStaff ? C.onStaff() : [])) { if (!['tac', 'gk', 'snc', 'atk', 'pos', 'dfc'].includes(c.spec)) continue; const ef = C.coachEffects(c); const S = C.SPECS[c.spec];
       const l = c.spec === 'snc' ? ef.filter(x => /^(Injuries|Fatigue)/.test(x)).join(', ') : ef[0]; out.push({ ic: S[0], t: `${S[1]} ${c.ln}: ${l}` }); }
     return out; };
   C.edgeHTML = () => { const L = C.edgeLines(); return L.length ? `<div class="scout edgec"><b>Your edge</b>${L.map(x => `<div class="edl"><span class="edi">${x.ic}</span>${C.esc(x.t)}</div>`).join('')}</div>` : ''; };
@@ -175,6 +175,7 @@
     else if (k === 'manual') { r = 'green'; art = A2.xp; label = '100'; }
     else if (k === 'books') { r = 'purple'; art = A2.book; }
     else if (k === 'tokens') { r = 'gold'; art = A2.ticket; }
+    else if (k === 'credits') { r = 'blue'; art = A2.clinic; }   // 1.11.01 (v6)
     else if (k === 'kit') { r = 'blue'; art = A2.medkit; }
     else if (k === 'rare' || /^pk:/.test(k)) { r = 'gold'; art = A2.chest('gold'); }
     else if (k === 'credits') { r = 'blue'; art = () => `<text x="50" y="66" text-anchor="middle" font-size="44">${x.icon}</text>`; }

@@ -8,6 +8,14 @@
   const ROLE_ORDER = ['squad', 'rotation', 'starter'];
   // the recruiting clock: matches you've played. Deadlines count matches, never real time.
   C.rclock = () => (C.car() && C.car().rclock) || 0;
+  // 1.11.01: recruiting markers from the approved sheets: v5 Scholarship, v6 Academic aid / GPA, Rival offer, Application expiring
+  { const W = 'fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"';
+    const B = (c, d, g) => `<svg class="krec" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12.9" r="10.5" fill="${d}"/><circle cx="12" cy="12" r="10.5" fill="${c}"/>${g}</svg>`;
+    C.kRec = {
+      schol: B('#7c3aed', '#4c1d95', `<path d="M2.5 9.5L12 5l9.5 4.5L12 14z" fill="#fff"/><path d="M6.5 11.5v4c1.5 1.4 3.4 2 5.5 2s4-.6 5.5-2v-4" ${W} stroke-width="2"/>`),
+      gpa: B('#0284c7', '#075985', `<path d="M4.5 7c2.8-1.4 5-1.4 7.5 0v11c-2.5-1.4-4.7-1.4-7.5 0zM12 7c2.5-1.4 4.7-1.4 7.5 0v11c-2.8-1.4-5-1.4-7.5 0z" fill="#fff"/><text x="16" y="15.5" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="6" fill="#0284c7">A</text>`),
+      rival: B('#dc2626', '#991b1b', `<path d="M6.5 5.5l11 11M17.5 5.5l-11 11" ${W} stroke-width="2.6"/><path d="M4.8 15.8l3.4 3.4M15.8 19.2l3.4-3.4" ${W} stroke-width="2.6"/>`),
+      exp: B('#d97706', '#92400e', `<path d="M7.5 4.5h9M7.5 19.5h9" ${W} stroke-width="2.2"/><path d="M8.5 4.5c0 4 7 4.5 7 7.5s-7 3.5-7 7.5h7c0-4-7-4.5-7-7.5s7-3.5 7-7.5" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M10 17.5h4l-2-2.2z" fill="#fff"/>`) }; }
   const MS = n => n <= 0 ? 'now' : n === 1 ? 'after your next match' : `in ${n} matches`;
   C.recDue = x => x.rival ? MS(x.rival.endM - C.rclock()) : x.expM != null ? MS(x.expM - C.rclock()) : '';
   const XI_SLOTS = { GK: 1, CB: 2, LB: 1, RB: 1, DM: 1, CM: 2, AM: 1, LM: 1, RM: 1, LW: 1, RW: 1, ST: 1 };
@@ -148,7 +156,7 @@
     const car = C.car(), c = calc(x, O), m = mood(c.happy), full = car.squad.length >= C.rosterCap(), maxP = C.maxPct();
     const chip = (k, icon, label, sub, ok) => `<button class="xchip ${O[k] ? 'on' : ''} ${ok ? '' : 'off'}" data-act="oset" data-v="${k}"><span>${icon}</span><b>${label}</b><small>${sub}</small></button>`;
     const reply = x.deal.last ? `<div class="reply ${x.deal.last.k}"><span>${x.deal.last.e}</span><p>${C.esc(x.deal.last.t)}</p></div>` : '';
-    return `<div class="ohead"><div class="relface">${rface(x)}</div><div style="flex:1"><b>${C.esc(x.fn)} ${C.esc(x.ln)}</b><small>${x.pos} · ${yrN[x.year]} · ${ratingTxt(x)}${x.rival ? ` · ⚔ ${C.esc(x.rival.c)} <span>${C.recDue(x)}</span>` : ''}</small></div>
+    return `<div class="ohead"><div class="relface">${rface(x)}</div><div style="flex:1"><b>${C.esc(x.fn)} ${C.esc(x.ln)}</b><small>${x.pos} · ${yrN[x.year]} · ${ratingTxt(x)}${x.rival ? ` · ${C.kRec.rival} ${C.esc(x.rival.c)} <span>${C.recDue(x)}</span>` : ''}</small></div>
         <div class="rounds">${[0, 1, 2].map(i => `<i class="${i < x.deal.round ? 'used' : i === x.deal.round ? 'now' : ''}"></i>`).join('')}<small>Round ${Math.min(3, x.deal.round + 1)} of 3</small></div></div>
       ${reply}
       <div class="card happy"><div class="hrow"><span class="he" id="oMoodE">${m[0]}</span><div style="flex:1"><small>Family happy · hopes for ${Math.round(x.ask * 100)}% (${C.short(c.askAmt)})</small>
@@ -159,7 +167,7 @@
         : `<input type="range" class="slider" id="oPct" min="0" max="${maxP}" step="5" value="${O.pct}" ${maxP ? '' : 'disabled'}>${poolBar(c.schol)}`}
       <h3 class="jh">Extras</h3>
       <div class="xchips">${chip('job', '💼', 'Campus job', `${C.jobsLeft()} of ${C.jobsCap()} free · ${C.short(JOB_VALUE)}/yr`, C.jobsLeft() || O.job)}
-        ${chip('aid', '📚', 'Academic aid', aidOK(x) ? `GPA ${x.gpa} ✓ · ${C.short(aidAmt(x))} · college pays` : `Needs GPA 3.3 (${x.gpa})`, aidOK(x))}
+        ${chip('aid', C.kRec.gpa, 'Academic aid', aidOK(x) ? `GPA ${x.gpa} ✓ · ${C.short(aidAmt(x))} · college pays` : `Needs GPA 3.3 (${x.gpa})`, aidOK(x))}
         ${chip('house', '🏠', 'Housing place', `${C.houseLeft()} of ${C.houseCap()} free · no cost`, C.houseLeft() || O.house)}
         ${chip('raise', '📈', 'More next year', '+10% next year', !isAcad())}</div>
       ${isAcad() ? '' : '<p class="note xnote">More next year: +10% if they play half the matches or the team meets its goal.</p>'}
@@ -288,7 +296,7 @@
     const list = R.list.filter(x => x.src === route).sort((a, b) => (b.rival ? 1 : 0) - (a.rival ? 1 : 0) || b.rating - a.rating);
     // same row style as Squad (round 5): plain avatar, plain year, top-3 position chips; recruit details where Squad shows condition
     const chips = x => `<div class="pmatch">${C.topPositions(x).map(([q, v]) => `<i style="background:${C.FITPILL[C.fit(x, q)]}">${q}${x.scouted ? v : ''}</i>`).join('')}
-        <span class="rinfo">${x.rival ? `<span class="rv" title="A rival college has made an offer and will decide then">⚔ Rival offer · decides ${C.recDue(x)}</span>` : x.expM != null ? `<span class="rv exp" title="The application expires then">⏳ Leaves ${C.recDue(x)}</span>` : ''}${isAcad() ? '' : `<span class="ask">🎓 Asks ${Math.round(x.ask * 100)}%</span>`}<span class="gpa ${x.gpa >= 3.3 ? 'ok' : ''}" title="${x.gpa >= 3.3 ? 'Qualifies for academic aid' : 'Academic aid needs GPA 3.3'}">📚 GPA ${x.gpa}</span></span></div>`;   // 1.06 (QA-64)
+        <span class="rinfo">${x.rival ? `<span class="rv" title="A rival college has made an offer and will decide then">${C.kRec.rival} Rival offer · decides ${C.recDue(x)}</span>` : x.expM != null ? `<span class="rv exp" title="The application expires then">${C.kRec.exp} Leaves ${C.recDue(x)}</span>` : ''}${isAcad() ? '' : `<span class="ask">${C.kRec.schol} Asks ${Math.round(x.ask * 100)}%</span>`}<span class="gpa ${x.gpa >= 3.3 ? 'ok' : ''}" title="${x.gpa >= 3.3 ? 'Qualifies for academic aid' : 'Academic aid needs GPA 3.3'}">${C.kRec.gpa} GPA ${x.gpa}</span></span></div>`;   // 1.06 (QA-64)
     const cards = list.map(x => `<button class="prow rc" style="--mk:${C.RARITY[x.rar][1]}" data-act="recruit" data-v="${x.id}">
         <div class="av plain"><div class="face">${rface(x)}</div></div>
         <div class="pinfo"><b>${C.esc(x.fn)} ${C.esc(x.ln)} <small class="flag">${x.flag}</small></b>
@@ -339,7 +347,7 @@
         <small class="hometown">${x.flag} ${C.esc(x.town)} · GPA ${x.gpa}</small><small class="hometown">${src[0]} ${src[1]}${x.from ? ' · from ' + C.esc(x.from) : ''}</small></div></div>
       <div class="kpis" style="margin-top:12px"><div class="kpi"><b class="${x.scouted ? '' : 'fz'}" style="${x.scouted ? '' : 'font-size:18px'}">${ratingTxt(x)}</b><small>Rating</small></div><div class="kpi"><b style="color:var(--fit5)">${x.scouted ? x.pot : '?'}</b><small>Potential</small></div>
         <div class="kpi"><b style="font-size:22px">${C.ROLES[x.want][0]}</b><small>Wants</small></div><div class="kpi"><b>${Math.round(x.ask * 100)}%</b><small>Hopes</small></div></div>
-      ${x.rival ? `<div class="card rivalc">⚔ <b>${C.esc(x.rival.c)}</b> has made an offer. They decide <b>${C.recDue(x)}</b></div>` : x.expM != null ? `<div class="card rivalc exp">⏳ This application expires <b>${C.recDue(x)}</b>. Make an offer before then</div>` : ''}
+      ${x.rival ? `<div class="card rivalc">${C.kRec.rival} <b>${C.esc(x.rival.c)}</b> has made an offer. They decide <b>${C.recDue(x)}</b></div>` : x.expM != null ? `<div class="card rivalc exp">${C.kRec.exp} This application expires <b>${C.recDue(x)}</b>. Make an offer before then</div>` : ''}
       <h3 class="jh">${x.pos === 'GK' ? 'Goalkeeping' : 'Skills'} ${x.scouted ? '' : '<small class="devp">estimates</small>'}</h3>
       <div class="card"><div class="attrs">${Object.keys(A).map(k => `<div class="attr ${C.KEY[x.pos].includes(k) ? 'key' : ''}"><span class="ai">${A[k][0]}</span><div class="ab"><div><span>${A[k][1]}</span><em>${attrTxt(x, x.a[k])}</em></div><div class="bar"><i style="width:${x.scouted ? x.a[k] : round5(x.a[k])}%;background:${x.scouted ? 'var(--fit4)' : 'var(--silver)'}"></i></div></div></div>`).join('')}</div></div>
       ${x.scouted ? '' : `<button class="btn full sec2" data-act="scout" data-v="${id}" style="margin-top:10px">🔍 Scout for exact ratings · <i class="cpi"></i> ${SCOUT_CP}</button>`}

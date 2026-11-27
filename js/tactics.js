@@ -35,10 +35,13 @@
     // keep players, moving each to the closest slot of the new shape
     F.forEach((s, i) => { let bi = -1, bd = 9; old.forEach((o, j) => { if (!ids[j]) return; const d = Math.hypot(o[1] - s[1], o[2] - s[2]) + (o[0] === s[0] ? -.2 : 0); if (d < bd) { bd = d; bi = j; } }); nx[i] = bi >= 0 ? ids[bi] : null; if (bi >= 0) ids[bi] = null; });
     t.form = f; t.xi = nx; t.empty = []; C.tac(); C.save(); };
+  // 1.11.01 (QA-190): the match captain: the club captain if starting, otherwise the starter with the highest Leadership
+  C.matchCaptain = () => { const car = C.car(), t = C.tac(), xi = t.xi.filter(Boolean), club = (car.captains || [])[0];
+    if (club && xi.includes(club)) return club; const best = xi.map(C.P).filter(Boolean).sort((a, b) => (b.lead || 35) - (a.lead || 35))[0]; return best ? best.id : null; };
   C.myTeam = home => {
     const car = C.car(), t = C.tac(), col = C.college();
     const kc = C.kitColours(col.c1, col.c2);
-    return { name: col.short, short: col.short, abbr: col.abbr, c1: kc[0], c2: kc[1], form: t.form, ment: t.ment, xi: t.xi.map(C.P), bench: t.bench.map(C.P), instr: Object.assign({}, t.instr), auto: t.auto, home, me: true, bonus: C.teamBonus(), capId: (car.captains || [])[0] || null };
+    return { name: col.short, short: col.short, abbr: col.abbr, c1: kc[0], c2: kc[1], form: t.form, ment: t.ment, xi: t.xi.map(C.P), bench: t.bench.map(C.P), instr: Object.assign({}, t.instr), auto: t.auto, home, me: true, bonus: C.teamBonus(), capId: C.matchCaptain() };
   };
 
   // ---------- one token: kit circle, a dark gap, then the energy ring coloured by fit (Q18c) ----------
@@ -72,9 +75,14 @@
   C.badges = p => { const car = C.car(), b = [];
     if (car.captains.includes(p.id)) b.push('<i class="bdg cap" title="Captain">C</i>');
     if (p.inj) b.push(`<i class="bdg inj" title="Injured: out ${p.inj > 50 ? 'for the season' : p.inj + ' more'}">🩹</i>`);
-    if (p.ban) b.push('<i class="bdg red" title="Suspended next match"></i>');
-    else if (p.ss && p.ss.yc % 5 === 4) b.push('<i class="bdg yel" title="One more yellow card means a ban"></i>');
+    b.push(C.cardBadges(p));
     return b.join(''); };
+  // 1.11.01 (QA-188, 201): card status with the approved v3.3 Yellow card / Red card icons: a red card = suspended for the next match;
+  // a yellow card with a 4 = four yellows this season, the next one is a one-match ban
+  C.cardBadges = p => { const K = C.kStatus || {};
+    if (p.ban) return `<i class="bdg kcard" title="Suspended for the next match">${K['Red card'] || ''}</i>`;
+    if (p.ss && p.ss.yc % 5 === 4) return `<i class="bdg kcard" title="4 yellow cards: the next one is a one-match ban">${K['Yellow card'] || ''}<b>4</b></i>`;
+    return ''; };
 
   // ================= tactics: board or list =================
   let tview = 'board';
@@ -108,7 +116,7 @@
       <div class="tview2"><span>${t.form} · ${C.MENTALITY[t.ment]}</span><span class="tsw"><button class="${tview === 'board' ? 'on' : ''}" data-act="tacview" data-v="board">Board</button><button class="${tview === 'list' ? 'on' : ''}" data-act="tacview" data-v="list">List</button></span></div>
       ${tview === 'board' ? `<div class="board tall"><div class="bpitch"><i class="half"></i><i class="circ"></i><i class="box1"></i><i class="box2"></i></div>${tokens}</div>
         <div class="ringkey rk1"><span><i style="background:${PILL[5]}"></i>Natural</span><span><i style="background:${PILL[4]}"></i>Accomplished</span><span><i style="background:${PILL[3]}"></i>Competent</span><span><i style="background:${PILL[2]}"></i>Awkward</span><span><i style="background:${PILL[1]}"></i>Out</span><span>${ring(70)} Fresh</span></div>
-        ${(cap => `<button class="caprow" data-act="capopen"><span class="cap">C</span><span>Captain: <b>${cap ? C.esc(C.sn(cap)) : 'none'}</b>${cap ? ` · Leadership ${cap.lead}` : ''}</span><i>▾</i></button>`)(C.P((car.captains || [])[0]))}
+        ${(cap => `<button class="caprow" data-act="capopen"><span class="cap">C</span><span>Captain: <b>${cap ? C.esc(C.sn(cap)) : 'none'}</b>${cap ? ` · Leadership ${cap.lead}` : ''}</span><i>▾</i></button>${(() => { const club = C.P((car.captains || [])[0]), mc = C.P(C.matchCaptain()); return club && mc && mc.id !== club.id ? `<p class="note capnote">${C.esc(C.sn(club))} isn't in the XI: <b>${C.esc(C.sn(mc))}</b> captains today (Leadership ${mc.lead || 35}).</p>` : !club && mc ? `<p class="note capnote">No club captain chosen: <b>${C.esc(C.sn(mc))}</b> captains today (highest Leadership in the XI).</p>` : ''; })()}`)(C.P((car.captains || [])[0]))}   <!-- 1.11.01 (QA-190) -->
         <h3 class="jh">Subs <small class="devp">${t.bench.length}/9</small></h3><div class="bench">${bench}</div>`
       : `<div class="tlist">${list}</div>`}
       <div class="jbtns"><button class="btn go" data-act="autopick">✨ Auto pick</button><button class="btn ${t.auto ? 'go' : 'sec2'}" data-act="automan">${t.auto ? '✔ Auto-manage' : 'Auto-manage: off'}</button></div>
@@ -133,8 +141,8 @@
     const pos = isB ? null : C.FORMATIONS[t.form][i][0], label = isB ? 'SUB' : C.slotLabels(t.form)[i], cur = C.P(isB ? t.bench[i] : t.xi[i]);
     const rate = p => pos ? C.posRating(p, pos) : p.rating, colOf = p => pos ? PILL[C.fit(p, pos)] : '#64748b';
     const line = (p, act) => { const un = !C.available(p);
-      return `<button class="arow ${un ? 'lock' : ''}" ${act === false ? 'data-act="back"' : ''} ${act ? `data-act="${un ? 'toast' : 'setpick'}" data-v="${un ? (p.inj ? 'Injured: out ' + (p.inj > 50 ? 'for the season' : p.inj + ' more match' + (p.inj > 1 ? 'es' : '')) : 'Suspended for the next match') : slot + '|' + p.id}"` : ''}>
-        <span class="lchip" style="background:${colOf(p)}">${label}</span><span class="anm">${C.esc(p.fn[0] + '. ' + p.ln)}${C.badges(p)}</span><span class="wcol">${t.xi.includes(p.id) ? '<em class="wtag xi">XI</em>' : t.bench.includes(p.id) ? '<em class="wtag">SUB</em>' : ''}</span><b class="art">${rate(p)}</b><span class="afr" style="color:${fcol(p.energy)}">${ring(p.energy)} ${Math.round(p.energy)}%</span></button>`; };
+      return `<button class="arow ${un ? 'lock' : ''} ${isB ? 'nob' : ''}" ${act === false ? 'data-act="back"' : ''} ${act ? `data-act="${un ? 'toast' : 'setpick'}" data-v="${un ? (p.inj ? 'Injured: out ' + (p.inj > 50 ? 'for the season' : p.inj + ' more match' + (p.inj > 1 ? 'es' : '')) : 'Suspended for the next match') : slot + '|' + p.id}"` : ''}>
+        ${isB ? '' : `<span class="lchip" style="background:${colOf(p)}">${label}</span>`}<span class="anm">${C.esc(p.fn[0] + '. ' + p.ln)}${C.badges(p)}</span><span class="wcol">${t.xi.includes(p.id) ? '<em class="wtag xi">XI</em>' : t.bench.includes(p.id) ? '<em class="wtag">Bench</em>' : '<em class="wtag res">Reserve</em>'}</span><b class="art">${rate(p)}</b><span class="afr" style="color:${fcol(p.energy)}">${ring(p.energy)} ${Math.round(p.energy)}%</span></button>`; };
     const inXI = id => t.xi.includes(id), onB = id => t.bench.includes(id);
     const cands = car.squad.filter(p => p !== cur && (pkXI || !inXI(p.id)) && (pkSubs || !onB(p.id)))
       .sort((a, b) => (C.available(b) - C.available(a)) || (rate(b) * (.6 + .4 * b.energy / 100)) - (rate(a) * (.6 + .4 * a.energy / 100)));
@@ -143,11 +151,11 @@
     // 1.10.01 (QA-139): ONE popup: the player on top, the alternatives under it (scrolling), Back to Player at the bottom. No Remove: you swap, never remove
     return `<div class="altp pfocus pk1">${cur ? C.playerFocusHTML(cur, { pos, label, fitCol: colOf(cur), rate: rate(cur) }) : `<div class="arow"><span class="lchip" style="background:${PILL[0]}">${label}</span><span class="anm">Empty: pick a player</span></div>`}
       ${ins != null ? `<label class="fld">Instruction</label><div class="instr pfi">${INSTR.map((x, k) => `<button class="${ins === k ? 'on' : ''}" data-act="instr" data-v="${cur.id}|${k}"><span>${x[0]}</span>${MENT_SHORT[k]}</button>`).join('')}</div><p class="note pfin">${C.INSTR_TXT[ins]}</p>` : ''}
-      <div class="ahd2"><small class="ahd">Best alternatives</small><button class="chk ${pkXI ? 'on' : ''}" data-act="pktog" data-v="xi">Show XI</button><button class="chk ${pkSubs ? 'on' : ''}" data-act="pktog" data-v="subs">Show subs</button></div>
+      <div class="ahd2"><small class="ahd">${isB ? 'Best alternatives for the bench' : 'Best alternatives'}</small><button class="chk ${pkXI ? 'on' : ''}" data-act="pktog" data-v="xi">Show XI</button><button class="chk ${pkSubs ? 'on' : ''}" data-act="pktog" data-v="subs">Show bench</button></div>
       <div class="alist pkscroll">${cands.map(p => line(p, true)).join('') || '<p class="note">Nobody else available.</p>'}</div></div>`;
     return `<div class="altp">${cur && pkAlt ? '<button class="btn sm2 sec2" data-act="pkalt" data-v="0" style="margin-bottom:8px">‹ Back to the player</button>' : ''}<small class="ahd">Currently selected</small>${cur ? line(cur, false) : `<div class="arow"><span class="lchip" style="background:${PILL[0]}">${label}</span><span class="anm">Empty</span></div>`}
       ${ins != null ? `<div class="instr" style="margin-top:8px">${INSTR.map((x, k) => `<button class="${ins === k ? 'on' : ''}" data-act="instr" data-v="${cur.id}|${k}"><span>${x[0]}</span>${x[1]}</button>`).join('')}</div>` : ''}
-      <div class="ahd2"><small class="ahd">Best alternatives</small><button class="chk ${pkXI ? 'on' : ''}" data-act="pktog" data-v="xi">Show XI</button><button class="chk ${pkSubs ? 'on' : ''}" data-act="pktog" data-v="subs">Show subs</button></div>
+      <div class="ahd2"><small class="ahd">${isB ? 'Best alternatives for the bench' : 'Best alternatives'}</small><button class="chk ${pkXI ? 'on' : ''}" data-act="pktog" data-v="xi">Show XI</button><button class="chk ${pkSubs ? 'on' : ''}" data-act="pktog" data-v="subs">Show bench</button></div>
       <div class="alist">${cands.map(p => line(p, true)).join('') || '<p class="note">Nobody else available.</p>'}</div>
       ${cur ? `<button class="btn full altrm" data-act="unpick" data-v="${slot}">Remove player from line-up</button>` : ''}</div>`;
   }

@@ -94,7 +94,7 @@
         <div class="vsrow ${home ? '' : 'awayrow'}"><div>${C.crestSVG(col.c1, col.c2, col.abbr.slice(0, 2), 54)}<b>${C.esc(col.short)}</b><small>${home ? 'Home' : 'Away'} · you</small></div><span class="vsx">VS${(k => `<em class="rtcmp ${k.c}">${k.me} v ${oppT.rating}<br>${k.w}</em>`)(C.rateCmp(oppT.rating))}</span><div>${C.crestSVG(oppT.c1, oppT.c2, oppT.abbr.slice(0, 2), 54)}<b>${C.esc(oppT.name)}</b><small>${C.table()[0].p ? C.ord(C.table().findIndex(x => x.i === (home ? f.a : f.h)) + 1) + ' in table' : 'Season opener'}</small></div></div>
         <div class="radio">${C.radioLine && C.radioLine(f) ? C.radioLine(f) : `📻 K${col.abbr} campus radio with Duane &amp; Bev`}</div></div>${C.bigMatchHTML ? C.bigMatchHTML(f) : ''}${C.scoutHTML ? C.scoutHTML(f) : ''}
       ${xs.filter(p => p.energy < 50).length ? `<div class="tiredw">⚠ ${xs.filter(p => p.energy < 50).length} of your XI are under 50% Freshness (avg ${avgE}%). Rest them this match, or <button class="btn sm2 pri" data-act="rejuv">🧴 Rejuvenate</button></div>` : ''}
-      ${(mine => { const opp = `<div><h4>${C.esc(oppT.name)} · ${M.opp.form}</h4>${oppRows}</div>`; return `<div class="lus">${home ? mine + opp : opp + mine}</div>`; })(`<div><h4>${C.esc(col.short)} · ${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div>`)}
+      ${(mine => { const opp = `<div><h4>${C.esc(oppT.name)} · ${M.opp.form}</h4>${oppRows}</div>`; return `<div class="lus">${home ? mine + opp : opp + mine}</div>${(() => { const car = C.car(), club = C.P((car.captains || [])[0]), mc = C.P(C.matchCaptain ? C.matchCaptain() : null); return club && mc && mc.id !== club.id ? `<p class="note" style="margin:6px 12px 0">${C.esc(C.sn(club))} is on the bench: <b>${C.esc(C.sn(mc))}</b> captains today.</p>` : ''; })()}`; })(`<div><h4>${C.esc(col.short)} · ${t.form} · ${C.MENTALITY[t.ment]}</h4>${mineRows}</div>`)}
       <div class="prebtns"><button class="btn go" data-act="mtac">${C.kGlyph ? C.kGlyph('tactics', 18) : ''} Tactics</button><button class="btn go" data-act="mquick"><svg viewBox="0 0 24 24" width="18" height="18">${C.kRingG ? C.kRingG.speed : ''}</svg> Quick result</button></div>
       <p class="note resnote">Matches resume if the game closes. Abandoning one forfeits it 0–9.</p>
       <button class="btn full pri kick" data-act="mkick">▶ Kick off <span id="cdn">${M.cd ? '· ' + M.cd : ''}</span></button>
@@ -291,7 +291,7 @@
   C.toggleSound = () => { const a = C.acct(); a.sound = !a.sound; C.save(); if (a.sound) { crowdOn(Math.min(1, (M && M.att || 500) / 3000)); } else crowdOff(); const b = C.$('.mic'); if (b) b.textContent = a.sound ? '🔊' : '🔇'; };
   function halfTime() {
     const m = M.m, S = m.st, my = M.my;
-    host().insertAdjacentHTML('beforeend', `<div class="htwrap" id="htc"><div class="htcard"><b>Half-time</b><div class="hts">${m.teams[0].short} ${m.score[0]} – ${m.score[1]} ${m.teams[1].short}</div>
+    host().scrollTop = 0; host().insertAdjacentHTML('beforeend', `<div class="htwrap" id="htc"><div class="htcard"><b>Half-time</b><div class="hts">${m.teams[0].short} ${m.score[0]} – ${m.score[1]} ${m.teams[1].short}</div>
       ${statBars(S, my)}<button class="btn full go" data-act="msubs">🔁 Team Changes</button><button class="btn full pri" data-act="m2h">▶ Second half</button></div></div>`);   // 1.11 (QA-176)
   }
   C.secondHalf = () => { const n = C.$('#htc'); if (n) n.remove(); C.resumeHT(M.m); M.playing = true; whistle(1); const hb = C.$('[data-act=mskip][data-v=ht]'); if (hb) hb.disabled = true; };
@@ -465,7 +465,7 @@
     C.queueSwap(m, M.my, a, b); liveLog({ k: 'swap', a: a.p.id, b: b.p.id });
     C.toast(`🔁 ${a.p.ln} to ${b.slot.pos}, ${b.p.ln} to ${a.slot.pos} ${m.ht ? 'at the restart' : 'at the next stoppage'}`); updPend(); C.ui.back(); C.ui.refresh(); };
   C.ACTS.swapcancel = v => { const m = M && M.m; if (!m || !m.swaps) return; const s = m.swaps[+v]; if (!s) return; liveLog({ k: 'unswap', a: s.a.p.id, b: s.b.p.id }); m.swaps.splice(+v, 1); updPend(); C.ui.refresh(); C.toast('Swap cancelled'); };
-  C.openTeam = hurtE => { if (!M || !M.m) return; if ((M.playing || hurtE) && !M.m.ht) M.resumeAfter = true; M.playing = false;
+  C.openTeam = hurtE => { if (!M || !M.m) return; if (!M.m.ht && !M.m.done) M.resumeAfter = true; M.playing = false;   /* 1.11.01 (QA-203): every way back (Return to match or the back arrow) gets the 3-2-1 countdown */
     C.ui.open('Team Changes', teamHTML);
     if (hurtE) setTimeout(() => C.openTeamPick(M.m.ents.indexOf(hurtE)), 0); };
   C.openTeamPick = idx => { C.ui.asPopup = true; C.ui.open('Choose player', () => pickHTML(+idx)); };

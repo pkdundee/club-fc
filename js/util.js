@@ -10,6 +10,7 @@ window.CFC = window.CFC || {};
 
   // 48200 -> "48.2K"
   // 1.02 (FEEDBACK 164): resource bars show amounts in full ($20,343) up to 9,999,999, then 2 decimals ($12.35M)
+  C.bar = n => { n = Math.round(n); return Math.abs(n) >= 1e5 && C.short ? C.short(n) : n.toLocaleString('en-US'); };   // 1.11.01 (QA-185): top-bar figures stay short (200K)
   C.full = n => { n = Math.round(n); return Math.abs(n) >= 1e7 ? (n / 1e6).toFixed(2) + 'M' : n.toLocaleString('en-US'); };
   C.short = n => { n = Math.round(n); const a = Math.abs(n);
     if (a >= 1e6) return (n / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace(/\.0$/, '') + 'M';
