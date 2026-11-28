@@ -1,8 +1,8 @@
 // Club FC: save data, careers (save slots), account and the two clocks (Q13, Q27).
 (function (C) {
-  const KEY_BASE = 'clubfc_v111';   // CLUB FC 1.11 Foundation: its own save; carries over the 1.10 save on first open
+  const KEY_BASE = 'clubfc_v112';   // CLUB FC 1.12: its own save; carries over the 1.11 save on first open (1.11 is the rollback build)
   const KEY = KEY_BASE + (C.VARIANT && C.VARIANT !== 'foundation' ? '__' + C.VARIANT : '');   // 1.11 (B-4): each variant plays on its own save
-  const KEY_PREV = 'clubfc_v110';
+  const KEY_PREV = 'clubfc_v111';
   const KEY_9T = 'clubfc2_p9t'; // phase-9t's save: read only, never written by 1.00
   const FREE_SLOTS = 2;
 

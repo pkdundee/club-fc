@@ -109,8 +109,8 @@
       desc: 'Faster recovery from injuries, and physio and team sessions after matches.',
       stats: l => [['⏱', 'Chance of a faster injury recovery', pct(3 * l)], ['🩺', 'Physio sessions', '+1 every ' + Math.max(1, Math.round(3 - l / 10)) + ' match' + (Math.max(1, Math.round(3 - l / 10)) > 1 ? 'es' : '')], ['👥', 'Team sessions', '+1 every ' + Math.max(1, 3 - Math.floor(l / 10)) + ' match' + (Math.max(1, 3 - Math.floor(l / 10)) > 1 ? 'es' : '')]] },
     lab: { name: 'Performance Lab', icon: '🔬', owner: 'program', start: 0, mult: 1.15,
-      desc: 'Sports science and data. Produces Coaching Points for your Playbook.',
-      stats: l => [['<i class="cpi"></i>', 'Coaching Points / hour', C.prod.lab(l)], ['🔬', 'Research speed', '+' + pct(l)]] },
+      desc: 'Sports science and data. Produces Coaching Points for your Playbook, opens a second research slot at Lv 10 and sets which Economy research you can start.',
+      stats: l => [['<i class="cpi"></i>', 'Coaching Points / hour', C.prod.lab(l)], ['🔬', 'Research', l >= 10 ? '2 research slots' : 'Lv 10: a 2nd research slot']] },   // 1.12: research speed moved into Research Time research
     recruit: { name: 'Recruiting Office', icon: '✉️', owner: 'program', start: 0, mult: 1.15,
       desc: 'More applications, sharper scouting and more campus jobs to offer recruits.',
       stats: l => [['📨', 'Applications / day', 3 + l], ['🔍', 'Rating range', '±' + Math.max(1, 4 - Math.floor(l / 3))], ['💼', 'Campus job places', 2 + Math.floor(l / 3)]] },
@@ -121,9 +121,9 @@
       desc: 'Broadcasts and streams your matches, and gets the program noticed. Earns money after every home match and adds Reputation for every win.',
       stats: l => [['📺', 'Broadcast money / home match', C.money(C.broadcastPay(l, false, C.car ? (C.car() || {}).tier || 5 : 5))], ['🏆', 'After a win', '×1.5'], ['⭐', 'Reputation from wins', '+' + pct(C.mediaRep(l))]] },
     dorms: { name: 'Dorms', icon: '🏠', owner: 'school', start: 0, mult: 1.1,
-      desc: 'Campus life: bigger roster, more appeal to recruits, and the Staff Help that shortens every construction and research job.',
+      desc: 'Campus life: bigger roster, more appeal to recruits, and Helpers: students who walk over and speed up every construction and research job.',
       stats: l => [['👕', 'Roster size', Math.min(28, 24 + Math.ceil(l / 3))], ['🏠', 'Housing places', 1 + Math.floor(l / 3)], ['💛', 'Recruit appeal', '+' + pct(l)],
-        ['🤝', 'Staff Help', (() => { const S = C.ECON.staffHelp; return S && S.on ? Math.min(S.max, S.base + Math.floor(l * S.perDorms)) + ' helps a job' : 'off'; })()]] },   // 1.11.01 (QA-193)
+        ['🤝', 'Helpers', (() => { const S = C.ECON.staffHelp; return S && S.on ? Math.min(S.max, S.base + Math.floor(l * S.perDorms)) : 'off'; })()]] },   // 1.12: Helpers: N (1 a Dorms level)
     academic: { name: 'Academic Center', icon: '📚', owner: 'school', start: 0, mult: 1.2,
       desc: "Every player's package, grades and wellbeing in one place. Support here keeps players happy and impresses recruits.",
       stats: l => [['📚', 'Academic aid', '+' + pct(l)], ['😀', 'Morale after each match', '+' + (l * .1).toFixed(1)], ['🚪', 'Transfer portal risk', '−' + pct(Math.min(30, l * 1.5))], ['💛', 'Recruit interest', '+' + l]] },

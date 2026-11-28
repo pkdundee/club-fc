@@ -5,7 +5,7 @@
   // ---------- QA-109: no First Week; a bonus for completing Pre-season ----------
   C.fwActive = () => false;
   C.fwMailUnclaimed = () => {};
-  const PRE_BONUS = { gold: 200, cash: 10000, sp5: 12, cp: 100 };
+  const PRE_BONUS = { gold: 200, cash: 10000, spb5: 12, cp: 100 };   // 1.12: Building speed-ups
   const oSs = A.startseasonok;
   A.startseasonok = (...a) => { const car0 = C.car(), first = car0 && car0.pre && car0.season === 1 && !car0.preLite && !car0.preBonus; const r = oSs(...a); const car = C.car();
     if (first && car && !car.pre) { car.preBonus = 1; C.mail('rewards', '🎉', 'Pre-season complete: your bonus', 'Pre-season done, Coach: the campus is built, the staff hired and the squad ready. Here is your bonus for the season ahead.', Object.assign({}, PRE_BONUS)); C.save(); C.toast('🎉 Pre-season bonus: claim it in the Inbox'); }

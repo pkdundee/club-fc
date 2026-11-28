@@ -49,8 +49,8 @@
   // Each task: [id, text, check(car) -> bool]. Counters live in car.fw.n.
   const n = (car, k) => (car.fw.n[k] || 0);
   const DAYS = [
-    { title: 'Day 1 · Settle in', reward: { gold: 50, cash: 3000, sp1: 10 }, tasks: [['hq2', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2], ['col1', 'Collect Booster $ once', c => n(c, 'collect_cash') >= 1]] },
-    { title: 'Day 2 · Strength', reward: { gold: 50, cp: 30, sp1: 5 }, tasks: [['gym', 'Upgrade the Gym to Lv 2', c => c.b.gym >= 2], ['spd', 'Use a speed-up', c => n(c, 'speed') >= 1]] },
+    { title: 'Day 1 · Settle in', reward: { gold: 50, cash: 3000, spb1: 10 }, tasks: [['hq2', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2], ['col1', 'Collect Booster $ once', c => n(c, 'collect_cash') >= 1]] },
+    { title: 'Day 2 · Strength', reward: { gold: 50, cp: 30, spb1: 5 }, tasks: [['gym', 'Upgrade the Gym to Lv 2', c => c.b.gym >= 2], ['spd', 'Use a speed-up', c => n(c, 'speed') >= 1]] },
     { title: 'Day 3 · Learn the game', reward: { gold: 60, cash: 4000 }, tasks: [['ask', 'Search a question in Help', c => !!c.seen.ask], ['hb', "Read 'Scholarships' in the Handbook", c => !!c.seen.hb_schol]] },
     { title: 'Day 4 · Headquarters', reward: { gold: 60, cp: 40 }, tasks: [['hq3', "Coaches' Office Lv 3", c => c.b.hq >= 3], ['std2', 'Stadium Lv 2', c => c.b.stadium >= 2]] },
     { title: 'Day 5 · Sports science', reward: { gold: 70, cash: 6000 }, tasks: [['film2', 'Performance Lab Lv 2', c => c.b.lab >= 2], ['cp3', 'Collect Coaching Points 3 times', c => n(c, 'collect_cp') >= 3]] },
@@ -68,7 +68,7 @@
   C.fwDone = (car, d) => DAYS[d].tasks.every(t => t[2](car));
   C.fwClaimable = () => { const car = C.car(); if (!car) return 0; C.fwInit(car); let k = 0; for (let d = 0; d <= C.fwUnlocked(car); d++) if (!car.fw.claimed.includes(d) && C.fwDone(car, d)) k++; return k; };
   C.fwActive = () => { const car = C.car(); if (!car) return false; C.fwInit(car); return car.fw.claimed.length < 7; };
-  const rw = r => [r.gold ? `<i class="coin"></i> ${r.gold}` : '', r.cash ? `💵 ${C.full(r.cash)}` : '', r.cp ? `<i class="cpi"></i> ${r.cp}` : '', r.item ? '🎁 Rare recruit' : '', r.sp1 ? `⏩ ${r.sp1}× 1m speed-up` : ''].filter(Boolean).join(' · ');
+  const rw = r => [r.gold ? `<i class="coin"></i> ${r.gold}` : '', r.cash ? `💵 ${C.full(r.cash)}` : '', r.cp ? `<i class="cpi"></i> ${r.cp}` : '', r.item ? '🎁 Rare recruit' : '', r.spb1 ? `🔨 ${r.spb1}× 1m building speed-up` : ''].filter(Boolean).join(' · ');
   C.openFirstWeek = () => C.ui.open("Coach's First Week", () => {
     const car = C.car(); C.fwInit(car); const open = C.fwUnlocked(car);
     return `<div class="raytake" style="margin-top:0"><span>📅</span><p><b>Your first week</b>Seven chapters, one after another: claim a day's reward to open the next.</p></div>
@@ -82,6 +82,6 @@
       for (const k in r) { const kk = k === 'item' ? 'rare' : k, v = k === 'item' ? 1 : r[k]; got[kk] = (got[kk] || 0) + v; } }
     if (Object.keys(got).length) C.mail('director', '📅', "Coach's First Week: your rewards", "The Career Progression Pass replaces the First Week. Here are the rewards for the days you had finished.", got); };
   C.fwClaim = d => { const car = C.car(), r = DAYS[d].reward; if (car.fw.claimed.includes(d) || d > C.fwUnlocked(car) || !C.fwDone(car, d)) return false;
-    car.fw.claimed.push(d); if (r.gold) C.acct().gold += r.gold; if (r.cash) car.cash += r.cash; if (r.cp) car.cp += r.cp; if (r.item) { car.items = car.items || {}; car.items[r.item] = (car.items[r.item] || 0) + 1; } if (r.sp1) { const inv = C.meta().inv; inv.sp1 = (inv.sp1 || 0) + r.sp1; }
+    car.fw.claimed.push(d); if (r.gold) C.acct().gold += r.gold; if (r.cash) car.cash += r.cash; if (r.cp) car.cp += r.cp; if (r.item) { car.items = car.items || {}; car.items[r.item] = (car.items[r.item] || 0) + 1; } if (r.spb1) { const inv = C.meta().inv; inv.spb1 = (inv.spb1 || 0) + r.spb1; }   // 1.12: Building speed-ups
     C.save(); return rw(r); };
 })(window.CFC);

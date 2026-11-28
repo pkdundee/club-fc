@@ -21,6 +21,7 @@
   C.assignInjury = (p, r) => {
     const roll = r(), list = roll < .015 ? SEVERE : roll < .15 ? MODERATE : MINOR, x = pickW(r, list), sev = list === SEVERE ? 2 : list === MODERATE ? 1 : 0;
     let n = x[3] + Math.floor(r() * (x[4] - x[3] + 1));
+    if (C.rehab) n = Math.max(x[3] === 2 && x[6] === 'c' ? 2 : 1, C.rehab(n, r));   // 1.12: Rehab research (every injury, severe too), then Sports Medicine's chance below
     if (sev < 2 && r() < C.medLv() * .03) n = Math.max(x[3] === 2 && x[6] === 'c' ? 2 : 1, n - 1);   // Sports Medicine: chance of a faster recovery
     p.inj = n; p.injury = { k: x[0], icon: x[1], name: x[2], sev, tot: n, conc: x[6] === 'c', season: x[6] === 's', physio: false, spec: false };
     if (sev === 2) p.rs = true;   // medical redshirt: they keep this year of eligibility

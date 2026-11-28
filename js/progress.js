@@ -38,7 +38,7 @@
     meta().piggy = 0; C.giveReward({ gold: n }); C.mail('purchases', '🧾', 'Purchase: Piggy Bank', `You broke the Piggy Bank: <i class="coin"></i> ${n} Coins.<br><small>Test store: nothing was charged.</small>`, null); C.toast(`🐷 +${n} Coins`); C.ui.refresh(); C.render(); };
 
   // ================= Win Streak: rewards for consecutive wins, sent to the Inbox =================
-  const STREAK = [[2, { gold: 10 }], [3, { gold: 20, sp15: 1 }], [5, { gold: 40, badge: 3 }], [8, { gold: 80, badge: 6, sp60: 1 }]];
+  const STREAK = [[2, { gold: 10 }], [3, { gold: 20, spb15: 1 }], [5, { gold: 40, badge: 3 }], [8, { gold: 80, badge: 6, spb60: 1 }]];   // 1.12: Building speed-ups
   C.STREAK = STREAK;
   C.streak = () => meta().streak || 0;
   C.streakHTML = () => { const n = C.streak(), next = STREAK.find(s => s[0] > n);

@@ -10,8 +10,8 @@ window.CFC.ECON = {
     // 1.11 Foundation (FEEDBACK 248, A-4; PROVISIONAL, for gameplay testing): the Phase 4 V3.2 campus timers, from econ5.py
     // (V2 anchors, x2.8 above Lv 10). The 1.10 table was: 0, 3, 122, 168, 232, 600, 1200, 2400, 4500, 8100, 12600, 15534, 19152, 21942, 25138, 28800,
     // 40103, 55843, 77760, 103680, 138240, 176222, 224640, 283029, 356594, 449280, 518656, 598744, 691200, 772785, 864000
-    hqSecs: [0, 3, 108, 180, 216, 612, 900, 1440, 2160, 3240, 4680, 17047, 22176, 27066, 33035, 40320, 50800, 64004, 80640, 102796,
-      131040, 162535, 201600, 245234, 298313, 362880, 430242, 510108, 604800, 715609, 846720] },
+    // 1.12 (FEEDBACK 258): Last War HQ timers, Lv 1-30 (lastwarvault; cpt-hedge agrees within 40 minutes at Lv 30). Chain 395 days. 1.11 table: 0, 3, 108, 180, 216, 612, ...
+    hqSecs: [0, 3, 3, 47, 60, 660, 2100, 5580, 11220, 15720, 20400, 26520, 34500, 44880, 58380, 81720, 111600, 158400, 223200, 313200, 439200, 568800, 741600, 964800, 1350000, 1890000, 2649600, 3708000, 5191200, 6750000, 8774400] },
   finish: { freeSecs: 120, perMinute: 1, firstHourMins: 60, afterHourMinsPerCoin: 2,                   // 9t: 1 a minute for the first hour, then 1 per 2 minutes (no longer used)
     // PROVISIONAL 1.03 (P7, ECONOMY_TIMERS_V0 s4): Coins a minute 1.6 up to 5 m, then log-interpolated through the verified
     // Last War points (minutes: Coins), 1.0 a minute from 8 h; never below minCoins.
@@ -25,9 +25,11 @@ window.CFC.ECON = {
   research: { cpBase: 8, cpGrowth: 1.32, cpTierStep: 4, cashBase: 1500, cashGrowth: 1.3, cashTierStep: 3, cashT0Base: 600, cashT0FromLv: 5, timeBase: 60, timeGrowth: 2.0, timeTierStep: 3, timeCap: 259200, cpMult: 4.5 },   // PROVISIONAL 1.03 (P5): 9t growth 1.55, cap 1 day, CP x1
   seasonBudget: { 5: 8000, 4: 20000, 3: 45000, 2: 90000, 1: 160000 },                                    // Booster $ each new season, by 9t tier
   tierRating: { 5: 40, 4: 48, 3: 55, 2: 62, 1: 69 },                                                      // recruit and opponent quality, by 9t tier
+  // 1.12 (FEEDBACK 258): Helpers (was Staff Help). One Helper a Dorms level (max 30); each takes 1% of the time left, at least 15 s,
+  // applied once per job as the students arrive (helpers.js). Construction and research. (1.11 values: base 5, perDorms 0.5, minSecs 60.)
   // 1.11 Foundation (B-1, Phase 4 V2/V3): Staff Help. Every construction and research job gets base + Dorms level x perDorms helps (max),
   // each cutting pct of the time left, at least minSecs. Applied when the job starts. on: false turns it off.
-  staffHelp: { on: true, base: 5, perDorms: 0.5, max: 30, pct: 0.01, minSecs: 60 },
+  staffHelp: { on: true, base: 0, perDorms: 1, max: 30, pct: 0.01, minSecs: 15, delayMs: 1200, walkMs: 2400, gapMs: 280, perWalker: 3 },
   training: { speedPerLv: 0.015,     // 1.03.01 (QA-27): Training Ground +1.5% plan speed a level (9t: 3%)
     costMult: 0 },                    // 1.11 (QA-182, FEEDBACK 212): training plans cost time only. 1 would bring back the 1.10 Booster $ cost
   // 1.11 Foundation (B-2, PROVISIONAL): football Booster $ costs scale with the FCSA division (Tier 5 = Division V ... Tier 1 = Division I).
@@ -45,7 +47,7 @@ window.CFC.ECON = {
     foundation: { name: 'Foundation', desc: 'The 1.11 Foundation build as approved', econ: {} },
     sandbox: { name: 'Sandbox (no changes)', desc: 'Identical to the foundation, on its own save: for checking that variants stay separate', econ: {} }
   };
-  let id = 'foundation'; try { id = localStorage.getItem('clubfc_v111_variant') || 'foundation'; } catch (e) { }
+  let id = 'foundation'; try { id = localStorage.getItem('clubfc_v112_variant') || 'foundation'; } catch (e) { }
   if (!C.VARIANTS[id]) id = 'foundation';
   C.VARIANT = id;
   const merge = (a, b) => { for (const k in b) { if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) && a[k] && typeof a[k] === 'object') merge(a[k], b[k]); else a[k] = b[k]; } return a; };

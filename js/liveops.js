@@ -44,7 +44,8 @@
 
   // ---------- Season Pass (real 30-day clock) ----------
   const PASS_TIERS = 30, PASS_XP = 300;
-  const FREE = i => [{ gold: 20 }, { cash: 4000 }, { manual: 1 }, { cp: 40 }, { credits: 8 }][i % 5], PREM = i => (i + 1) % 10 === 0 ? { coach: 1, gold: 150 } : (i + 1) % 5 === 0 ? { books: 2, gold: 60 } : [{ gold: 40 }, { manual: 2 }, { credits: 15 }, { cash: 8000 }][i % 4];
+  // 1.12: the free track also pays Building and Research speed-ups for your Coaches' Office level (rewards-config.js passB / passR)
+  const FREE = i => Object.assign({}, [{ gold: 20 }, { cash: 4000 }, { manual: 1 }, { cp: 40 }, { credits: 8 }][i % 5], C.rwByHQ ? C.rwByHQ('passB') : {}, C.rwByHQ ? C.rwByHQ('passR') : {}), PREM = i => (i + 1) % 10 === 0 ? { coach: 1, gold: 150 } : (i + 1) % 5 === 0 ? { books: 2, gold: 60 } : [{ gold: 40 }, { manual: 2 }, { credits: 15 }, { cash: 8000 }][i % 4];
   C.PASS = { tiers: PASS_TIERS, free: FREE, prem: PREM };
   function passCheck() { const P = lo().pass; if (C.now() - P.start > 30 * D) { Object.assign(P, { start: C.now(), xp: 0, prem: false, f: [], p: [] }); } return P; }
   C.pass = passCheck;

@@ -14,7 +14,7 @@
   C.pbAffordable = key => { const to = C.pbLv(key) + 1, k = C.pbCost(key, to), car = C.car(); return car.cp >= k.cp && car.cash >= k.cash; };
   const open = key => { const { n } = node(key); return C.pbUnlocked(key) && C.pbLv(key) < n[3] && !C.pbInQueue(key); };
   // recommended next research: an open node, affordable first, then the cheapest
-  C.pbRecommend = () => keys().filter(open).sort((a, b) => (C.pbAffordable(b) - C.pbAffordable(a)) || (C.pbCost(a, C.pbLv(a) + 1).cp - C.pbCost(b, C.pbLv(b) + 1).cp))[0] || null;
+  C.pbRecommend = () => keys().filter(open).filter(k => !C.ecoLabOK || C.ecoLabOK(k)).sort((a, b) => (C.pbAffordable(b) - C.pbAffordable(a)) || (C.pbCost(a, C.pbLv(a) + 1).cp - C.pbCost(b, C.pbLv(b) + 1).cp))[0] || null;
   const thumb = key => key ? `<i class="thumb ${C.pbAffordable(key) ? 'go' : 'wait'}" title="${C.pbAffordable(key) ? 'Recommended: you can research it now' : 'Recommended next'}">👍</i>` : '';
 
   // research waits for a tap when finished
@@ -52,9 +52,11 @@
   C.openPlaybook = () => C.ui.open('Playbook', () => { pbq();
     const rec = C.pbRecommend(), recB = rec ? rec.split('.')[0] : null;
     const pct = B => { const tot = B[3].reduce((s, n) => s + n[3], 0), got = B[3].reduce((s, n, t) => s + C.pbLv(B[0] + '.' + t), 0); return Math.round(got / tot * 100); };
-    const cards = C.PB.map(B => { const p = pct(B), qi = pbq().findIndex(q => q.key.split('.')[0] === B[0]), off = !B[3].some((n, t) => C.pbUnlocked(B[0] + '.' + t) && C.pbLv(B[0] + '.' + t) < n[3]) && p < 100;
+    const tabs = `<div class="subtabs">${[['fb', 'Football'], ['eco', 'Economy']].map(([k, n]) => `<button class="${pbTab === k ? 'on' : ''}" data-act="pbtab" data-v="${k}">${n}</button>`).join('')}</div>`;   // 1.12: the Economy branch
+    const cards = C.PB.filter(B => (B[4] === 'eco') === (pbTab === 'eco')).map(B => { const p = pct(B), qi = pbq().findIndex(q => q.key.split('.')[0] === B[0]), off = !B[3].some((n, t) => C.pbUnlocked(B[0] + '.' + t) && C.pbLv(B[0] + '.' + t) < n[3]) && p < 100;
       return `<button class="pbcat2 ${off ? 'off' : ''}" data-act="pbtree" data-v="${B[0]}">${qi >= 0 ? hn(qi) : ''}${B[0] === recB ? '<s class="rib">RECOMMENDED</s>' : ''}<span class="ring" style="--p:${p}%"><span>${B[1]}</span></span><b>${p}%</b><small>${C.esc(B[2])}</small></button>`; }).join('');
-    return `<div class="pbcats2">${cards}</div><p class="note">Research runs in the Performance Lab with Coaching Points. Bonuses are small and capped: tactics, players and fitness still decide matches.</p>`; }, { foot: C.pbSlotsHTML });
+    return tabs + `<div class="pbcats2">${cards}</div><p class="note">${pbTab === 'eco' ? 'Economy research makes the whole program run better: faster and cheaper building and research, more Booster $ and Coaching Points, shorter injuries. Each node opens when the one before is complete (10/10); each level needs a Performance Lab level.' : 'Research runs in the Performance Lab with Coaching Points. Bonuses are small and capped: tactics, players and fitness still decide matches.'}</p>`; }, { foot: C.pbSlotsHTML });
+  let pbTab = 'fb'; A.pbtab = v => { pbTab = v; C.ui.refresh(); };
 
   // ---------- 2. the tree for one branch: nodes joined by lines, equally spaced, centred, from the top ----------
   let branch = 'att';
@@ -73,18 +75,18 @@
     const head = `<div class="pbn9"><span class="hx sm on"><span class="hi">${B[1]}</span><b>${lv}/${n[3]}</b></span><div><b>${C.esc(n[0])}</b><small>${C.esc(B[2])} · Tier ${['I', 'II', 'III'][t]}</small>
       <div class="srow"><span>Current</span><b>${val(n, lv)}</b></div>${k ? `<div class="srow"><span>Next level</span><b style="color:var(--fit5)">${val(n, to)}</b></div>` : ''}</div></div>`;
     if (q) { const done = q.end <= C.now(), f = done ? 1 : 1 - C.remaining(q) / ((q.end - q.start) / 1000);
-      return head + `<div class="card"><div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><p class="note" style="text-align:center">${done ? 'Finished' : `<span data-until="${q.end}">${C.dur(C.remaining(q))}</span> left`}${q.help ? ` · Staff Help −${C.dur(q.help)}` : ''}${!done && C.freeWindow && C.freeWindow(q) ? ` · free in the last ${C.dur(C.freeWindow(q))}` : ''}</p></div>
+      return head + `<div class="card"><div class="bq-bar"><i style="width:${Math.round(f * 100)}%"></i></div><p class="note" style="text-align:center">${done ? 'Finished' : `<span data-until="${q.end}">${C.dur(C.remaining(q))}</span> left`}${!done && C.freeWindow && C.freeWindow(q) ? ` · free in the last ${C.dur(C.freeWindow(q))}` : ''}</p></div>
         ${done ? `<button class="btn full pri" data-act="pbdone" data-v="${key}">Complete</button>` : `<div class="bt2"><button class="btn fin2" data-act="pbspeed" data-v="${key}">Finish Now<br><em>${finishLabel('r', key)}</em></button></div>`}`; }
     if (!k) return head + '<p class="note">✨ Fully researched.</p>';
     const row = (icon, txt, ok, kind, need) => `<div class="cr ${ok ? '' : 'bad'}"><span class="ic">${icon}</span><span class="ct">${txt}</span>${ok ? '<b class="ok">✔</b>' : kind ? `<button class="obtain" data-act="pbobtain" data-v="${kind}|${need}">Obtain</button>` : '<b class="no">✖</b>'}</div>`;
     const prev = t ? B[0] + '.' + (t - 1) : null;
-    const rows = (prev ? row(B[1], `Lv.5 ${C.esc(B[3][t - 1][0])}`, C.pbLv(prev) >= 5) : '') +
+    const rows = (C.ecoKey && C.ecoKey(key) ? C.ecoReqRows(key, row) : prev ? row(B[1], `Lv.5 ${C.esc(B[3][t - 1][0])}`, C.pbLv(prev) >= 5) : '') +   // 1.12: Economy nodes: previous node 10/10 + Performance Lab level
       row('<i class="cpi"></i>', `<span class="${car.cp >= k.cp ? '' : 'short'}">${C.full(car.cp)}</span>/${C.full(k.cp)}`, car.cp >= k.cp, 'cp', k.cp) +
       (k.cash ? row('💵', `<span class="${car.cash >= k.cash ? '' : 'short'}">${C.full(car.cash)}</span>/${C.full(k.cash)}`, car.cash >= k.cash, 'cash', k.cash) : '');
-    const ok = un && car.cp >= k.cp && car.cash >= k.cash, slot = pbq().length < C.pbSlots(), waitDone = !slot && pbq().some(z => z.end <= C.now());
-    const help = C.staffHelp ? C.staffHelp(tm) : 0, fw = C.freeWindow ? C.freeWindow({ key, start: 0, end: 0 }) : 0;   // 1.11.01 (QA-192)
+    const ok = un && car.cp >= k.cp && car.cash >= k.cash && (!C.ecoLabOK || C.ecoLabOK(key)), slot = pbq().length < C.pbSlots(), waitDone = !slot && pbq().some(z => z.end <= C.now());
+    const help = 0, fw = C.freeWindow ? C.freeWindow({ key, start: 0, end: 0 }) : 0;   // 1.12: original time shown; Helpers act after the research starts
     return head + `<h3 class="jh" style="text-align:center">Cost</h3><div class="tbl">${rows}</div>
-      <div class="orig pbo"><span>${ok && !slot ? (waitDone ? 'Complete a finished research first' : 'All research slots are busy') : ''}</span><span>Original Time: ${C.dur(tm)}${help ? `<br><em class="shelp">Staff Help −${C.dur(help)}</em>` : ''}${fw ? `<em class="pbfree">Free finish: the last ${C.dur(fw)}</em>` : ''}</span></div>
+      <div class="orig pbo"><span>${ok && !slot ? (waitDone ? 'Complete a finished research first' : 'All research slots are busy') : ''}</span><span>Original Time: ${C.dur(tm)}${fw ? `<em class="pbfree">Free finish: the last ${C.dur(fw)}</em>` : ''}</span></div>
       <div class="bt2"><button class="btn fin2" data-act="pbinstant" data-v="${key}" ${ok ? '' : 'disabled'}>Finish Now<br><em class="${C.acct().gold < C.coinsFor(tm) ? 'short' : ''}">${C.GEM} ${C.full(C.coinsFor(tm))}</em></button>
       <button class="btn go" data-act="${slot ? 'pbgo' : 'pbqfull'}" data-v="${key}" ${ok && (slot || waitDone) ? '' : 'disabled'}>Research<br><em>⏱ ${C.dur(tm - help)}</em></button></div>`;   // 1.11.01 (QA-192, 194): Staff Help shown and taken off; blue like the building card
   }, { popup: true });

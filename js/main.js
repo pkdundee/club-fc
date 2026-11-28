@@ -10,7 +10,7 @@
     if (col) { r.setProperty('--school', col.c1); r.setProperty('--school2', lum(col.c2) > .55 ? (lum(col.c1) < .5 ? col.c1 : '#ea580c') : col.c2); } };
 
   let e2 = null;
-  C.BUILD = 'CLUB FC 1.11.01 · 27 Nov 2026' + (C.VARIANT && C.VARIANT !== 'foundation' ? ' · Variant: ' + C.VARIANTS[C.VARIANT].name : '');   // 1.11 (B-4)
+  C.BUILD = 'CLUB FC 1.12 · 28 Nov 2026' + (C.VARIANT && C.VARIANT !== 'foundation' ? ' · Variant: ' + C.VARIANTS[C.VARIANT].name : '');   // 1.11 (B-4)
   // actions that spend something: show a preview first, act only once confirmed
   const NEEDS_OK = { signjob: 1, firstpick: 1, buyweekly: 1, buydeal: 1, buy: 1, buypack: 1, cmanual: 1, clic: 1, ctrait: 1, treatc: 1, buykitc: 1, teamsess: 1, chire: 1 };
   function preview(a, v) {
@@ -179,7 +179,7 @@
       case 'sslotinfo': { const s2 = C.STAFFSLOTS.find(x => x.id === v); C.toast(`🔒 ${s2.name}: ${s2.why}`); if (v !== 'prog') C.openStore(); break; }
       case 'playbook': C.openPlaybook(); break;
       case 'pbnode': C.openPBNode(v); break;
-      case 'pbgo': { const r = C.pbStart(v); if (r === true) { C.toast('📋 Research started'); C.ui.back(); C.ui.refresh(); C.render(); } else C.toast({ max: 'Fully researched', locked: 'Locked', busy: 'Already researching', slots: 'All research slots are busy', cp: 'Not enough Coaching Points', cash: 'Not enough Booster $' }[r]); break; }
+      case 'pbgo': { const r = C.pbStart(v); if (r === true) { C.toast('📋 Research started'); C.ui.back(); C.ui.refresh(); C.render(); } else C.toast({ max: 'Fully researched', locked: 'Locked', busy: 'Already researching', slots: 'All research slots are busy', cp: 'Not enough Coaching Points', cash: 'Not enough Booster $', lab: 'Needs a higher Performance Lab level' }[r]); break; }
       // 'pbspeed' and Finish Now for research are in research.js (9r)
       case 'pbslot': { const s2 = C.PBSLOTS.find(x => x.id === v); C.toast(`🔒 ${s2.name}: ${s2.why}`); if (v !== 'prog') C.openStore(); break; }
       // career (Phase 7)

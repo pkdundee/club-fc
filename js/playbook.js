@@ -27,13 +27,13 @@
   C.pbRunning = () => { pb(); return C.car().pbq.length; };
   C.pbUnlocked = key => { const { B, t } = node(key); return t === 0 || C.pbLv(B[0] + '.' + (t - 1)) >= 5; };
   C.pbCost = (key, to) => { const t = node(key).t, E = C.ECON.research; return { cp: Math.round(E.cpBase * Math.pow(E.cpGrowth, to + t * E.cpTierStep) * (E.cpMult || 1) / 5) * 5, cash: t ? Math.round(E.cashBase * Math.pow(E.cashGrowth, to + t * E.cashTierStep) / 100) * 100 : to >= E.cashT0FromLv ? Math.round(E.cashT0Base * Math.pow(E.cashGrowth, to) / 100) * 100 : 0 }; };
-  C.pbTime = (key, to) => { const E = C.ECON.research; return Math.min(E.timeCap, Math.round(E.timeBase * Math.pow(E.timeGrowth, to + node(key).t * E.timeTierStep) * (1 - C.eff('lab') * .01))); };
+  C.pbTime = (key, to) => { if (C.ecoKey && C.ecoKey(key)) return C.ecoTime(key, to); const E = C.ECON.research; return Math.min(E.timeCap, Math.round(E.timeBase * Math.pow(E.timeGrowth, to + node(key).t * E.timeTierStep) * (1 - (C.ecoV ? C.ecoV('rt') : 0)))); };   // 1.12: the Performance Lab's research speed moved into Research Time research (FEEDBACK 258)
   C.pbInQueue = key => C.car().pbq.find(q => q.key === key);
   C.pbStart = key => {
     const car = C.car(), { n } = node(key), to = C.pbLv(key) + 1; pb();
     if (to > n[3]) return 'max'; if (!C.pbUnlocked(key)) return 'locked'; if (C.pbInQueue(key)) return 'busy'; if (car.pbq.length >= C.pbSlots()) return 'slots';
     const k = C.pbCost(key, to); if (car.cp < k.cp) return 'cp'; if (car.cash < k.cash) return 'cash';
-    car.cp -= k.cp; car.cash -= k.cash; const t = C.now(); const tm = C.pbTime(key, to), help = C.staffHelp(tm); car.pbq.push({ key, to, start: t, end: t + (tm - help) * 1000, lane: C.laneFree(car.pbq), help }); C.save(); return true;   // 1.11 (B-1): Staff Help
+    car.cp -= k.cp; car.cash -= k.cash; const t = C.now(); const tm = C.pbTime(key, to), help = C.staffHelp(tm), job = { key, to, start: t, end: t + tm * 1000, lane: C.laneFree(car.pbq) }; if (C.helpersOn) C.helpersOn(job, help, 'lab'); else { job.end -= help * 1000; job.help = help; job.helped = 1; } car.pbq.push(job); C.save(); return true;   // 1.11 (B-1): Staff Help
   };
   C.tickPB = () => { const car = C.car(); if (!car || !car.pbq) return []; const done = car.pbq.filter(q => q.end <= C.now()), msg = [];
     for (const q of done) { pb()[q.key] = q.to; msg.push(`📋 ${node(q.key).n[0]} Lv ${q.to} researched`); }

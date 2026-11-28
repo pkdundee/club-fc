@@ -12,7 +12,11 @@
   // new reward keys: speed-ups (minutes) and Booster crates; everything else still goes through liveops
   // speed-ups have types: general work on anything, the others only on their own queue (round 6). [icon, name, minutes, type]
   // 1.03: 1-minute (P9), 8 h and 24 h general items; 3 h and 8 h building and research items; Booster Crates (FEEDBACK 213, 215, PROVISIONAL)
-  const XN = { sp1: ['⏩', '1m speed-up', 1, 'g'], sp5: ['⏩', '5m speed-up', 5, 'g'], sp15: ['⏩', '15m speed-up', 15, 'g'], sp60: ['⏩', '1h speed-up', 60, 'g'], sp180: ['⏩', '3h speed-up', 180, 'g'],
+  // 1.12 (FEEDBACK 258, 261): every reward and pack gives Building (spb*) or Research (spr*) speed-ups. General items (sp*) stay in the game for later use
+  // (they still work on anything) but nothing awards them now. New: Building and Research 1m, 5m and 24h.
+  const XN = { spb1: ['🔨', '1m building speed-up', 1, 'b'], spb5: ['🔨', '5m building speed-up', 5, 'b'], spb1440: ['🔨', '24h building speed-up', 1440, 'b'],
+    spr1: ['📋', '1m research speed-up', 1, 'r'], spr5: ['📋', '5m research speed-up', 5, 'r'], spr1440: ['📋', '24h research speed-up', 1440, 'r'],
+    sp1: ['⏩', '1m speed-up', 1, 'g'], sp5: ['⏩', '5m speed-up', 5, 'g'], sp15: ['⏩', '15m speed-up', 15, 'g'], sp60: ['⏩', '1h speed-up', 60, 'g'], sp180: ['⏩', '3h speed-up', 180, 'g'],
     sp480: ['⏩', '8h speed-up', 480, 'g'], sp1440: ['⏩', '24h speed-up', 1440, 'g'],
     spb15: ['🔨', '15m building speed-up', 15, 'b'], spb60: ['🔨', '1h building speed-up', 60, 'b'], spb180: ['🔨', '3h building speed-up', 180, 'b'], spb480: ['🔨', '8h building speed-up', 480, 'b'],
     spt15: ['🏋️', '15m training speed-up', 15, 't'], spt60: ['🏋️', '1h training speed-up', 60, 't'],
@@ -27,7 +31,7 @@
   C.speedKeys = type => Object.keys(XN).filter(k => XN[k][3] && (XN[k][3] === 'g' || XN[k][3] === type));
   const ICON = { gold: '<i class="coin"></i>', cash: '<i class="cashi"></i>', cp: '<i class="cpi"></i>', manual: '📗', credits: '🎫', kit: '🧴', books: '📕', tokens: '🎟', rare: '🎁', coach: '🧑‍🏫' };
   const NAME = { gold: 'Coins', cash: 'Booster $', cp: 'Coaching Points', manual: 'Coaching manual', credits: 'Clinic Credits', kit: 'Recovery kit', books: 'Trait Book', tokens: 'Number Change', rare: 'Rare recruit', coach: 'Rare coach' };
-  const TIER = { sp1: 1, sp480: 4, sp1440: 4, spb180: 3, spb480: 4, spr180: 3, spr480: 4, crb1: 1, crb2: 2, crb3: 3, crb4: 4, crc2: 3, crp1: 1, crp2: 2, crp3: 3, crp4: 4, crc4: 4, spb15: 2, spb60: 3, spt15: 2, spt60: 3, spr15: 2, spr60: 3, badge: 3, gold: 3, coach: 4, rare: 4, books: 3, sp60: 3, sp180: 4, crate: 2, sp15: 2, cash: 1, cp: 1, manual: 1, credits: 1, kit: 1, tokens: 2, sp5: 1 };
+  const TIER = { spb1: 1, spb5: 1, spb1440: 4, spr1: 1, spr5: 1, spr1440: 4, sp1: 1, sp480: 4, sp1440: 4, spb180: 3, spb480: 4, spr180: 3, spr480: 4, crb1: 1, crb2: 2, crb3: 3, crb4: 4, crc2: 3, crp1: 1, crp2: 2, crp3: 3, crp4: 4, crc4: 4, spb15: 2, spb60: 3, spt15: 2, spt60: 3, spr15: 2, spr60: 3, badge: 3, gold: 3, coach: 4, rare: 4, books: 3, sp60: 3, sp180: 4, crate: 2, sp15: 2, cash: 1, cp: 1, manual: 1, credits: 1, kit: 1, tokens: 2, sp5: 1 };
   const oText = C.rwText, oGive = C.giveReward;
   C.rwText = r => { const a = {}, b = []; for (const k in r) { if (XN[k]) b.push(`${XN[k][0]} ${r[k] > 1 ? r[k] + '× ' : ''}${XN[k][1]}`); else a[k] = r[k]; } return [Object.keys(a).length ? oText(a) : '', ...b].filter(Boolean).join(' · '); };
   C.giveReward = r => { const a = {}, inv = C.car() ? meta().inv : null; for (const k in r) { if (XN[k]) { if (inv) inv[k] = (inv[k] || 0) + r[k]; } else a[k] = r[k]; } oGive(a); C.save(); };
@@ -94,7 +98,7 @@
     const tabs = [['special', 'Special'], ['res', 'Resources'], ['speed', 'Speed-ups'], ['coach', 'Coach'], ['gear', 'Gear']];   // 1.10: a Coach tab
     const tabsHTML = `<div class="bigtabs invtabs">${tabs.map(([k, n]) => `<button class="${invTab === k ? 'on' : ''}" data-act="invtab" data-v="${k}">${n}</button>`).join('')}</div>`;
     if (invTab === 'gear') return `${tabsHTML}${C.kitRoomHTML ? C.kitRoomHTML() : ''}<p class="note">Equip gear from a player's card. It returns here when a player leaves.</p>`;
-    const L = invItems().filter(x => x.tab === invTab && (x.n > 0 || invTab === 'speed' || invTab === 'res' || invTab === 'coach'));
+    const L = invItems().filter(x => x.tab === invTab && (x.n > 0 || (invTab === 'speed' && !(C.XN[x.k] && C.XN[x.k][3] === 'g')) || invTab === 'res' || invTab === 'coach'));   // 1.12: general speed-ups only show when owned
     if (invSel && !L.find(x => x.k === invSel)) invSel = null;
     const sel = L.find(x => x.k === invSel);
     const grid = L.map(x => C.invTileHTML ? `<button class="invk ${x.n ? '' : 'none'} ${x.k === invSel ? 'sel' : ''}" data-act="invsel" data-v="${x.k}">${C.invTileHTML(x)}</button>` : `<button class="invc t${x.tier} ${x.n ? '' : 'none'} ${x.k === invSel ? 'sel' : ''}" data-act="invsel" data-v="${x.k}"><span>${x.icon}</span><b>${x.n}</b><small>${C.esc(x.name.replace(' speed-up', '').replace(' Crate', ''))}</small></button>`).join('');
@@ -143,26 +147,35 @@
   // ================= Missions: main tasks (a guided path) and daily tasks with a points track =================
   // main tasks double as the tutorial: pre-season first (coach, campus, recruiting), then the season
   const MAIN = [
-    ['bhq', '🏛', "Build the Coaches' Office", c => c.b.hq >= 1, { gold: 10 }, 'dgo', 'hq'],
+    ['bhq', '🏛', "Build the Coaches' Office", c => c.b.hq >= 1, Object.assign({ gold: 10 }, C.RW.early[1]), 'dgo', 'hq'],   // 1.12: HQ 1-10 Building allocation (10 h) on the Coaches' Office tasks
     ['bcamp', '🏗', 'Build your 7 starting buildings', c => ['stadium','training','med','lab','recruit','media','dorms'].every(k => c.b[k] >= 1), { cash: 2000 }, 'tab', 'campus'],
     ['coach', '🧢', 'Hire your first assistant coach', c => (C.staffState().list || []).length >= 1, { cash: 2000 }, 'tab', 'staff'],
-    ['hq2', '🏛', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2, { gold: 20, sp15: 1, sp1: 6 }, 'dgo', 'hq'],
+    ['hq2', '🏛', "Upgrade the Coaches' Office to Lv 2", c => c.b.hq >= 2, Object.assign({ gold: 20 }, C.RW.early[2]), 'dgo', 'hq'],
     ['offer', '✉️', 'Make a scholarship offer to a recruit', c => (meta().ms.offers || 0) >= 1, { cp: 30 }, 'tab', 'recruit'],
     ['sign', '✍️', 'Sign a recruit', c => (c.rec && c.rec.signed || 0) >= 1, { cash: 3000 }, 'tab', 'recruit'],
     ['collect', '💵', 'Collect income on campus', c => (meta().ms.collect || 0) >= 1, { crate: 1 }, 'tab', 'campus'],
     ['research', '📋', 'Start Playbook research', c => (meta().ms.research || 0) >= 1, { cp: 40 }, 'playbook', ''],
     ['roster', '👕', 'Fill the roster to 22 players', c => c.squad.length >= 22, { gold: 30 }, 'tab', 'recruit'],
-    ['start', '🏁', 'Start the season', c => !c.pre, { gold: 50, sp60: 1 }, 'preseason', ''],
-    ['play', '⚽', 'Play your first match', c => (meta().ms.match || 0) >= 1, { sp60: 1 }, 'prematch', ''],
+    ['start', '🏁', 'Start the season', c => !c.pre, { gold: 50 }, 'preseason', ''],
+    ['play', '⚽', 'Play your first match', c => (meta().ms.match || 0) >= 1, { cash: 1500 }, 'prematch', ''],
     ['train', '🏋️', 'Start a training plan', c => (meta().ms.train || 0) >= 1, { manual: 2, gear: 1 }, 'tab', 'squad'],
     ['win', '🏆', 'Win a match', c => (meta().ms.win || 0) >= 1, { gold: 30, crate: 1 }, 'prematch', ''],
-    ['hq3', '🏛', "Upgrade the Coaches' Office to Lv 3", c => c.b.hq >= 3, { sp60: 2, badge: 5 }, 'dgo', 'hq'],
+    ['hq3', '🏛', "Upgrade the Coaches' Office to Lv 3", c => c.b.hq >= 3, Object.assign({ badge: 5 }, C.RW.early[3]), 'dgo', 'hq'],
     ['video', '🎞', 'Upgrade the Analysis Suite to Lv 2', c => c.b.video >= 2, { gold: 40 }, 'dgo', 'video'],
     ['wins3', '🏆', 'Win 3 matches', c => (meta().ms.win || 0) >= 3, { gold: 60, books: 1, gear: 2 }, 'prematch', ''],
-    ['hq5', '🏛', "Reach Coaches' Office Lv 5", c => c.b.hq >= 5, { gold: 80, sp180: 1 }, 'dgo', 'hq'],
-    ['gym', '🏋️', 'Upgrade the Gym to Lv 2', c => c.b.gym >= 2, { sp15: 2 }, 'dgo', 'gym'],
+    ['hq5', '🏛', "Reach Coaches' Office Lv 5", c => c.b.hq >= 5, Object.assign({ gold: 80 }, C.RW.early[5]), 'dgo', 'hq'],
+    ['gym', '🏋️', 'Upgrade the Gym to Lv 2', c => c.b.gym >= 2, { cash: 2000 }, 'dgo', 'gym'],
     ['top4', '📊', 'Finish a season in the top 4', c => (meta().ms.top4 || 0) >= 1, { gold: 150, rare: 1 }, 'tab', 'season']
   ];
+  // 1.12: Coaches' Office progression tasks. Lv 4 and 6-10 carry the rest of the HQ 1-10 allocation; from Lv 11 there are three a level
+  // (the level itself, the Performance Lab and the rotation building it needs), paying the main-task share of that level's Building speed-ups.
+  [4, 6, 7, 8, 9, 10].forEach(n => MAIN.push(['hq' + n, '🏛', `Reach Coaches' Office Lv ${n}`, c => c.b.hq >= n, C.RW.early[n], 'dgo', 'hq']));
+  for (let n = 11; n <= 29; n++) { const R = C.RW.main[n], rot = C.hqNeeds(n).find(x => x[0] !== 'lab');
+    MAIN.push(['hq' + n, '🏛', `Reach Coaches' Office Lv ${n}`, c => c.b.hq >= n, R[0], 'dgo', 'hq']);
+    MAIN.push(['lab' + n, '🔬', `Upgrade the Performance Lab to Lv ${n - 1}`, c => c.b.lab >= n - 1, R[1], 'dgo', 'lab']);
+    MAIN.push(['rot' + n, C.BUILDINGS[rot[0]].icon, `Upgrade ${rot[0] === 'med' ? '' : 'the '}${C.BUILDINGS[rot[0]].name} to Lv ${n - 1}`, c => c.b[rot[0]] >= n - 1, R[2], 'dgo', rot[0]]); }
+  // 1.12: Economy research node tasks: a Research speed-up reward for completing each node (I, II, III) of each Economy path
+  if (C.ECO_PATHS) C.ECO_PATHS.forEach(p => [1, 2, 3].forEach(t => MAIN.push(['eco_' + p.id + t, '📋', `Complete ${p.name} ${['I', 'II', 'III'][t - 1]}`, c => C.ecoLv && C.ecoLv(p.id) >= t * 10, C.RW.node[t], 'playbook', ''])));
   C.MAIN = MAIN;
   C.mainDone = id => meta().main.includes(id);
   // Recruiting Missions, one step at a time (9t, FEEDBACK 103): while roster spots are open, "Sign 1 recruit", then 2, then 3,
@@ -184,15 +197,17 @@
     ['train', '🏋️', 'Start a training plan', 1, 'tab', 'squad'], ['research', '📋', 'Start Playbook research', 1, 'playbook', ''],
     ['speed', '⏩', 'Use a speed-up', 1, 'inventory', ''], ['medical', '🩺', 'Use a physio or recovery item', 1, 'medical', '']];
   const LOGIN = ['login', '🎁', 'Claim login reward', 1, 'dailytasks', ''];
-  const DREW = { login: C.GIFT, match: { cash: 1500 }, win: { gold: 10 }, collect: { cp: 15 }, upgrade: { spb15: 1 }, train: { spt15: 1 }, research: { spr15: 1 }, offer: { cash: 1000 }, speed: { sp5: 1 }, medical: { kit: 1 } };
-  const CHESTS = [[20, { sp5: 2, cash: 1500 }], [40, { cp: 30, crate: 1 }], [60, { gold: 15, kit: 1, badge: 1 }], [90, { spt15: 1, spb15: 1, gear: 1 }], [120, { gold: 40, sp60: 1, badge: 3 }]];
+  const DREW = { login: C.GIFT, match: { cash: 1500 }, win: { gold: 10 }, collect: { cp: 15 }, upgrade: { spb15: 1 }, train: { spt15: 1 }, research: { spr15: 1 }, offer: { cash: 1000 }, speed: { spb1: 5 }, medical: { kit: 1 } };
+  const CHESTS = [[20, { spb1: 5, cash: 1500 }], [40, { cp: 30, crate: 1, spr1: 5 }], [60, { gold: 15, kit: 1, badge: 1, spb5: 2 }], [90, { spt15: 1, spb15: 1, spr5: 2, gear: 1 }], [120, { gold: 40, spb60: 1, badge: 3 }]];   // 1.12: 1m/5m from HQ 1
+  // 1.12: the 120-point chest grows with the campus: + B 15m per Coaches' Office level above 10, + R 15m per Performance Lab level above 19
+  C.chestReward = i => { const r = Object.assign({}, CHESTS[i][1]); if (i === CHESTS.length - 1 && C.car()) { const b = Math.max(0, C.level('hq') - 10) * C.RW.chestB, q = Math.max(0, C.level('lab') - 19) * C.RW.chestR; if (b) r.spb15 = (r.spb15 || 0) + b; if (q) r.spr15 = (r.spr15 || 0) + q; } return r; };
   C.CHESTS = CHESTS;
   function rollDaily() { const M = meta(); if (M.day === dayKey()) {
       // a list made by an earlier build: drop tasks that no longer exist, put the login reward first
       if (!M.daily.some(t => t.id === 'login')) { M.daily = [{ id: 'login', n: 1, goal: 1, claimed: false }].concat(M.daily.filter(t => DAILY.some(x => x[0] === t.id))); } return; }
     // anything finished but not claimed yesterday goes to the Inbox, so it isn't lost
     const left = {}; (M.daily || []).forEach(t => { if (t.n >= t.goal && !t.claimed) Object.entries(DREW[t.id] || {}).forEach(([k, v]) => left[k] = (left[k] || 0) + v); });
-    CHESTS.forEach(([p, r], i) => { if (M.pts >= p && !M.chests.includes(i)) Object.entries(r).forEach(([k, v]) => left[k] = (left[k] || 0) + v); });
+    CHESTS.forEach(([p, r], i) => { if (M.pts >= p && !M.chests.includes(i)) Object.entries(C.chestReward(i)).forEach(([k, v]) => left[k] = (left[k] || 0) + v); });
     if (Object.keys(left).length && M.day) C.mail('rewards', '🎁', 'Unclaimed daily rewards', "You finished these yesterday but didn't claim them. Here they are.", left);
     // (a day you don't sign in never gets a task list, so nothing is mailed for it: sign in, or miss out)
     M.day = dayKey(); M.pts = 0; M.chests = [];
@@ -203,17 +218,18 @@
   C.giftClaimed = () => !C.car() || C.loginClaimed();
   C.dailyEvent = (id, n = 1) => { if (!C.car()) return; rollDaily(); meta().daily.forEach(t => { if (t.id === id) t.n = Math.min(t.goal, t.n + n); }); };
   C.dailyClaim = i => { const M = meta(), t = M.daily[i]; if (!t || t.claimed || t.n < t.goal) return null; t.claimed = true; M.pts += 20; const r = DREW[t.id]; C.giveReward(r); return r; };
-  C.chestOpen = i => { const M = meta(); if (M.chests.includes(i) || M.pts < CHESTS[i][0]) return null; M.chests.push(i); C.giveReward(CHESTS[i][1]); return CHESTS[i][1]; };
+  C.chestOpen = i => { const M = meta(); if (M.chests.includes(i) || M.pts < CHESTS[i][0]) return null; M.chests.push(i); const r = C.chestReward(i); C.giveReward(r); return r; };
 
   // ================= themed events: 14 days each, back to back, on a fixed diary (round 6) =================
   // Free track: one drop a day; claim it on the day or it's gone. Premium packs ($4.99, then $9.99) open their tracks:
   // everything up to today can be redeemed at once, and anything uncollected when the event ends is mailed.
   const dayNo = () => Math.floor((new Date().setHours(12, 0, 0, 0)) / 864e5);
   const big = i => (i + 1) % 7 === 0;
+  C.rwByHQ = k => { const L = C.car() ? C.level('hq') : 1, t = C.RW[k] || {}; return Object.assign({}, t[Math.min(29, L)] || {}); };   // 1.12: Event / Pass drops by Coaches' Office level (none below Lv 11)
   const THEMES = [
-    { id: 'coaching', icon: '🧢', name: 'Coaching Event', desc: 'Build your staff and your Playbook faster.', free: i => big(i) ? { cp: 70, badge: 2 } : { cp: 25 },
+    { id: 'coaching', icon: '🧢', name: 'Coaching Event', desc: 'Build your staff and your Playbook faster.', free: i => Object.assign(big(i) ? { cp: 70, badge: 2 } : { cp: 25 }, C.rwByHQ('evR')),
       p1: i => [{ manual: 2 }, { credits: 10 }, { badge: 2 }, { manual: 3 }, { spr15: 2 }, { credits: 15 }, { badge: 4 }][i % 7], p2: i => i === 13 ? { coach: 1, gold: 100 } : [{ badge: 4 }, { books: 1 }, { manual: 5 }, { gold: 40 }, { spr60: 1 }, { credits: 25 }, { badge: 8 }][i % 7] },
-    { id: 'building', icon: '🔨', name: 'Building Event', desc: 'Raise your campus faster.', free: i => big(i) ? { cash: 5000, spb15: 2 } : { cash: 1200 },
+    { id: 'building', icon: '🔨', name: 'Building Event', desc: 'Raise your campus faster.', free: i => Object.assign(big(i) ? { cash: 5000, spb15: 2 } : { cash: 1200 }, C.rwByHQ('evB')),   // 1.12: + the Building Event's daily drop for your Coaches' Office level
       p1: i => [{ spb15: 2 }, { cash: 4000 }, { crate: 1 }, { spb15: 3 }, { cash: 6000 }, { crate: 2 }, { spb60: 1 }][i % 7], p2: i => i === 13 ? { gold: 150, cash: 30000 } : [{ spb60: 1 }, { cash: 10000 }, { gold: 40 }, { spb60: 2 }, { cash: 15000 }, { crate: 3 }, { spb60: 3 }][i % 7] },
     { id: 'training', icon: '🏋️', name: 'Training Event', desc: 'Develop your players faster.', free: i => big(i) ? { spt15: 2, gear: 1 } : { cash: 800 },
       p1: i => [{ spt15: 2 }, { cash: 3000 }, { spt15: 2 }, { tokens: 1 }, { spt15: 3 }, { cash: 5000 }, { spt60: 1 }][i % 7], p2: i => i === 13 ? { gold: 150, spt60: 3 } : [{ spt60: 1 }, { gold: 30 }, { spt60: 1 }, { cash: 10000 }, { spt60: 2 }, { gold: 40 }, { spt60: 2 }][i % 7] },
@@ -345,10 +361,23 @@
   function receipt(name, r) { C.mail('purchases', '🧾', 'Purchase: ' + name, `Thanks for your purchase. ${r ? 'Received: ' + C.rwText(r) + '.' : ''}<br><small>Test store: nothing was charged.</small>`, null); }
   const FOLDERS = [['match', '📋', 'Match reports'], ['director', '🏛', 'Director'], ['rewards', '🎁', 'Rewards'], ['purchases', '🧾', 'Purchases'], ['system', '⚙️', 'News & updates'], ['fav', '⭐', 'Favourites']];
   C.inboxUnread = () => { const car = C.car(); if (!car) return 0; sysMail(); return meta().inbox.filter(x => !x.read || (x.r && !x.claimed)).length; };   // 1.01: mail only (the Director's notes are mail now)
-  function sysMail() { C.syncADMail && C.syncADMail(C.car()); const M = meta();
+  // 1.12: progression reward tasks a save has already passed are marked done (no reward); used by the migration and the test saves
+  C.markReachedTasks = () => { const car = C.car(), M = meta(); for (const t of MAIN) if (/^(bhq|hq\d+|lab\d+|rot\d+)$/.test(t[0]) && !M.main.includes(t[0]) && t[3](car)) M.main.push(t[0]); };
+  // 1.12 migration (once per career, FEEDBACK 258): general speed-ups become Building speed-ups of the same time; reward tasks already passed are
+  // closed; one catch-up mail pays the HQ 1-10 allocation (levels reached) and, from Lv 11, the current level's own main-task allocation.
+  // Running jobs keep their end times; their 1.11 Staff Help was already taken off, so Helpers never touch them (helpers.js skips them).
+  function migrate112() { const car = C.car(), M = meta(); if (M.seenSys.includes('112')) return; M.seenSys.push('112');
+    const inv = M.inv || {}; ['1', '5', '15', '60', '180', '480', '1440'].forEach(m => { const n = inv['sp' + m]; if (n) { inv['spb' + m] = (inv['spb' + m] || 0) + n; delete inv['sp' + m]; } });
+    const hq = C.level('hq'); if (hq < 2) return;
+    const before = new Set(M.main); C.markReachedTasks();
+    const r = {}, add = o => Object.entries(o || {}).forEach(([k, v]) => r[k] = (r[k] || 0) + v);
+    for (let L = 1; L <= Math.min(10, hq); L++) add(C.RW.early[L]);
+    if (hq >= 11) C.RW.main[Math.min(29, hq)].forEach(add);
+    if (Object.keys(r).length) C.mail('system', '🔨', 'Welcome to the new campus economy', `Construction now runs on longer timers, sped up by <b>Helpers</b> from your Dorms, <b>Economy research</b> in the Playbook and Building speed-ups earned from tasks, chests, events and the Pass.<br>Your general speed-ups are now Building speed-ups. Here is a catch-up for the levels you've already reached.`, r); }
+  function sysMail() { C.syncADMail && C.syncADMail(C.car()); const M = meta(); migrate112();
     // 1.03 (FEEDBACK 170, 212): research is capped at 2 slots, so a bought research slot is refunded once in Coins; build slots are now Builder Packs
     { const a = C.acct(); if (a.pslot3Refund === 'due') { a.pslot3Refund = 'done'; C.mail('system', '📋', 'Research slots: two for everyone', 'Research now runs in 2 slots: the free one and the one you earn at Performance Lab Lv 10. Your extra research slot has been withdrawn, and here is a refund. Anything already researching finishes as normal.', { gold: 360 }); } }
-    if (!M.seenSys.includes('103q')) { M.seenSys.push('103q'); C.mail('system', '🔨', 'Builders: one free, three to buy', `You have one free builder. Builder Packs I, II and III each add a permanent builder, in that order, with speed-ups and Booster Crates to get it working.${C.acct().bq1 ? ' Your extra build slot is now your 2nd builder.' : ''} The Coach's Club and Coaches' Office Lv 10 no longer add a builder; any build already running in those slots finishes as normal. Free finishes are now earned: the Coaches' Office and Performance Lab give a longer free window as they level up. Here are some 1-minute speed-ups to start with.`, { sp1: 10 }); } if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `A few changes around the office, Coach:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, sp15: 2 }); } }
+    if (!M.seenSys.includes('103q')) { M.seenSys.push('103q'); C.mail('system', '🔨', 'Builders: one free, three to buy', `You have one free builder. Builder Packs I, II and III each add a permanent builder, in that order, with speed-ups and Booster Crates to get it working.${C.acct().bq1 ? ' Your extra build slot is now your 2nd builder.' : ''} The Coach's Club and Coaches' Office Lv 10 no longer add a builder; any build already running in those slots finishes as normal. Free finishes are now earned: the Coaches' Office and Performance Lab give a longer free window as they level up. Here are some 1-minute speed-ups to start with.`, { spb1: 10 }); } if (!M.seenSys.includes('9h')) { M.seenSys.push('9h'); C.mail('system', '📣', 'New: Missions, the Pass, Inbox and Inventory', `A few changes around the office, Coach:<br>• <b>Missions</b> (in Events): main tasks guide you step by step, daily tasks fill a points track with chests.<br>• <b>Themed events</b> replace the old calendar: claim a free drop each day.<br>• <b>Inventory</b> holds speed-ups and items.<br>• This <b>Inbox</b> keeps match reports, rewards and receipts.<br>Here's something to get you started.`, { gold: 50, spb15: 2 }); } }
   // 1.02 (FEEDBACK 157): Inbox menu → folder page (headlines) → message page. Back goes up one level each time.
   const folderName = k => (FOLDERS.find(f => f[0] === k) || [0, '', 'Inbox'])[2];
   const inFolder = k => meta().inbox.filter(x => k === 'fav' ? x.fav : x.f === k);
@@ -408,10 +437,10 @@
   // ================= Store with tabs =================
   let stTab = 'deals';
   const WEEKLY = [
-    { id: 'wk_build', icon: '🔨', name: 'Builder week', r: { cash: 20000, sp60: 2, sp15: 4 }, price: '$2.99', lim: 2, tag: 'Epic' },
+    { id: 'wk_build', icon: '🔨', name: 'Builder week', r: { cash: 20000, spb60: 2, spb15: 4 }, price: '$2.99', lim: 2, tag: 'Epic' },
     { id: 'wk_rec', icon: '✉️', name: 'Recruiting push', r: { gold: 120, rare: 1 }, price: '$4.99', lim: 1, tag: 'Legendary' },
     { id: 'wk_coach', icon: '🏅', name: 'Coach development', r: { badge: 30, manual: 4 }, price: '$3.99', lim: 2, tag: 'Epic' },
-    { id: 'wk_med', icon: '🩺', name: 'Medical kit-out', r: { kit: 4, credits: 20, sp15: 2 }, price: '$1.99', lim: 3, tag: 'Elite' }
+    { id: 'wk_med', icon: '🩺', name: 'Medical kit-out', r: { kit: 4, credits: 20, spr15: 2 }, price: '$1.99', lim: 3, tag: 'Elite' }   // 1.12: Research speed-ups (FEEDBACK 258)
   ];
   C.WEEKLY = WEEKLY;
   const wkEnd = () => new Date(weekKey()).getTime() + 7 * D;

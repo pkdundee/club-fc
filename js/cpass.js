@@ -23,9 +23,9 @@
     ['t_top', '📊', 'Be in the top half after 7 league matches', P => n(P, 'top') >= 1, 60, 'tab', 'season']];
   const MS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
   const RW = {
-    f: [{ sp1: 10 }, { gold: 30 }, { crb1: 1 }, { sp1: 10, sp5: 2 }, { gold: 30 }, { crp1: 1 }, { sp1: 11, sp15: 1 }, { kit: 2, gear: 2 }, { gold: 30, sp5: 2 }, { gold: 30, manual: 5 }],
-    a: [{ gold: 50 }, { spb15: 2 }, { crb2: 1 }, { sp60: 1 }, { gold: 60 }, { crp2: 1 }, { spt15: 2 }, { rare: 1 }, { gold: 80 }, { gold: 80 }],
-    p: [{ gold: 200 }, { sp180: 1 }, { crb3: 1 }, { kit: 6, gear: 4 }, { gold: 300 }, { crp3: 1 }, { spb180: 1 }, { manual: 20, crb2: 1 }, { gold: 300, spb180: 1 }, { gold: 300, crc4: 1 }]
+    f: [{ spb1: 10 }, { gold: 30 }, { crb1: 1 }, { spb1: 10, spb5: 2 }, { gold: 30 }, { crp1: 1 }, { spb1: 11, spb15: 1 }, { kit: 2, gear: 2 }, { gold: 30, spb5: 2 }, { gold: 30, manual: 5 }],   // 1.12: Building speed-ups
+    a: [{ gold: 50 }, { spb15: 2 }, { crb2: 1 }, { spb60: 1 }, { gold: 60 }, { crp2: 1 }, { spt15: 2 }, { rare: 1 }, { gold: 80 }, { gold: 80 }],
+    p: [{ gold: 200 }, { spb180: 1 }, { crb3: 1 }, { kit: 6, gear: 4 }, { gold: 300 }, { crp3: 1 }, { spb180: 1 }, { manual: 20, crb2: 1 }, { gold: 300, spb180: 1 }, { gold: 300, crc4: 1 }]
   };
   C.CPP = { DPOOL, TARGETS, MS, RW, OPEN_DAYS };
   const sod = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };

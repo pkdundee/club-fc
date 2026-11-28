@@ -49,8 +49,10 @@
     if (!C.canUpgrade(k)) return false;
     const cost = C.costOf(k, to), t = C.now();
     car.cash -= cost.cash; car.cp -= cost.cp;
-    const tm = C.timeOf(k, to), help = to > 1 ? C.staffHelp(tm) : 0;   // 1.11 (B-1): Staff Help on every upgrade
-    car.queue.push({ key: k, to, start: t, end: t + (tm - help) * 1000, lane: C.laneFree(car.queue), help });
+    const tm = C.timeOf(k, to), help = to > 1 ? C.staffHelp(tm) : 0;   // 1.12: Helpers. The job starts at its full time; the Helpers take theirs off as they arrive
+    const job = { key: k, to, start: t, end: t + tm * 1000, lane: C.laneFree(car.queue) };
+    if (C.helpersOn) C.helpersOn(job, help, k); else { job.end -= help * 1000; job.help = help; job.helped = 1; }
+    car.queue.push(job);
     C.save(); return true;
   };
 

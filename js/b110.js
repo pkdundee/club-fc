@@ -72,7 +72,7 @@
       <h3 class="jh">Currencies · Program Power</h3><div class="res" style="display:flex;gap:6px;align-items:center">${C.kCash(22)}${C.kCP(22)}${C.kCoin(22)}${C.kPow(24)}</div>
       <h3 class="jh">List row (your row pinned)</h3><div class="lrow"><span>🏟</span><span class="lt"><b>Row title</b><small>A line under it</small></span><button class="btn sm2 go">Go</button></div>
       <h3 class="jh">Celebration</h3><button class="btn go" data-act="uikitcel">Show it</button></div>`; }); };
-  A.uikitcel = () => C.celebrate({ sp5: 2, cash: 1500, gold: 40 }, 'A total of 3 rewards were claimed');
+  A.uikitcel = () => C.celebrate({ spb5: 2, cash: 1500, gold: 40 }, 'A total of 3 rewards were claimed');
 
   // ---------- QA-144: the coach's line, with any text (used for the live read in a match) ----------
   C.adviceLine = line => { const c = C.onStaff().find(x => x.spec === 'tac') || C.onStaff().find(x => x.spec === 'gen') || C.onStaff()[0]; if (!c || !line) return '';
@@ -158,12 +158,12 @@
   A.chestopen = (v, el) => { const i = +v, row = C.CHESTS[i]; if (!row) return; closeDrop();
     const btn = document.querySelector(`.pchest[data-v="${i}"]`), r = C.chestOpen(i);
     if (r) { if (btn) btn.classList.add('opening'); setTimeout(() => { C.ui.refresh(); C.render(); if (C.celebrate) C.celebrate(r, `Chest at ${row[0]} ★ opened`); }, 420); return; }
-    chestDrop(row[1], btn, `Rewards at ${row[0]} ★`); };
+    chestDrop(C.chestReward ? C.chestReward(i) : row[1], btn, `Rewards at ${row[0]} ★`); };
 
   // ---------- SCOPE_1.10 D: the Inventory's square tiles ----------
   const RARS = ['grey', 'grey', 'green', 'blue', 'purple', 'gold'];
   const SPEED_SUB = { g: '', b: 'build', r: 'research', t: 'train' };
-  const timeLabel = m => m >= 60 ? (m / 60) + 'h' : m + 'm';
+  const timeLabel = m => m >= 60 ? (m / 60) + 'h' : m + 'm';   // 24h shows as 24h (icon sheet v7.1)
   C.invTileHTML = x => { const A2 = C.kArt, k = x.k, n = x.n;
     let r = RARS[Math.min(5, x.tier + 1)] || 'grey', art = null, label = '';
     const sp = C.XN && C.XN[k];

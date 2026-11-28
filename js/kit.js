@@ -53,16 +53,17 @@ function tile(r,art,label,qty){const g=uid(),R=RAR[r];
 const lg=(id,a,b,v=1)=>`<linearGradient id="${id}" x1="0" y1="0" x2="${v?0:1}" y2="${v?1:0}"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
 // ---------- art ----------
 function chev(sub){return()=>{const a=uid();return `<defs>${lg(a,'#fff3a8','#f5a70b')}</defs>
- <path d="M12 30l25 21-25 21z" fill="url(#${a})" stroke="#b45309" stroke-width="2.5" stroke-linejoin="round"/>
- <path d="M35 30l25 21-25 21z" fill="url(#${a})" stroke="#b45309" stroke-width="2.5" stroke-linejoin="round"/>
- <path d="M15 35l16 13.5" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M38 35l16 13.5" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+ <path d="M26 30l25 21-25 21z" fill="url(#${a})" stroke="#b45309" stroke-width="2.5" stroke-linejoin="round"/>
+ <path d="M49 30l25 21-25 21z" fill="url(#${a})" stroke="#b45309" stroke-width="2.5" stroke-linejoin="round"/>
+ <path d="M29 35l16 13.5" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M52 35l16 13.5" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>
  ${sub?SUB[sub]():''}`;};}
-// type badges: flat round badges from the extended set (same look as the tap ring), top right of the tile
-const tb=(c,d,g)=>`<g transform="translate(60 22)"><circle cx="16" cy="17.6" r="15" fill="${d}"/><circle cx="16" cy="16" r="15" fill="${c}" stroke="#fff" stroke-width="2.4"/><g transform="translate(4.5 4.5) scale(.96)">${g}</g></g>`;
+// 1.12 (icon sheet v7.1, approved with the 1.12 build): chevrons centred; type badges use the campus icons (the map's mallet = Building,
+// the Playbook book = Research, the cone = Training), 80% size, top right just below the time band, overlapping the second chevron
+const tb=(c,d,g)=>`<g transform="translate(66 21) scale(.8)"><circle cx="16" cy="17.6" r="15" fill="${d}"/><circle cx="16" cy="16" r="15" fill="${c}" stroke="#fff" stroke-width="2.4"/><g transform="translate(4.5 4.5) scale(.96)">${g}</g></g>`;
 const SUB={
- build:()=>tb('#64748b','#334155',`<path d="M5 20L14 11" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M11.5 4.5h7.5l2.5 3.2-4.6 2.6-2.4-2.4h-3z" fill="#fff"/>`),
- research:()=>tb('#0d9488','#115e59',`<path d="M9 4.5h6M10 4.5v6l-5 9h14l-5-9v-6" fill="#fff"/><path d="M7.6 16.5h8.8" stroke="#0d9488" stroke-width="1.6"/>`),
- train:()=>tb('#e8772e','#b0521a',`<path d="M12 4.5l5.5 14h-11z" fill="#fff"/><path d="M8.2 14.5h7.6" stroke="#e8772e" stroke-width="1.8"/><path d="M4.5 19.5h15" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>`),
+ build:()=>tb('#475569','#1e293b',`<g transform="translate(12 12) scale(1.3)"><path d="M-4.5 4.5 L1.6 -1.6" stroke="#fff" stroke-width="2.9" stroke-linecap="round"/><path d="M0 -4.6 L4.6 0 L2.1 2.5 L-2.5 -2.1Z" fill="#fff" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></g>`),
+ research:()=>tb('#1d4ed8','#1e3a8a',`<path d="M4.5 6.3c2.6-1.3 4.9-1.3 7.5 0v12c-2.6-1.3-4.9-1.3-7.5 0zM12 6.3c2.6-1.3 4.9-1.3 7.5 0v12c-2.6-1.3-4.9-1.3-7.5 0z" fill="#fff"/><path d="M14.4 12.5l1.5 1.5 2.6-2.8" stroke="#1d4ed8" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`),
+ train:()=>tb('#e8772e','#b0521a',`<path d="M12 5l5 13H7z" fill="#fff"/><path d="M8.6 14h6.8" stroke="#e8772e" stroke-width="1.6"/><path d="M5 18.5h14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>`),
  heal:()=>tb('#22c55e','#15803d',`<path d="M9.5 4.5h5v5h5v5h-5v5h-5v-5h-5v-5h5z" fill="#fff"/>`),
 };
 const coins=()=>{const a=uid();return `<defs>${lg(a,'#fff1a6','#f2a20c')}</defs>${[64,52,40].map((y,i)=>`<ellipse cx="${50+(i-1)*4}" cy="${y+6}" rx="24" ry="9" fill="#b45309"/><ellipse cx="${50+(i-1)*4}" cy="${y}" rx="24" ry="9" fill="url(#${a})" stroke="#b45309" stroke-width="2"/>`).join('')}<text x="54" y="44" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="11" fill="#b45309">C</text>`;};
